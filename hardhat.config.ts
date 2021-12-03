@@ -22,20 +22,19 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.0",
+    version: "0.8.4",
     settings: {
       optimizer: {
         enabled: true,
         runs: 200,
       }
     }
-  },  networks: {
-
+  },
+  networks: {
   },
   gasReporter: {
     currency: 'USD',
     gasPrice: 21,
-    excludeContracts: ["NFT", "ERC20Upgradeable", "ERC721"],
   },
 
 

@@ -1,67 +1,192 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
+import { BigNumber } from 'ethers';
+import { unlockReservedLiquidity, mintTokens } from "./testHelpers/singleCurveTokenVaultHelper";
+import { type } from 'os';
 
 
 describe('NibblTokenVault', function () {
     
     const tokenName = "NibblToken";
     const tokenSymbol = "NIBBL";
-    const scale = ethers.BigNumber.from(1e6);
-    const fee = ethers.BigNumber.from(.01e6);
-    const rejectionPremium = ethers.BigNumber.from(.1e6);
-    const reserveRatio = ethers.BigNumber.from(.5e6);
-    const initialTokenPrice = ethers.BigNumber.from(1e14); //10 ^-4
-    const initialValuation = ethers.BigNumber.from(200e18.toString());
-    const initialTokenSupply = ethers.BigNumber.from(initialValuation.div(initialTokenPrice));
-    const initialReserveBalance = ethers.BigNumber.from((10e18).toString());
-    const ONE = ethers.BigNumber.from((1));
+    const assetName = "NFT";
+    const assetSymbol = "NFT";
+    const scale: number = 1e6;
+    const feeAdmin: number = .003;
+    const feeCurator: number = .007;
+    const rejectionPremium: number =.1;
+    const reserveRatio: number = .5;
+    
+
+    const initialTokenPrice: number = 0.0001; //10 ^-4
+    const initialValuation: number = 100;
+    const reservedTokenSupply: number = initialValuation / initialTokenPrice;
+    const initialFictitiousReserveBalance: number = reserveRatio * initialValuation;
+
+    const ONE = BigNumber.from((1));
+    const decimal = BigNumber.from((10 ** 18).toString());    
 
     beforeEach(async function () {
-        const [curator, addr1, addr2, addr3, addr4, addr5] = await ethers.getSigners();
+        const [curator, admin ,addr1, addr2, addr3, addr4, addr5] = await ethers.getSigners();
         this.curator = curator;
+        this.admin = admin;
         this.addr1 = addr1;
         this.addr2 = addr2;
         this.addr3 = addr3;
         this.addr4 = addr4;
         this.addr5 = addr5;
-        this.ownerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-        this.addr1PrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
-        const NFT = await ethers.getContractFactory("NFT");
-        this.nft = await NFT.deploy();
+        this.NFT = await ethers.getContractFactory("NFT");
+        this.nft = await this.NFT.deploy();
         await this.nft.deployed();
         this.nft.mint(this.curator.address, 0);
 
-        const SingleCurveNibblVault = await ethers.getContractFactory("SingleCurveNibblVault");
-        this.singleCurveVaultImplementation = await SingleCurveNibblVault.deploy();
+        this.SingleCurveVault = await ethers.getContractFactory("SingleCurveVault");
+        this.singleCurveVaultImplementation = await this.SingleCurveVault.deploy();
         await this.singleCurveVaultImplementation.deployed();
-
-        const TokenVaultFactory = await ethers.getContractFactory("NibblTokenVaultFactory");
-        this.tokenVaultFactory = await TokenVaultFactory.deploy(this.singleCurveVaultImplementation.address, reserveRatio, fee, rejectionPremium );
+        
+        this.TokenVaultFactory = await ethers.getContractFactory("NibblTokenVaultFactory");
+        this.tokenVaultFactory = await this.TokenVaultFactory.deploy(
+            this.singleCurveVaultImplementation.address,
+            BigNumber.from(reserveRatio * scale),
+            BigNumber.from(feeAdmin * scale),
+            BigNumber.from(feeCurator * scale),
+            BigNumber.from(rejectionPremium * scale));
         await this.tokenVaultFactory.deployed();
-
         this.nft.approve(this.tokenVaultFactory.address, 0);
+            
+        
+        // console.log(unlockedTokens, reservedTokenSupply, initialFictitiousReserveBalance , reserveRatio, initialLiquiditySupplied);
+        
+        // const mintedTokens: number = mintTokens(reservedTokenSupply - unlockedTokens, initialFictitiousReserveBalance - initialLiquiditySupplied, reserveRatio, initialLiquiditySupplied);
+        // console.log(mintedTokens, reservedTokenSupply - unlockedTokens, initialFictitiousReserveBalance- initialLiquiditySupplied ,reserveRatio, initialLiquiditySupplied);        
 
-        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply,{ value: initialReserveBalance });
-        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
-        this.tokenVault = new ethers.Contract(proxyAddress.toString(), SingleCurveNibblVault.interface, this.curator);
+
     })
     
 
-    it("should initialize the vault with correct initial values.", async function () {
+    it("should initialize the vault with correct initial values when (initialLiquiditySupplied != 0).", async function () {
+        const initialLiquiditySupplied: number = 25;
+        const unlockedTokens: BigNumber = BigNumber.from((unlockReservedLiquidity(reservedTokenSupply, initialFictitiousReserveBalance , reserveRatio, initialLiquiditySupplied) * 1e18).toLocaleString('fullwide', {useGrouping:false}));
+        //
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), unlockedTokens, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
         expect(await this.tokenVault.name()).to.equal(tokenName);
         expect(await this.tokenVault.symbol()).to.equal(tokenSymbol);
         expect(await this.tokenVault.curator()).to.equal(this.curator.address);
-        expect(await this.tokenVault.reserveTokenBalance()).to.equal(initialReserveBalance);
-        expect(await this.tokenVault.status()).to.equal(1);
-        expect(await this.tokenVault.fictitiousReserveBalance()).to.equal(reserveRatio.mul(initialTokenPrice).mul(initialTokenSupply));
-        const unlockedTokens = initialTokenSupply.mul((ONE.sub(ONE.sub(initialReserveBalance.div(initialReserveBalance))).pow(reserveRatio) ));
-        expect(await this.tokenVault.assetAddress()).to.equal(this.nft.address);
-        expect(await this.tokenVault.assetTokenID()).to.equal(0);
-        expect(await this.tokenVault.reservedTokenSupply()).to.equal(initialTokenSupply.sub(unlockedTokens));
+        expect(await this.tokenVault.status()).to.equal(1);        
+        expect((await this.tokenVault.asset()).assetAddress).to.equal(this.nft.address);
+        expect((await this.tokenVault.asset()).assetTokenID).to.equal(0);
+        expect((await this.tokenVault.fee()).feeAdmin).to.equal(feeAdmin * scale);
+        expect((await this.tokenVault.fee()).feeCurator).to.equal(feeCurator * scale);
+        expect(await this.tokenVault.reserveRatio()).to.equal(reserveRatio * scale);
+        expect(await this.tokenVault.rejectionPremium()).to.equal(rejectionPremium * scale);
+        expect(await this.tokenVault.reservedContinousSupply()).lte((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(unlockedTokens));
+        expect(await this.tokenVault.fictitiousReserveBalance()).to.equal((BigNumber.from(initialFictitiousReserveBalance).mul(decimal)).sub(BigNumber.from(initialLiquiditySupplied).mul(decimal)));
+        expect(await this.tokenVault.reserveBalance()).to.equal(BigNumber.from(initialLiquiditySupplied).mul(decimal));
         expect(await this.nft.ownerOf(0)).to.equal(this.tokenVault.address);
+        expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal((BigNumber.from(reservedTokenSupply).mul(decimal)).sub((await this.tokenVault.reservedContinousSupply())));
     })
 
-    ///TODO: As the reserveRatio of lower selling curve is dynamic and the precision is not equal to 18 is there a chance of funds being stuck? Consider the case when someone sells all the supply.
+
+    it("should initialize the vault with correct initial values when (initialLiquiditySupplied == 0).", async function () {
+        const initialLiquiditySupplied: number = 0;
+        const unlockedTokens: BigNumber = BigNumber.from((unlockReservedLiquidity(reservedTokenSupply, initialFictitiousReserveBalance , reserveRatio, initialLiquiditySupplied) * 1e18).toLocaleString('fullwide', {useGrouping:false}));
+        //
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), unlockedTokens, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        expect(await this.tokenVault.name()).to.equal(tokenName);
+        expect(await this.tokenVault.symbol()).to.equal(tokenSymbol);
+        expect(await this.tokenVault.curator()).to.equal(this.curator.address);
+        expect(await this.tokenVault.status()).to.equal(1);
+        expect((await this.tokenVault.asset()).assetAddress).to.equal(this.nft.address);
+        expect((await this.tokenVault.asset()).assetTokenID).to.equal(0);
+        expect((await this.tokenVault.fee()).feeAdmin).to.equal(feeAdmin * scale);
+        expect((await this.tokenVault.fee()).feeCurator).to.equal(feeCurator * scale);
+        expect(await this.tokenVault.reserveRatio()).to.equal(reserveRatio * scale);
+        expect(await this.tokenVault.reserveRatio()).to.equal(reserveRatio * scale);
+        expect(await this.tokenVault.rejectionPremium()).to.equal(rejectionPremium * scale);
+        expect(await this.tokenVault.reservedContinousSupply()).lte((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(unlockedTokens));
+        expect(await this.tokenVault.fictitiousReserveBalance()).to.equal((BigNumber.from(initialFictitiousReserveBalance).mul(decimal)).sub(BigNumber.from(initialLiquiditySupplied).mul(decimal)));
+        expect(await this.tokenVault.reserveBalance()).to.equal(BigNumber.from(initialLiquiditySupplied).mul(decimal));
+        expect(await this.nft.ownerOf(0)).to.equal(this.tokenVault.address);
+        expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal((BigNumber.from(reservedTokenSupply).mul(decimal)).sub((await this.tokenVault.reservedContinousSupply())));
+
+    })
+
+
+    it("should initialize the vault with correct initial values when (initialLiquiditySupplied == initialFictitiousReserveBalance).", async function () {
+        const initialLiquiditySupplied: number = initialFictitiousReserveBalance;
+        const unlockedTokens: BigNumber = BigNumber.from((unlockReservedLiquidity(reservedTokenSupply, initialFictitiousReserveBalance , reserveRatio, initialLiquiditySupplied) * 1e18).toLocaleString('fullwide', {useGrouping:false}));
+        //
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), unlockedTokens, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        expect(await this.tokenVault.name()).to.equal(tokenName);
+        expect(await this.tokenVault.symbol()).to.equal(tokenSymbol);
+        expect(await this.tokenVault.curator()).to.equal(this.curator.address);
+        expect(await this.tokenVault.status()).to.equal(1);
+        expect((await this.tokenVault.asset()).assetAddress).to.equal(this.nft.address);
+        expect((await this.tokenVault.asset()).assetTokenID).to.equal(0);
+        expect((await this.tokenVault.fee()).feeAdmin).to.equal(feeAdmin * scale);
+        expect((await this.tokenVault.fee()).feeCurator).to.equal(feeCurator * scale);
+        expect(await this.tokenVault.reserveRatio()).to.equal(reserveRatio * scale);
+        expect(await this.tokenVault.reserveRatio()).to.equal(reserveRatio * scale);
+        expect(await this.tokenVault.rejectionPremium()).to.equal(rejectionPremium * scale);
+        expect(await this.tokenVault.reservedContinousSupply()).equal((BigNumber.from(0).mul(decimal)));
+        expect(await this.tokenVault.fictitiousReserveBalance()).to.equal((BigNumber.from(0).mul(decimal)));
+        expect(await this.tokenVault.reserveBalance()).to.equal(BigNumber.from(initialLiquiditySupplied).mul(decimal));
+        expect(await this.tokenVault.reserveBalance()).to.equal(BigNumber.from(initialFictitiousReserveBalance).mul(decimal));
+        expect(await this.nft.ownerOf(0)).to.equal(this.tokenVault.address);
+        expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal((BigNumber.from((reservedTokenSupply * 1e18).toLocaleString('fullwide', {useGrouping:false}))));
+
+    })
+
+    it("should unlock reserved liquidity partially.", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const liquiditySupplied: number = 20;
+        let unlockedTokens: BigNumber = BigNumber.from((unlockReservedLiquidity(reservedTokenSupply, initialFictitiousReserveBalance , reserveRatio, initialLiquiditySupplied) * 1e18).toLocaleString('fullwide', {useGrouping:false}));
+        await this.tokenVault.unlockReservedSupply(unlockedTokens, {value: BigNumber.from(liquiditySupplied).mul(decimal)});
+        expect(await this.tokenVault.reservedContinousSupply()).lte((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(unlockedTokens));
+        expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(await this.tokenVault.reservedContinousSupply()));
+    })
+
+    it("should unlock complete reserved liquidity.", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        let unlockedTokens: BigNumber = BigNumber.from((unlockReservedLiquidity(reservedTokenSupply, initialFictitiousReserveBalance , reserveRatio, initialFictitiousReserveBalance) * 1e18).toLocaleString('fullwide', {useGrouping:false}));
+        await this.tokenVault.unlockReservedSupply(unlockedTokens, {value: BigNumber.from(initialFictitiousReserveBalance).mul(decimal)});
+        expect(await this.tokenVault.reservedContinousSupply()).to.equal(0);
+        expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal((BigNumber.from(reservedTokenSupply).mul(decimal)));
+    })
+
+
+   it("should unlock reserved liquidity partially.", async function () {
+        //
+        const initialLiquiditySupplied: number = 10;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const liquiditySupplied: number = 20;
+        let unlockedTokens: BigNumber = BigNumber.from((unlockReservedLiquidity(reservedTokenSupply, initialFictitiousReserveBalance , reserveRatio, initialLiquiditySupplied) * 1e18).toLocaleString('fullwide', {useGrouping:false}));
+        await this.tokenVault.unlockReservedSupply(unlockedTokens, {value: BigNumber.from(liquiditySupplied).mul(decimal)});
+        expect(await this.tokenVault.reservedContinousSupply()).lte((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(unlockedTokens));
+        expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(await this.tokenVault.reservedContinousSupply()));
+    })
 
 })
