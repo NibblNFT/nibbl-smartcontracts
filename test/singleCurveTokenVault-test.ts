@@ -1,9 +1,7 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
-import { unlockReservedLiquidity, mintTokens } from "./testHelpers/singleCurveTokenVaultHelper";
-import { type } from 'os';
-
+import { unlockReservedLiquidity, mintTokens, burnTokens } from "./testHelpers/singleCurveTokenVaultHelper";
 
 describe('NibblTokenVault', function () {
     
@@ -187,6 +185,131 @@ describe('NibblTokenVault', function () {
         await this.tokenVault.unlockReservedSupply(unlockedTokens, {value: BigNumber.from(liquiditySupplied).mul(decimal)});
         expect(await this.tokenVault.reservedContinousSupply()).lte((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(unlockedTokens));
         expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal((BigNumber.from(reservedTokenSupply).mul(decimal)).sub(await this.tokenVault.reservedContinousSupply()));
+    })
+
+    it("should fail to unlock reserved liquidity. (SingleCurveVault: unlock exceeds reserved liquidity)", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const liquiditySupplied: number = 20;
+        await expect(this.tokenVault.unlockReservedSupply(BigNumber.from(reservedTokenSupply*2).mul(decimal), {value: BigNumber.from(liquiditySupplied).mul(decimal)})).to.be.revertedWith("SingleCurveVault: unlock exceeds reserved liquidity");
+       })
+    
+    it("should fail to unlock reserved liquidity. (SingleCurveVault: value exceeds reserve balance)", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const liquiditySupplied: number = 100;
+        await expect(this.tokenVault.unlockReservedSupply(BigNumber.from(reservedTokenSupply).mul(decimal), {value: BigNumber.from(liquiditySupplied).mul(decimal)})).to.be.revertedWith("SingleCurveVault: value exceeds reserve balance");
+    })
+
+    it("should fail to unlock reserved liquidity. (SingleCurveVault: Invalid unlock amount)", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const liquiditySupplied: number = 1;
+        await expect(this.tokenVault.unlockReservedSupply(BigNumber.from(reservedTokenSupply * .99).mul(decimal), {value: BigNumber.from(liquiditySupplied).mul(decimal)})).to.be.revertedWith("SingleCurveVault: Invalid unlock amount");
+    })
+
+    it("should mint tokens successfully.", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const buyAmount: number = 50;
+        const mintAmount: number = mintTokens(reservedTokenSupply, initialFictitiousReserveBalance, reserveRatio, buyAmount);
+        const minAmountOut: BigNumber = BigNumber.from((mintAmount * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(99)).div(BigNumber.from(100));
+        await this.tokenVault.mintTokens(this.addr1.address, minAmountOut, { value: BigNumber.from(buyAmount).mul(decimal) });
+        expect(await this.tokenVault.balanceOf(this.addr1.address)).gte(minAmountOut);
+        expect(await this.tokenVault.reserveBalance()).to.equal(BigNumber.from(50).mul(decimal).mul(BigNumber.from(99)).div(BigNumber.from(100)));
+        expect(await this.tokenVault.feeAccruedCurator()).to.equal((BigNumber.from((buyAmount * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(feeCurator * scale))).div(BigNumber.from(scale)));
+        expect(await this.tokenVault.feeAccruedAdmin()).to.equal((BigNumber.from((buyAmount * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(feeAdmin * scale))).div(BigNumber.from(scale)));
+    })
+
+    it("should fail to mint tokens successfully.", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const buyAmount: number = 50;
+        const mintAmount: number = mintTokens(reservedTokenSupply, initialFictitiousReserveBalance, reserveRatio, buyAmount);
+        const minAmountOut: BigNumber = BigNumber.from((mintAmount * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(101)).div(BigNumber.from(100));
+        await expect(this.tokenVault.mintTokens(this.addr1.address, minAmountOut, { value: BigNumber.from(buyAmount).mul(decimal) })).to.be.revertedWith("SingleCurveVault: purchaseReturn too low");
+    })
+    
+
+    it("should fail to mint tokens successfully. (SingleCurveVault: purchaseReturn too low)", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const buyAmount: number = 50;
+        const mintAmount: number = mintTokens(reservedTokenSupply, initialFictitiousReserveBalance, reserveRatio, buyAmount);
+        const minAmountOut: BigNumber = BigNumber.from((mintAmount * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(101)).div(BigNumber.from(100));
+        await expect(this.tokenVault.mintTokens(this.addr1.address, minAmountOut, { value: BigNumber.from(buyAmount).mul(decimal) })).to.be.revertedWith("SingleCurveVault: purchaseReturn too low");
+    })
+    
+    it("should burn tokens successfully", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const buyAmount: number = 40;
+        const mintAmount: number = mintTokens(reservedTokenSupply, initialFictitiousReserveBalance, reserveRatio, buyAmount);
+        const minTokensOut: BigNumber = BigNumber.from((mintAmount * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(99)).div(BigNumber.from(100));
+        await this.tokenVault.mintTokens(this.addr1.address, minTokensOut, { value: BigNumber.from(buyAmount).mul(decimal) });
+        //
+        const initialEthBalanceAddr1: BigNumber = await this.addr1.provider.getBalance(this.addr1.address);
+        const initialTokenBalanceAddr1: BigNumber = await this.tokenVault.balanceOf(this.addr1.address);
+        const amtEthToBeRecieved: BigNumber = (BigNumber.from((burnTokens(reservedTokenSupply + mintAmount, (initialFictitiousReserveBalance + (.98 * buyAmount)), reserveRatio, initialTokenBalanceAddr1.div(decimal).toNumber()) * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(99))).div(BigNumber.from(100));        
+        await this.tokenVault.connect(this.addr1).burnTokens(this.addr1.address, initialTokenBalanceAddr1.toString(), amtEthToBeRecieved);
+        const finalEthBalanceAddr1: BigNumber = await this.addr1.provider.getBalance(this.addr1.address);
+        const finalTokenBalanceAddr1: BigNumber = await this.tokenVault.balanceOf(this.addr1.address);
+        expect(finalEthBalanceAddr1).gte(initialEthBalanceAddr1.add(amtEthToBeRecieved));
+        expect(finalTokenBalanceAddr1).to.equal(0);
+        const fee = (await this.tokenVault.feeAccruedAdmin()).add(await this.tokenVault.feeAccruedCurator());        
+        expect(fee).gte((BigNumber.from(buyAmount).mul(decimal).div(BigNumber.from(100))).add(BigNumber.from(amtEthToBeRecieved).div(BigNumber.from(100))));
+    })
+
+    it("should fail to burn tokens (SingleCurveVault: saleReturn too low).", async function () {
+        //
+        const initialLiquiditySupplied: number = 0;
+        await this.tokenVaultFactory.createSingleCurveVault(this.nft.address, 0, tokenName, tokenSymbol, BigNumber.from((reservedTokenSupply).toString()).mul(decimal), 0, { value: BigNumber.from((initialLiquiditySupplied).toString()).mul(decimal)  });
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.SingleCurveVault.interface, this.curator);
+        // 
+        const buyAmount: number = 40;
+        const mintAmount: number = mintTokens(reservedTokenSupply, initialFictitiousReserveBalance, reserveRatio, buyAmount);
+        const minTokensOut: BigNumber = BigNumber.from((mintAmount * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(99)).div(BigNumber.from(100));
+        await this.tokenVault.mintTokens(this.addr1.address, minTokensOut, { value: BigNumber.from(buyAmount).mul(decimal) });
+        //
+        const initialEthBalanceAddr1: BigNumber = await this.addr1.provider.getBalance(this.addr1.address);
+        const initialTokenBalanceAddr1: BigNumber = await this.tokenVault.balanceOf(this.addr1.address);
+        const amtEthToBeRecieved: BigNumber = (BigNumber.from((burnTokens(reservedTokenSupply + mintAmount, (initialFictitiousReserveBalance + buyAmount), reserveRatio, initialTokenBalanceAddr1.div(decimal).toNumber()) * 1e18).toLocaleString('fullwide', { useGrouping: false })).mul(BigNumber.from(99))).div(BigNumber.from(100));        
+        await expect(this.tokenVault.connect(this.addr1).burnTokens(this.addr1.address, initialTokenBalanceAddr1.toString(), amtEthToBeRecieved)).to.be.revertedWith("SingleCurveVault: saleReturn too low");
+        // const finalEthBalanceAddr1: BigNumber = await this.addr1.provider.getBalance(this.addr1.address);
+        // const finalTokenBalanceAddr1: BigNumber = await this.tokenVault.balanceOf(this.addr1.address);
+        // expect(finalEthBalanceAddr1).gte(initialEthBalanceAddr1.add(amtEthToBeRecieved));
+        // expect(finalTokenBalanceAddr1).to.equal(0);
+        // const fee = (await this.tokenVault.feeAccruedAdmin()).add(await this.tokenVault.feeAccruedCurator());        
+        // expect(fee).gte((BigNumber.from(buyAmount).mul(decimal).div(BigNumber.from(100))).add(BigNumber.from(amtEthToBeRecieved).div(BigNumber.from(100))));
     })
 
 })

@@ -5,7 +5,7 @@ pragma solidity 0.8.4;
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./Power.sol"; // Efficient power function.
-
+import "hardhat/console.sol";
 /**
 * @title Bancor formula by Bancor
 *
@@ -37,7 +37,7 @@ contract BancorBondingCurve is Power {
         uint256 _depositAmount) internal view returns (uint256)
     {
         // validate input
-        require(_supply > 0 && _reserveBalance > 0 && _reserveRatio > 0 && _reserveRatio <= MAX_RESERVE_RATIO, "Invalid inputs.");
+        require(_supply > 0 && _reserveBalance > 0 && _reserveRatio > 0 && _reserveRatio <= MAX_RESERVE_RATIO, "BancorBondingCurve: Invalid inputs.");
         // special case for 0 deposit amount
         if (_depositAmount == 0) {
             return 0;

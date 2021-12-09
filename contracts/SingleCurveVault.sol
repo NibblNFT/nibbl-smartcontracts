@@ -25,14 +25,6 @@ contract SingleCurveVault is BancorBondingCurve, ERC20Upgradeable, IERC721Receiv
     ///@dev reserveRatio is 50% = .5 = .5 * _SCALE = 500000
     uint32 public reserveRatio;
 
-    // fee levied on each trade that goes to admin -> between (0-100%) 
-    /// @dev Scale = 1e6
-    uint32 public feeAdmin;
-
-    // fee levied on each trade that goes to curator -> between (0-100%) 
-    /// @dev Scale = 1e6
-    uint32 public feeCurator; 
-
     // buyout rejection premium
     ///@dev scale is 1e6 (0%-100%) = (0 - 1e6)
     ///@dev rejectionPremium is 10% = .1 = .1 * _SCALE = 100000
@@ -48,6 +40,10 @@ contract SingleCurveVault is BancorBondingCurve, ERC20Upgradeable, IERC721Receiv
     /// @dev Explain to a developer any extra details
     /// @return Documents the return variables of a contract’s function state variable
     uint256 public reservedContinousSupply;
+
+    uint256 public feeAccruedAdmin;
+
+    uint256 public feeAccruedCurator;
 
     ///@notice address who deposited the NFT(s)
     address public curator; 
@@ -121,10 +117,32 @@ contract SingleCurveVault is BancorBondingCurve, ERC20Upgradeable, IERC721Receiv
         reserveBalance += msg.value;
     }
 
+    function mintTokens(address _to, uint256 _minAmountOut) external payable {
+        (uint256  _feeAmtAdmin, uint256  _feeAmtCurator) = _calculateFee(msg.value);
+        feeAccruedCurator += _feeAmtCurator;
+        feeAccruedAdmin += _feeAmtAdmin;
+        uint256 _effectiveAmount = msg.value - (_feeAmtAdmin + _feeAmtCurator);
+        uint256 _purchaseReturn = _calculatePurchaseReturn(_currentSupply(), _effectiveReserveBalance(), reserveRatio, _effectiveAmount);
+        reserveBalance += _effectiveAmount;
+        require(_purchaseReturn >= _minAmountOut, "SingleCurveVault: purchaseReturn too low");
+        _mint(_to, _purchaseReturn);
+    }
 
+    function burnTokens(address payable _to, uint256 _amountIn, uint256 _minAmountOut) external {
+        uint256 _saleReturn = _calculateSaleReturn(_currentSupply(), _effectiveReserveBalance(), reserveRatio, _amountIn);
+        (uint256  _feeAmtAdmin, uint256  _feeAmtCurator) = _calculateFee(_saleReturn);
+        feeAccruedCurator += _feeAmtCurator;
+        feeAccruedAdmin += _feeAmtAdmin;
+        uint256 _effectiveAmount = _saleReturn - (_feeAmtAdmin + _feeAmtCurator);
+        require(_effectiveAmount >= _minAmountOut, "SingleCurveVault: saleReturn too low");
+        reserveBalance -= _effectiveAmount;
+        _burn(msg.sender, _amountIn);
+        (bool success, ) = _to.call{ value: _effectiveAmount}("");
+        require(success, "SingleCurveVault: Transfer failed.");
+    }
 
     function _calculateFee(uint256 _amount) private view returns(uint256, uint256) {
-        return ((_amount * (feeAdmin)) / (_SCALE), (_amount * (feeCurator)) / (_SCALE));
+        return ((_amount * (fee.feeAdmin)) / (_SCALE), (_amount * (fee.feeCurator)) / (_SCALE));
     }
 
     //TODO: remove if not required
