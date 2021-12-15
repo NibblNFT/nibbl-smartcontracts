@@ -1,15 +1,15 @@
-import { BigNumber } from "ethers";
+import { BigNumber, Contract } from "ethers";
 
-export const unlockReservedLiquidity = (continuousTokenSupply: number, reserveTokenBalance: number, reserveRatio: number, amount: number): number => {
-        return (1- (1 - (amount / reserveTokenBalance)) ** (reserveRatio)) * continuousTokenSupply;
-};
 
-export const mintTokens = (continuousTokenSupply:number, reserveTokenBalance:number, reserveRatio: number, amount: number) : number => {
-        return  continuousTokenSupply * ((1 + amount / reserveTokenBalance) ** (reserveRatio) - 1)
+export const mintTokens = async (testBondingCurve: Contract,  continuousTokenSupply:BigNumber, reserveTokenBalance:BigNumber, reserveRatio: BigNumber, amount: BigNumber) : Promise<BigNumber> => {
+        return (await testBondingCurve._calculatePurchaseReturn(continuousTokenSupply, reserveTokenBalance, reserveRatio, amount))
 }
 
-export const burnTokens = (continuousTokenSupply:number, reserveTokenBalance:number, reserveRatio: number, continuousTokensReceived: number) : number => {
-//    SaleReturn = ReserveTokenBalance * (1 - (1 - ContinuousTokensReceived / ContinuousTokenSupply) ^ (1 / (ReserveRatio)))
+export const burnTokens = async (testBondingCurve: Contract, continuousTokenSupply: BigNumber, reserveTokenBalance: BigNumber, reserveRatio: BigNumber, amount: BigNumber): Promise<BigNumber> => {
+        //        uint256 _supply,
+        // uint256 _reserveBalance,
+        // uint32 _reserveRatio,
+        // uint256 _sellAmount
+        return (await testBondingCurve._calculateSaleReturn(continuousTokenSupply, reserveTokenBalance, reserveRatio, amount))
 
-    return reserveTokenBalance * (1 - (1 - (continuousTokensReceived / continuousTokenSupply)) ** (1 / reserveRatio));     
 }
