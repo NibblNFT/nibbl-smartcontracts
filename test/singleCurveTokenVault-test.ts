@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 import { mintTokens, burnTokens } from "./testHelpers/singleCurveTokenVaultHelper";
-import { log } from 'console';
 
 describe('NibblTokenVault', function () {
     
@@ -26,9 +25,9 @@ describe('NibblTokenVault', function () {
     const initialTokenPrice: BigNumber = BigNumber.from((1e14).toString()); //10 ^-4 eth
     const initialValuation: BigNumber = BigNumber.from((1e20).toString()); //100 eth
     const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(decimal);
-    const initialReserveBalance: BigNumber = ethers.utils.parseEther("10");
+    const initialSecondaryReserveBalance: BigNumber = ethers.utils.parseEther("10");
     const requiredReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
-    const secondaryReserveRatio: BigNumber = initialReserveBalance.mul(SCALE).div(initialValuation);
+    const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
     const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);    
 
     beforeEach(async function () {
@@ -59,7 +58,7 @@ describe('NibblTokenVault', function () {
         this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
         await this.testBancorBondingCurve.deployed();
         
-        await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, {value: initialReserveBalance});
+        await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, {value: initialSecondaryReserveBalance});
         const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
         this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     })
@@ -72,8 +71,8 @@ describe('NibblTokenVault', function () {
         expect(await this.tokenVault.assetAddress()).to.equal(this.nft.address);
         expect(await this.tokenVault.assetID()).to.equal(0);
         expect(await this.tokenVault.initialTokenSupply()).to.equal(initialTokenSupply);
-        expect(await this.tokenVault.secondaryReserveBalance()).to.equal(initialReserveBalance);
-        expect(await this.tokenVault.secondaryReserveRatio()).to.equal(secondaryReserveRatio);
+        expect(await this.tokenVault.secondaryReserveBalance()).to.equal(initialSecondaryReserveBalance);
+        expect(await this.tokenVault.secondaryReserveRatio()).to.equal(initialSecondaryReserveRatio);
         expect(await this.tokenVault.primaryReserveBalance()).to.equal(primaryReserveBalance);
     })
 
@@ -94,6 +93,52 @@ describe('NibblTokenVault', function () {
         expect(await this.tokenVault.secondaryReserveRatio()).to.equal((_newSecBalance.mul(SCALE)).div(initialValuation));        
         expect(await this.tokenVault.feeAccruedCurator()).to.equal((_buyAmount.mul(FEE_CURATOR)).div(SCALE));        
     })
+
+
+    it("should buy tokens successfully on multi curve", async function () {
+        const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
+
+        //Selling Tokens
+        const _sellAmount = initialTokenSupply.div(5); //Selling 1/5th the amount i.e 200k here
+        const _expectedSaleReturn = await burnTokens(this.testBancorBondingCurve, initialTokenSupply, initialSecondaryReserveBalance, initialSecondaryReserveRatio, _sellAmount);        
+        await this.tokenVault.connect(this.curator).sell(_sellAmount, _expectedSaleReturn, this.curator.address);
+        //---------------- 1/5th Tokens Sold ----------------        
+        //Buy Tokens
+        const _buyAmtTotal = ethers.utils.parseEther("20");
+        const _buyAmtSecCurve = _expectedSaleReturn;
+        const _buyAmtPrimaryCurve = _buyAmtTotal.sub(_buyAmtSecCurve);
+        const _buyAmtPrimaryWithFee = _buyAmtPrimaryCurve.sub(_buyAmtPrimaryCurve.mul(_feeTotal).div(SCALE));
+        const _purchaseReturnSecCurve = await mintTokens(this.testBancorBondingCurve, initialTokenSupply.sub(_sellAmount), initialSecondaryReserveBalance.sub(_expectedSaleReturn), initialSecondaryReserveRatio, _buyAmtSecCurve);
+        const _purchaseReturnPrimaryCurve = await mintTokens(this.testBancorBondingCurve, initialTokenSupply.sub(_sellAmount).add(_purchaseReturnSecCurve), primaryReserveBalance, primaryReserveRatio, _buyAmtPrimaryWithFee);        
+        const _initialBalanceBuyer = await this.tokenVault.balanceOf(this.buyer1.address);
+        const _initialSecondaryBalance = await this.tokenVault.secondaryReserveBalance();
+        const _initialPrimaryBalance = await this.tokenVault.primaryReserveBalance();
+        await this.tokenVault.connect(this.buyer1).buy(_purchaseReturnPrimaryCurve.add(_purchaseReturnSecCurve), this.buyer1.address, { value: _buyAmtTotal });
+        expect((await this.tokenVault.balanceOf(this.buyer1.address)).sub(_initialBalanceBuyer)).to.equal(_purchaseReturnPrimaryCurve.add(_purchaseReturnSecCurve));
+        expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_initialSecondaryBalance.add(_buyAmtSecCurve).add(_buyAmtPrimaryCurve.mul(FEE_CURVE).div(SCALE)));
+        expect(await this.tokenVault.primaryReserveBalance()).to.equal(_initialPrimaryBalance.add(_buyAmtPrimaryWithFee));
+    })
+
+    it("should buy tokens successfully on secondary curve", async function () {
+        const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
+
+        //Selling Tokens
+        const _sellAmount = initialTokenSupply.sub(initialTokenSupply.div(4)); //Selling 1/5th the amount i.e 200k here
+        const _expectedSaleReturn = await burnTokens(this.testBancorBondingCurve, initialTokenSupply, initialSecondaryReserveBalance, initialSecondaryReserveRatio, _sellAmount);        
+        await this.tokenVault.connect(this.curator).sell(_sellAmount, _expectedSaleReturn, this.curator.address);
+        //---------------- 3/4th Tokens Sold ----------------        
+        //Buy Tokens
+        const _buyAmt = ethers.utils.parseEther("1");
+        const _purchaseReturn = await mintTokens(this.testBancorBondingCurve, initialTokenSupply.sub(_sellAmount), initialSecondaryReserveBalance.sub(_expectedSaleReturn), initialSecondaryReserveRatio, _buyAmt);
+        const _initialBalanceBuyer = await this.tokenVault.balanceOf(this.buyer1.address);
+        const _initialSecondaryBalance = await this.tokenVault.secondaryReserveBalance();
+        await this.tokenVault.connect(this.buyer1).buy(_purchaseReturn, this.buyer1.address, { value: _buyAmt });
+        expect((await this.tokenVault.balanceOf(this.buyer1.address)).sub(_initialBalanceBuyer)).to.equal(_purchaseReturn);
+        expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_initialSecondaryBalance.add(_buyAmt));
+    })
+
+    
+
 
     it("should sell tokens successfully from primary curve", async function () {
         // Buy Tokens 
@@ -128,9 +173,45 @@ describe('NibblTokenVault', function () {
         expect(await this.tokenVault.secondaryReserveRatio()).to.equal((_newSecBalance.add(_sellReturn.mul(FEE_CURVE).div(SCALE))).mul(SCALE).div(initialValuation));        
         expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_newSecBalance.add(_sellReturn.mul(FEE_CURVE).div(SCALE)));        
         expect(await this.tokenVault.primaryReserveBalance()).to.equal(_initialPrimaryBalance.add(_buyAmountWithFee).sub(_sellReturn));        
-
     })
 
+    it("should sell tokens successfully on secondary curve", async function () {
+        const _sellAmount = initialTokenSupply.div(5);
+        let _balanceAddr1 = await this.addr1.provider.getBalance(this.addr1.address);
+        const _expectedSaleReturn = await burnTokens(this.testBancorBondingCurve, initialTokenSupply, initialSecondaryReserveBalance, initialSecondaryReserveRatio, _sellAmount);        
+        await this.tokenVault.connect(this.curator).sell(_sellAmount, _expectedSaleReturn, this.addr1.address);
+        expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal(initialTokenSupply.sub(_sellAmount));
+        expect((await this.addr1.provider.getBalance(this.addr1.address)).sub(_balanceAddr1)).to.equal((_expectedSaleReturn));        
+        expect(await this.tokenVault.secondaryReserveBalance()).to.equal(initialSecondaryReserveBalance.sub(_expectedSaleReturn));
+        expect(await this.tokenVault.totalSupply()).to.equal(initialTokenSupply.sub(_sellAmount));
+    })
+
+    //TODO
+    // it("should sell tokens successfully on multi curve", async function () {
+    //     await this.tokenVault.transfer(this.buyer1.address, initialTokenSupply); //Transfer all tokens to buyer
+    //     const _buyAmount = ethers.utils.parseEther("10");
+    //     const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
+    //     const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
+    //     const _purchaseReturn = await mintTokens(this.testBancorBondingCurve, initialTokenSupply, primaryReserveBalance, primaryReserveRatio, _buyAmountWithFee);
+    //     await this.tokenVault.connect(this.buyer1).buy(_purchaseReturn, this.buyer1.address, { value: _buyAmount });
+    //     expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.equal(initialTokenSupply.add(_purchaseReturn));
+    //     ///--------Bought Tokens --------------//
+    //     // Sell Tokens
+    //     const _balanceAddr1Initial = await this.addr1.provider.getBalance(this.addr1.address);
+    //     const _initialPrimaryBalance = await this.tokenVault.primaryReserveBalance();
+    //     const _sellAmount = initialTokenSupply.div(2); //Only selling half the amount bought initially
+    //     const _totalSupplyInitial = initialTokenSupply.add(_purchaseReturn);        
+    //     const _expectedSaleReturnPrimary = await burnTokens(this.testBancorBondingCurve, _totalSupplyInitial, primaryReserveBalance, primaryReserveRatio, _purchaseReturn);        
+    //     const _expectedSaleReturnPrimaryWithFee = _expectedSaleReturnPrimary.sub(_expectedSaleReturnPrimary.mul(_feeTotal).div(SCALE));
+    //     const _expectedSaleReturnSecondary = await burnTokens(this.testBancorBondingCurve, _totalSupplyInitial.sub(_expectedSaleReturnPrimary), initialSecondaryReserveBalance, initialSecondaryReserveRatio, initialTokenSupply.sub(_purchaseReturn));        
+    //     await this.tokenVault.connect(this.buyer1).sell(_sellAmount, _expectedSaleReturnPrimary.add(_expectedSaleReturnSecondary), this.addr1.address);
+    //     const _balanceAddr1Final = await this.addr1.provider.getBalance(this.addr1.address);
+    //     const _finalPrimaryBalance = await this.tokenVault.primaryReserveBalance();
+
+    //     expect(_balanceAddr1Final.sub(_balanceAddr1Initial)).gte((_expectedSaleReturnPrimaryWithFee.add(_expectedSaleReturnSecondary)));
+    //     expect(_finalPrimaryBalance.sub(_initialPrimaryBalance)).to.equal(_expectedSaleReturnPrimaryWithFee);
+        
+    // });
 
 
 })

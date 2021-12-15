@@ -83,8 +83,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
 
     function getMaxSecondaryCurveBalance() private view returns(uint256){
-            console.log((secondaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (1e18 * SCALE), "getMaxSecondaryCurveBalance");
-            return (secondaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (1e18 * SCALE);
+            return ((secondaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (1e18 * SCALE));
     }
 
     function getCurveFee() private view returns (uint256, uint256)/**curator, curve  */ {
@@ -95,43 +94,46 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         }
     }
 
-    function _buyPrimaryCurve(uint256 _amount) private returns (uint256 _purchaseReturn) {
+    function _buyPrimaryCurve(address _to, uint256 _amount) private returns (uint256 _purchaseReturn) {
         uint256 _amountIn = _chargeFee(_amount);
         _purchaseReturn = _calculatePurchaseReturn(totalSupply(), primaryReserveBalance, uint32(primaryReserveRatio), _amountIn);
         primaryReserveBalance += _amountIn;
+        _mint(_to, _purchaseReturn);
     }
 
-    function _buySecondaryCurve(uint256 _amount) private returns (uint256 _purchaseReturn) {
+    function _buySecondaryCurve(address _to, uint256 _amount) private returns (uint256 _purchaseReturn) {
         _purchaseReturn = _calculatePurchaseReturn(totalSupply(), secondaryReserveBalance, uint32(secondaryReserveRatio), _amount);
         secondaryReserveBalance += _amount;
+        _mint(_to, _purchaseReturn);
     }
 
     function buy(uint256 _minAmtOut, address _to) external payable {
         require(_to != address(0), " NibblVault: Zero address");
         uint256 _purchaseReturn;
-        // console.log(_amountIn, "amountIn", msg.value); //TODO: remove
-        if (primaryReserveBalance >= 0) {
-            _purchaseReturn += _buyPrimaryCurve(msg.value);
+        if (totalSupply() >= initialTokenSupply) { 
+            _purchaseReturn += _buyPrimaryCurve(_to, msg.value);
         } else {
             uint256 _lowerCurveDiff = getMaxSecondaryCurveBalance() - secondaryReserveBalance;
             if (_lowerCurveDiff >= msg.value) {
-                _purchaseReturn += _buySecondaryCurve(msg.value);
+                _purchaseReturn += _buySecondaryCurve(_to, msg.value);
             } else {
-                _purchaseReturn += _buySecondaryCurve(_lowerCurveDiff);
-                _purchaseReturn += _buyPrimaryCurve(msg.value - _lowerCurveDiff);
+                _purchaseReturn += _buySecondaryCurve(_to, _lowerCurveDiff);
+                _purchaseReturn += _buyPrimaryCurve(_to, msg.value - _lowerCurveDiff);
             } 
         }
         require(_minAmtOut <= _purchaseReturn, "NibblVault: Insufficient amount out");
-        _mint(_to, _purchaseReturn);
     }
 
     function _sellPrimaryCurve(uint256 _amount) private returns(uint256 _saleReturn) {
         _saleReturn = _calculateSaleReturn(totalSupply(), primaryReserveBalance, uint32(primaryReserveRatio), _amount);
         primaryReserveBalance -= _saleReturn;
+        _burn(msg.sender, _amount);
+        _saleReturn = _chargeFee(_saleReturn);
     }
 
     function _sellSecondaryCurve(uint256 _amount) private returns(uint256 _saleReturn){
         _saleReturn = _calculateSaleReturn(totalSupply(), secondaryReserveBalance, uint32(secondaryReserveRatio), _amount);
+        _burn(msg.sender, _amount);
         secondaryReserveBalance -= _saleReturn;
     }
 
@@ -145,14 +147,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
                 uint256 _tokensPrimaryCurve = totalSupply() - initialTokenSupply;
                 _saleReturn += _sellPrimaryCurve(_tokensPrimaryCurve);
                 _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve);
-            }
-        } else {
+            } } else {
                 _saleReturn += _sellSecondaryCurve(_amtIn);
         }
-        uint256 _amountOut = _chargeFee(_saleReturn);
-        require(_amountOut >= _minAmtOut, "NibblVault: Insufficient amount out");
-        _burn(msg.sender, _amtIn);
-        (bool success, ) = payable(_to).call{value: _amountOut}("");
+        require(_saleReturn >= _minAmtOut, "NibblVault: Insufficient amount out");
+        (bool success, ) = payable(_to).call{value: _saleReturn}("");
         require(success, "NibblVault: Failed to send funds");
     }
 
