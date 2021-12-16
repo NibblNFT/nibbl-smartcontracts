@@ -125,25 +125,28 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     }
 
     function _sellPrimaryCurve(uint256 _amount) private returns(uint256 _saleReturn) {
+        
         _saleReturn = _calculateSaleReturn(totalSupply(), primaryReserveBalance, uint32(primaryReserveRatio), _amount);
         primaryReserveBalance -= _saleReturn;
-        _burn(msg.sender, _amount);
         _saleReturn = _chargeFee(_saleReturn);
+        _burn(msg.sender, _amount);
     }
 
     function _sellSecondaryCurve(uint256 _amount) private returns(uint256 _saleReturn){
         _saleReturn = _calculateSaleReturn(totalSupply(), secondaryReserveBalance, uint32(secondaryReserveRatio), _amount);
-        _burn(msg.sender, _amount);
         secondaryReserveBalance -= _saleReturn;
+        _burn(msg.sender, _amount);
     }
 
     function sell(uint256 _amtIn, uint256 _minAmtOut, address _to) external payable {
         require(_to != address(0), "NibblVault: Invalid address");
+
         uint256 _saleReturn;
         if(totalSupply() > initialTokenSupply) {
             if ((initialTokenSupply + _amtIn) <= totalSupply()) {
                 _saleReturn += _sellPrimaryCurve(_amtIn);
             } else {
+  
                 uint256 _tokensPrimaryCurve = totalSupply() - initialTokenSupply;
                 _saleReturn += _sellPrimaryCurve(_tokensPrimaryCurve);
                 _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve);
