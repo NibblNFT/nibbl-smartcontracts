@@ -111,13 +111,13 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(_to != address(0), " NibblVault: Zero address");
         uint256 _purchaseReturn;
         if (totalSupply() >= initialTokenSupply) { 
-            _purchaseReturn += _buyPrimaryCurve(_to, msg.value);
+            _purchaseReturn = _buyPrimaryCurve(_to, msg.value);
         } else {
             uint256 _lowerCurveDiff = getMaxSecondaryCurveBalance() - secondaryReserveBalance;
             if (_lowerCurveDiff >= msg.value) {
-                _purchaseReturn += _buySecondaryCurve(_to, msg.value);
+                _purchaseReturn = _buySecondaryCurve(_to, msg.value);
             } else {
-                _purchaseReturn += _buySecondaryCurve(_to, _lowerCurveDiff);
+                _purchaseReturn = _buySecondaryCurve(_to, _lowerCurveDiff);
                 _purchaseReturn += _buyPrimaryCurve(_to, msg.value - _lowerCurveDiff);
             } 
         }
@@ -144,14 +144,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         uint256 _saleReturn;
         if(totalSupply() > initialTokenSupply) {
             if ((initialTokenSupply + _amtIn) <= totalSupply()) {
-                _saleReturn += _sellPrimaryCurve(_amtIn);
+                _saleReturn = _sellPrimaryCurve(_amtIn);
             } else {
   
                 uint256 _tokensPrimaryCurve = totalSupply() - initialTokenSupply;
-                _saleReturn += _sellPrimaryCurve(_tokensPrimaryCurve);
+                _saleReturn = _sellPrimaryCurve(_tokensPrimaryCurve);
                 _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve);
             } } else {
-                _saleReturn += _sellSecondaryCurve(_amtIn);
+                _saleReturn = _sellSecondaryCurve(_amtIn);
         }
         require(_saleReturn >= _minAmtOut, "NibblVault: Insufficient amount out");
         (bool success, ) = payable(_to).call{value: _saleReturn}("");
