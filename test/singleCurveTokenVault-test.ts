@@ -186,7 +186,6 @@ describe('NibblTokenVault', function () {
         expect(await this.tokenVault.totalSupply()).to.equal(initialTokenSupply.sub(_sellAmount));
     })
 
-    //TODO
     it("should sell tokens successfully on multi curve", async function () {
         await this.tokenVault.transfer(this.buyer1.address, initialTokenSupply); //Transfer all tokens to buyer
         const _buyAmount = ethers.utils.parseEther("5");
@@ -211,5 +210,15 @@ describe('NibblTokenVault', function () {
         expect(_balanceAddr1Final.sub(_balanceAddr1Initial)).gte(_expectedSaleReturnPrimaryWithFee.add(_expectedSaleReturnSecondary));
     });
 
+      it("should sell tokens successfully on multi curve", async function () {
+        await this.tokenVault.transfer(this.buyer1.address, initialTokenSupply); //Transfer all tokens to buyer
+        const _buyAmount = ethers.utils.parseEther("5");
+        const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
+        const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
+        const _purchaseReturn = await mintTokens(this.testBancorBondingCurve, initialTokenSupply, primaryReserveBalance, primaryReserveRatio, _buyAmountWithFee);
+        await expect(this.tokenVault.connect(this.buyer1).buy(_purchaseReturn.mul(10), this.buyer1.address, { value: _buyAmount })).to.be.revertedWith("NibblVault: Insufficient amount out");
+    });
+
+  
 
 })

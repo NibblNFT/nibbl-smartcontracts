@@ -39,7 +39,7 @@ contract NibblVaultFactory is Ownable{
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply
-    ) public payable returns(ProxyVault _proxyVault){
+    ) public payable returns(ProxyVault _proxyVault) {
         _proxyVault = new ProxyVault(implementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
         _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply);
@@ -47,7 +47,7 @@ contract NibblVaultFactory is Ownable{
         nibbledTokens.push(_proxyVault);
     }
 
-    function getFee() external view returns(address, uint256){
+    function getFee() external view returns(address, uint256) {
         return (feeTo, feeAdmin);
     }
     
