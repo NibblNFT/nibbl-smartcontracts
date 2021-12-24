@@ -30,7 +30,7 @@ describe('NibblTokenVault', function () {
     const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
     const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);    
 
-    beforeEach(async function () {
+    beforeEach(async function () {        
         const [curator, admin ,buyer1, addr1, addr2, addr3, addr4] = await ethers.getSigners();
         this.curator = curator;
         this.admin = admin;
@@ -207,10 +207,10 @@ describe('NibblTokenVault', function () {
         const _expectedSaleReturnSecondary = await burnTokens(this.testBancorBondingCurve, _totalSupplyInitial.sub(_purchaseReturn), newSecResBal, newSecResRatio, _sellAmount.sub(_purchaseReturn));        
         await this.tokenVault.connect(this.buyer1).sell(_sellAmount, _expectedSaleReturnPrimaryWithFee.add(_expectedSaleReturnSecondary), this.addr1.address);
         const _balanceAddr1Final = await this.addr1.provider.getBalance(this.addr1.address);
-        expect(_balanceAddr1Final.sub(_balanceAddr1Initial)).gte(_expectedSaleReturnPrimaryWithFee.add(_expectedSaleReturnSecondary));
+        expect(_balanceAddr1Final.sub(_balanceAddr1Initial)).gte(_expectedSaleReturnPrimaryWithFee.add(_expectedSaleReturnSecondary));        
     });
 
-      it("should sell tokens successfully on multi curve", async function () {
+      it("should fail if amountOut is lower than desired", async function () {
         await this.tokenVault.transfer(this.buyer1.address, initialTokenSupply); //Transfer all tokens to buyer
         const _buyAmount = ethers.utils.parseEther("5");
         const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);

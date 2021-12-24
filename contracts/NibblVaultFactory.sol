@@ -17,9 +17,10 @@ contract NibblVaultFactory is Ownable{
     uint256 public feeAdmin = 2_000;
 
     uint256 private constant MAX_ADMIN_FEE = 2_000; //.2%
-
+    uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9; //1%
 
     ProxyVault[] public nibbledTokens;
+    
     //TODO: add multiCurveVaultImplementation address to constructor
     constructor (address _implementation, address _feeTo) {
         implementation = _implementation;
@@ -40,6 +41,7 @@ contract NibblVaultFactory is Ownable{
         string memory _symbol,
         uint256 _initialSupply
     ) public payable returns(ProxyVault _proxyVault) {
+        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         _proxyVault = new ProxyVault(implementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
         _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply);
