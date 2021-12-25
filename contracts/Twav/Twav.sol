@@ -25,6 +25,7 @@ contract Twav {
         }
         twavObservations[((twavObservationsIndex++) % TWAV_BLOCK_NUMBERS)] = TwavObservation(_blockTimestamp, _valuation * _timeElapsed);
         lastBlockTimeStamp = _blockTimestamp;
+
     }
 
     function _getTwav() internal view returns(uint256 _twav){

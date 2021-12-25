@@ -87,7 +87,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             (bool success, ) = payable(_adminFeeTo).call{value: _feeAdmin}("");
             require(success, "NibblVault: Failed to charge admin fee");
         }
-
         feeAccruedCurator += _feeCurator;
         secondaryReserveBalance += _feeCurve;
         secondaryReserveRatio = uint32((secondaryReserveBalance * SCALE * 1e18) / (initialTokenSupply * INITIAL_TOKEN_PRICE));
