@@ -21,7 +21,6 @@ contract NibblVaultFactory is Ownable{
 
     ProxyVault[] public nibbledTokens;
     
-    //TODO: add multiCurveVaultImplementation address to constructor
     constructor (address _implementation, address _feeTo) {
         implementation = _implementation;
         feeTo = _feeTo;

@@ -27,6 +27,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     address public factory;
     address public curator;
     address public assetAddress;
+    address public bidder;
     
     uint256 public assetID;
     uint256 private constant SCALE = 1_000_000;
@@ -36,12 +37,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 private fictitiousPrimaryReserveBalance;
 
     uint256 public buyoutRejectionValuation;
+    uint256 public buyoutValuationDeposit; //Deposit made by bidder to initiate buyout msg.value in initiateBuyout Method
     //TODO: Fee admin variable and function to update it
     uint256 public initialTokenSupply;
     uint256 public primaryReserveBalance;
     uint256 public secondaryReserveBalance;
     uint256 public feeAccruedCurator;
     uint256 public buyoutEndTime;
+    uint256 private unlocked = 1;
 
 
     enum Status {initialised, buyout, buyoutCompleted}
@@ -52,8 +55,16 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     modifier notBoughtOut() {
         require(status != Status.buyoutCompleted);
+        //For the case when buyoutTime has ended and buyout has not been rejected
         require(buyoutEndTime > block.timestamp || buyoutEndTime == 0);
         _;
+    }
+
+    modifier lock() {
+        require(unlocked == 1, 'NibblVault: Locked');
+        unlocked = 0;
+        _;
+        unlocked = 1;
     }
 
     function initialize(
@@ -74,6 +85,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         fictitiousPrimaryReserveBalance = primaryReserveBalance; //TODO: GAS IMPROVISATION
         secondaryReserveBalance = msg.value;
         secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * INITIAL_TOKEN_PRICE));
+        require(secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds"); //secResratio <= PrimaryResRatio
         _mint(_curator, _initialTokenSupply);
     }
 
@@ -125,6 +137,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut {
         require(_to != address(0), " NibblVault: Zero address");
+        //Make update on the first tx of the block
+        uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
+        if (_blockTimestamp != lastBlockTimeStamp) {
+            _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+        }
         uint256 _purchaseReturn;
         if (totalSupply() >= initialTokenSupply) { 
             _purchaseReturn = _buyPrimaryCurve(_to, msg.value);
@@ -138,10 +155,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             } 
         }
         require(_minAmtOut <= _purchaseReturn, "NibblVault: Insufficient amount out");
-        _updateTWAV(getCurrentValuation());
     }
 
-    //TODO: Add reenterancy modifier
     function _sellPrimaryCurve(uint256 _amount) private returns(uint256 _saleReturn) {
         _saleReturn = _calculateSaleReturn(totalSupply(), primaryReserveBalance, primaryReserveRatio, _amount);
         primaryReserveBalance -= _saleReturn;
@@ -155,8 +170,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         _burn(msg.sender, _amount);
     }
 
-    function sell(uint256 _amtIn, uint256 _minAmtOut, address _to) external payable notBoughtOut {
+    function sell(uint256 _amtIn, uint256 _minAmtOut, address _to) external payable notBoughtOut lock {
         require(_to != address(0), "NibblVault: Invalid address");
+        //Make update on the first tx of the block
+        uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
+        if (_blockTimestamp != lastBlockTimeStamp) {
+            _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+        }
+        
         uint256 _saleReturn;
         if(totalSupply() > initialTokenSupply) {
             if ((initialTokenSupply + _amtIn) <= totalSupply()) {
@@ -171,27 +192,27 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(_saleReturn >= _minAmtOut, "NibblVault: Insufficient amount out");
         (bool _success, ) = payable(_to).call{value: _saleReturn}("");
         require(_success, "NibblVault: Failed to send funds");
-        _updateTWAV(getCurrentValuation());
     }
 
     function initiateBuyOut() public payable {
+        //TODO: add bid placer
         require(status == Status.initialised, "NibblVault: Only when initialised");
-        uint256 _buyoutBid = msg.value + primaryReserveBalance + secondaryReserveBalance;
+        uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         require(_buyoutBid >= getCurrentValuation(), "NibblVault: Low buyout valuation");
+        buyoutValuationDeposit = msg.value;
         buyoutRejectionValuation = (_buyoutBid * (SCALE + REJECTION_PREMIUM)) / SCALE;
         buyoutEndTime = block.timestamp + BUYOUT_DURATION;
         status = Status.buyout;
     }
 
-    function rejectBuyout() public {
+    function rejectBuyout() public notBoughtOut {
         uint256 _twav = _getTwav();
         if (_twav >= buyoutRejectionValuation) {
+            delete buyoutRejectionValuation;
+            delete buyoutEndTime;
             status = Status.initialised;
-            //TODO: Do we need to do these
-            // delete buyoutRejectionValuation;
-            // delete buyoutEndTime = 0;
-        } else {
-            return;
+            (bool _success,) = payable(bidder).call{value: buyoutValuationDeposit}("");
+            require(_success);
         }
     }
 

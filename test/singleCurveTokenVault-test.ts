@@ -221,4 +221,21 @@ describe('NibblTokenVault', function () {
 
   
 
+    // function initiateBuyOut() public payable {
+    //     require(status == Status.initialised, "NibblVault: Only when initialised");
+    //     uint256 _buyoutBid = msg.value + primaryReserveBalance + secondaryReserveBalance;
+    //     require(_buyoutBid >= getCurrentValuation(), "NibblVault: Low buyout valuation");
+    //     buyoutRejectionValuation = (_buyoutBid * (SCALE + REJECTION_PREMIUM)) / SCALE;
+    //     buyoutEndTime = block.timestamp + BUYOUT_DURATION;
+    //     status = Status.buyout;
+    // }
+
+    it("should initiate buyout successfully", async function () {
+
+        const buyoutBid: BigNumber = ethers.utils.parseEther("105"); // 5 more than initialValuation(100) secBal = 1-, primary-ficit = 0
+        await this.tokenVault.initiateBuyOut({ value: buyoutBid.sub(initialSecondaryReserveBalance) });
+        
+    });
+
+
 })
