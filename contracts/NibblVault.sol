@@ -35,7 +35,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 private constant INITIAL_TOKEN_PRICE = 1e14; //10^-4
     uint256 private fictitiousPrimaryReserveBalance;
 
-    uint256 public buyoutRejectionValuation;
+    uint256 public buyoutRejectionValuation; //valuation at which buyout is supposed to be rejected 
     uint256 public buyoutValuationDeposit; //Deposit made by bidder to initiate buyout msg.value in initiateBuyout Method
     //TODO: Fee admin variable and function to update it
     uint256 public initialTokenSupply;
@@ -43,6 +43,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 public secondaryReserveBalance;
     uint256 public feeAccruedCurator;
     uint256 public buyoutEndTime;
+    uint256 public buyoutBid;
     uint256 private unlocked = 1;
 
 
@@ -59,6 +60,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     }
 
     modifier boughtOut() {
+        require(status == Status.buyout);
         require(buyoutEndTime < block.timestamp);
         _;
     }
@@ -158,6 +160,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             } 
         }
         require(_minAmtOut <= _purchaseReturn, "NibblVault: Insufficient amount out");
+        if (status == Status.buyout) {
+            _rejectBuyout();
+        }
     }
 
     function _sellPrimaryCurve(uint256 _amount) private returns(uint256 _saleReturn) {
@@ -206,10 +211,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         buyoutValuationDeposit = msg.value;
         buyoutRejectionValuation = (_buyoutBid * (SCALE + REJECTION_PREMIUM)) / SCALE;
         buyoutEndTime = block.timestamp + BUYOUT_DURATION;
+        buyoutBid = _buyoutBid;
         status = Status.buyout;
     }
 
-    function rejectBuyout() public notBoughtOut {
+    function _rejectBuyout() internal notBoughtOut {
         uint256 _twav = _getTwav();
         if (_twav >= buyoutRejectionValuation) {
             delete buyoutRejectionValuation;
@@ -222,10 +228,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     function redeem() public boughtOut {
         //TODO: Review
-
         uint256 _balance = balanceOf(msg.sender);
+        uint256 _amtOut = (buyoutBid * _balance) / totalSupply();
         // TODO: check success
-        payable(msg.sender).call{value: (((primaryReserveBalance + secondaryReserveBalance) * _balance) / totalSupply())}("");
+        payable(msg.sender).call{value: _amtOut}("");
+        buyoutBid -= _amtOut;
         _burn(msg.sender, _balance);
     }
 
