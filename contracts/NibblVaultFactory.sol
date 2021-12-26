@@ -10,7 +10,7 @@ import { ProxyVault } from "./Proxy/ProxyVault.sol";
 import "hardhat/console.sol";
 
 contract NibblVaultFactory is Ownable{
-
+//TODO: Add pending functions
     address public implementation;
     address public feeTo;
      

@@ -4,8 +4,7 @@ pragma solidity 0.8.4;
 
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import { BancorBondingCurve } from "./Bancor/BancorBondingCurve.sol";
-import { IERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
-import { IERC721ReceiverUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { SafeMathUpgradeable } from  "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import { IERC721ReceiverUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
@@ -47,16 +46,20 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 private unlocked = 1;
 
 
-    enum Status {initialised, buyout, buyoutCompleted}
+    enum Status {initialised, buyout}
 
     Status public status;
 
     //TODO: Change modifiers to initialised, buyout, buyoutCompleted
 
     modifier notBoughtOut() {
-        require(status != Status.buyoutCompleted);
         //For the case when buyoutTime has ended and buyout has not been rejected
         require(buyoutEndTime > block.timestamp || buyoutEndTime == 0);
+        _;
+    }
+
+    modifier boughtOut() {
+        require(buyoutEndTime < block.timestamp);
         _;
     }
 
@@ -199,6 +202,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(status == Status.initialised, "NibblVault: Only when initialised");
         uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         require(_buyoutBid >= getCurrentValuation(), "NibblVault: Low buyout valuation");
+        bidder = msg.sender;
         buyoutValuationDeposit = msg.value;
         buyoutRejectionValuation = (_buyoutBid * (SCALE + REJECTION_PREMIUM)) / SCALE;
         buyoutEndTime = block.timestamp + BUYOUT_DURATION;
@@ -214,6 +218,20 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             (bool _success,) = payable(bidder).call{value: buyoutValuationDeposit}("");
             require(_success);
         }
+    }
+
+    function redeem() public boughtOut {
+        //TODO: Review
+
+        uint256 _balance = balanceOf(msg.sender);
+        // TODO: check success
+        payable(msg.sender).call{value: (((primaryReserveBalance + secondaryReserveBalance) * _balance) / totalSupply())}("");
+        _burn(msg.sender, _balance);
+    }
+
+    function unlockNFT() public boughtOut {
+        //TODO: Review
+        IERC721(assetAddress).transferFrom(address(this), bidder, assetID);
     }
 
     function onERC721Received(
