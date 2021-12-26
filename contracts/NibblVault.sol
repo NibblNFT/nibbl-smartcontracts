@@ -43,7 +43,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 public secondaryReserveBalance;
     uint256 public feeAccruedCurator;
     uint256 public buyoutEndTime;
-    uint256 public buyoutBid;
+    uint256 public buyoutBid; //Valuation at whoch buyout happens
     uint256 private unlocked = 1;
 
 
