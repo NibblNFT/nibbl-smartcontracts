@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import { ethers,network } from 'hardhat';
 import { BigNumber } from 'ethers';
 import { mintTokens, burnTokens } from "./testHelpers/singleCurveTokenVaultHelper";
 import { setTime } from "./testHelpers/time";
@@ -63,7 +63,10 @@ describe('NibblTokenVault', function () {
         this.nft.approve(this.tokenVaultFactory.address, 0);
 
         this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
+        this.TestTWAPContract = await ethers.getContractFactory("TestTwav");
         this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
+        this.testTWAV = await this. TestTWAPContract.deploy()
+        await this.testTWAV.deployed()
         await this.testBancorBondingCurve.deployed();
         
         await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, {value: initialSecondaryReserveBalance});
@@ -84,17 +87,39 @@ describe('NibblTokenVault', function () {
         await this.tokenVault.connect(this.buyer1).buy(_purchaseReturn, this.buyer1.address, { value: _buyAmount });
         expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_newSecBalance);
         expect(await this.tokenVault.primaryReserveBalance()).to.equal(_newPrimaryReserveBalance);
-        expect(await this.tokenVault.secondaryReserveRatio()).to.equal(_newSecRatio);   
+        expect(await this.tokenVault.secondaryReserveRatio()).to.equal(_newSecRatio);
         const _observation = await this.tokenVault.twavObservations(BigNumber.from(await this.tokenVault.twavObservationsIndex()).sub(ONE));
-        const _valuation: BigNumber = (_newSecBalance.mul(SCALE).div(_newSecRatio)).add((_newPrimaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).mul(SCALE).div(primaryReserveRatio));
-        expect(_observation.cumulativeValuation).to.equal((_observation.timestamp).mul(_valuation));
-
+        expect(_observation.cumulativeValuation).to.equal((_observation.timestamp).mul(initialValuation));
+        await network.provider.send("evm_increaseTime", [3600])
+        const _valuation: BigNumber = (_newSecBalance.mul(SCALE).div(_newSecRatio)).add((_newPrimaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).mul(SCALE).div(primaryReserveRatio));  
+        // console.log("valuation", _valuation);
+        // for(let i = 0;i<25;i++){
+        //     await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
+        //     for(let i = 0;i<12;i++){
+        //         let obs = await this.tokenVault.twavObservations(i)
+        //         console.log("element number",i," cummulative valuation:",obs.cumulativeValuation)
+        //     }
+        //     let weightedValuation = await this.tokenVault._getTwav()        
+        //     console.log("weighted valutaion",weightedValuation,"after ",i+2," transactions\n")
+        // }
+        const _observation2 = await this.tokenVault.twavObservations(BigNumber.from(await this.tokenVault.twavObservationsIndex()).sub(ONE));
+        expect(_observation2.cumulativeValuation).to.equal(_observation.cumulativeValuation.add(_valuation.mul((_observation2.timestamp-_observation.timestamp))))
     })
-
-
-    // it("should update twavArray", async function () { });
-
-
-  
+    it("should compute correct twav", async function () {
+        const initialValutaion = 100; //100 ETH
+        const iterations = 15
+        let initialValuationArray = [];
+        const initialTimestamp = (new Date().getTime()) / 1000 
+        for(let i = 0;i<iterations;i++){
+            const valuation = initialValutaion + i
+            initialValuationArray.push(ethers.utils.parseEther(`${valuation}`))
+            let fakeTimestamp = initialTimestamp + (i * 3600)
+            await this.testTWAV._updateTWAV(initialValuationArray[i],fakeTimestamp.toFixed(0))
+            const twav = await this.testTWAV._getTwav()
+        }
+        const twav = await this.testTWAV._getTwav()
+        const expectedTWAV =  ethers.utils.parseEther(`${194}`)
+        expect(twav).to.equal(expectedTWAV)
+    })
 
 })
