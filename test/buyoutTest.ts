@@ -185,6 +185,7 @@ describe("NibblTokenVault", function () {
         .connect(this.addr1)
         .buy(0, this.addr1.address, { value: _buyAmount });
     }
+    //TODO mint burn works after buyout rejection
     let valuationAfterRejectOrder = await this.tokenVault._getTwav();
     console.log(valuationAfterRejectOrder.toString());
     const balanceAfterRejection = await this.admin.provider.getBalance(
