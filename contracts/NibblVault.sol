@@ -55,7 +55,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     modifier notBoughtOut() {
         //For the case when buyoutTime has ended and buyout has not been rejected
-        require(buyoutEndTime > block.timestamp || buyoutEndTime == 0);
+        require(buyoutEndTime > block.timestamp || buyoutEndTime == 0,'NFT has been bought');
         _;
     }
 
