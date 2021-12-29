@@ -69,7 +69,7 @@ describe('NibblTokenVault', function () {
         await this.testTWAV.deployed()
         await this.testBancorBondingCurve.deployed();
         
-        await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, {value: initialSecondaryReserveBalance});
+        await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply,10**14, {value: initialSecondaryReserveBalance});
         const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
         this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     })
@@ -107,7 +107,7 @@ describe('NibblTokenVault', function () {
     })
     it("should compute correct twav", async function () {
         const initialValutaion = 100; //100 ETH
-        const iterations = 15
+        const iterations = 100
         let initialValuationArray = [];
         const initialTimestamp = (new Date().getTime()) / 1000 
         for(let i = 0;i<iterations;i++){
