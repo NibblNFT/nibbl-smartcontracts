@@ -32,7 +32,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 private constant SCALE = 1_000_000;
     uint256 private constant REJECTION_PREMIUM = 100_000; //10%
     uint256 private constant BUYOUT_DURATION = 3 days; 
-    uint256 private constant INITIAL_TOKEN_PRICE = 1e14; //10^-4
+    uint256 public INITIAL_TOKEN_PRICE; //10^-4
     uint256 private fictitiousPrimaryReserveBalance;
 
     uint256 public buyoutRejectionValuation; //valuation at which buyout is supposed to be rejected 
@@ -78,9 +78,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         address _assetAddress,
         uint256 _assetID,
         address _curator,
-        uint256 _initialTokenSupply
+        uint256 _initialTokenSupply,
+        uint256 _initialTokenPrice
     ) public initializer payable {
         __ERC20_init(_tokenName, _tokenSymbol);
+        INITIAL_TOKEN_PRICE=_initialTokenPrice;
         factory = msg.sender;
         assetAddress = _assetAddress;
         assetID = _assetID;
