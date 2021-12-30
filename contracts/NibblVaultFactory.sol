@@ -52,7 +52,7 @@ contract NibblVaultFactory is Ownable{
         feeTo = _newFeeAddress;
     }
     function updateFee(uint256 _newFee) public onlyOwner{
-        require(_newFee<MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
+        require(_newFee <= MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
         feeAdmin = _newFee;
     }
 
