@@ -238,9 +238,15 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(_success);
     }
 
-    function unlockNFT() public boughtOut {
-        //TODO: Review
-        IERC721(assetAddress).transferFrom(address(this), bidder, assetID);
+    function unlockNFT(address _to) public boughtOut {
+        require(msg.sender==bidder,"NibblVault: Only winner can unlock");
+        IERC721(assetAddress).transferFrom(address(this), _to, assetID);
+    }
+    function redeemCuratorFee(address _to) public {
+        require(msg.sender==curator,"NibblVault: Only Curator can redeem");
+        (bool _success,) = payable(_to).call{value: feeAccruedCurator}("");
+        feeAccruedCurator = 0;
+        require(_success);
     }
 
     function onERC721Received(
