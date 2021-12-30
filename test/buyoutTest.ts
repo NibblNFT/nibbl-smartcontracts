@@ -137,7 +137,7 @@ describe("NibblTokenVault", function () {
     const ethBalAfterRedeem = await this.admin.provider.getBalance(
       this.buyer1.address
     );
-    expect(tokenBalAfterRedeem).to.be.equal(0)
+    expect(tokenBalAfterRedeem).to.be.equal(0);
     console.log(
       tokenBalAfterRedeem.toString(),
       ethBalBeforeRedeem.toString(),
@@ -183,7 +183,7 @@ describe("NibblTokenVault", function () {
         .buy(0, this.buyer1.address, { value: _buyAmount });
     }
     const weightedValuation = await this.tokenVault._getTwav();
-    const bidAmount = weightedValuation
+    const bidAmount = weightedValuation;
     await this.tokenVault
       .connect(this.buyer1)
       .initiateBuyOut({ value: bidAmount });
@@ -197,15 +197,17 @@ describe("NibblTokenVault", function () {
       .connect(this.addr1)
       .buy(0, this.addr1.address, { value: buyAmountToReject });
     for (let i = 0; i < 12; i++) {
-      let valuationAfterRejectOrder = await this.tokenVault._getTwav();
-      //TODO check if rejection status changes after order is rejected
-      console.log(valuationAfterRejectOrder.toString());
       this.tokenVault
         .connect(this.addr1)
         .buy(0, this.addr1.address, { value: _buyAmount });
+      let valuationAfterOrder = await this.tokenVault._getTwav();
+      const status = await this.tokenVault.status();
+      if (valuationAfterOrder > buyoutRejectionValuation) {
+        expect(status).to.be.equal(0);
+      } else {
+        expect(status).to.be.equal(1);
+      }
     }
-    let valuationAfterRejectOrder = await this.tokenVault._getTwav();
-    console.log(valuationAfterRejectOrder.toString());
     const balanceAfterRejection = await this.admin.provider.getBalance(
       this.buyer1.address
     );
