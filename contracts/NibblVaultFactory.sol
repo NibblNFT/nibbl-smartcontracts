@@ -48,6 +48,9 @@ contract NibblVaultFactory is Ownable{
         IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
     }
+    function updateAdminFeeAddress(address _newFeeAddress) public onlyOwner{
+        feeTo = _newFeeAddress;
+    }
 
     function getFee() external view returns(address, uint256) {
         return (feeTo, feeAdmin);
