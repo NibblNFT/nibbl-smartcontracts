@@ -121,6 +121,7 @@ describe("NibblTokenVault", function () {
     const tokenBalBeforeRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
+    const totalSupply = await this.tokenVault.totalSupply();
     const ethBalBeforeRedeem = await this.admin.provider.getBalance(
       this.buyer1.address
     );
@@ -130,6 +131,10 @@ describe("NibblTokenVault", function () {
       .initiateBuyOut({ value: buyoutBid });
     await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
     await this.tokenVault.connect(this.addr1).unlockNFT(this.addr1.address);
+    const contractBalBeforeRedeem = await this.admin.provider.getBalance(
+      this.tokenVault.address
+    );
+    const expectedETH = tokenBalBeforeRedeem*(contractBalBeforeRedeem)/totalSupply
     await this.tokenVault.connect(this.buyer1).redeem();
     const tokenBalAfterRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
@@ -138,11 +143,8 @@ describe("NibblTokenVault", function () {
       this.buyer1.address
     );
     expect(tokenBalAfterRedeem).to.be.equal(0);
-    console.log(
-      tokenBalAfterRedeem.toString(),
-      ethBalBeforeRedeem.toString(),
-      ethBalAfterRedeem.toString()
-    );
+    console.log(ethBalAfterRedeem.sub(ethBalBeforeRedeem).toString());
+    console.log(expectedETH)
   });
   it(" Mint/Burn stops after success", async function () {
     const _buyAmount = ethers.utils.parseEther("1");
