@@ -49,10 +49,10 @@ contract NibblVaultFactory is Ownable{
         IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
     }
-    function updateAdminFeeAddress(address _newFeeAddress) public onlyOwner{
+    function updateAdminFeeAddress(address _newFeeAddress) public {
         feeTo = _newFeeAddress;
     }
-    function updateFee(uint256 _newFee) public onlyOwner{
+    function updateFee(uint256 _newFee) public {
         require(_newFee <= MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
         feeAdmin = _newFee;
     }
