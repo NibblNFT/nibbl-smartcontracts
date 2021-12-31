@@ -25,15 +25,15 @@ contract NibblVaultFactory is Ownable{
         implementation = _implementation;
         feeTo = _feeTo;
     }
-    
+
     /// @notice the function to mint a new vault
-    /// @param _assetAddress the desired name of the vault
-    /// @param _assetTokenID the desired symbol of the vault
-    /// @param _name the desired symbol of the vault
-    /// @param _symbol the desired symbol of the vault
-    /// @param _initialSupply the desired symbol of the vault
-    /// @param _initialTokenPrice the desired symbol of the vault
-    /// @param _curatorFee the desired symbol of the vault
+    /// @param _assetAddress address of the NFT contract which is being fractionalised
+    /// @param _assetTokenID tokenId of the NFT being fractionalised
+    /// @param _name name of the fractional token to be created
+    /// @param _symbol symbol fo the fractional token
+    /// @param _initialSupply desired initial token supply
+    /// @param _initialTokenPrice desired initial token price
+    /// @param _curatorFee fee percentage for curator
     /// @dev _reserveBalance = valuation * reserveRatio
     /// @dev initialTokenSupply = _reserveBalance/(_initialTokenPrice*reserveRatio)
     function createVault(
@@ -53,14 +53,14 @@ contract NibblVaultFactory is Ownable{
         nibbledTokens.push(_proxyVault);
     }
 
-    /// @notice the function to mint a new vault
-    /// @param _newFeeAddress the desired name of the vault
+    /// @notice the function to update the address where fee is sent
+    /// @param _newFeeAddress new fee address
     function updateAdminFeeAddress(address _newFeeAddress) public {
         feeTo = _newFeeAddress;
     }
 
-    /// @notice the function to mint a new vault
-    /// @param _newFee the desired name of the vault
+    /// @notice the function to update admin fee
+    /// @param _newFee new fee percentage for admin
     function updateFee(uint256 _newFee) public {
         require(_newFee <= MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
         feeAdmin = _newFee;

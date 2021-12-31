@@ -101,7 +101,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @param _assetAddress address of the NFT contract which is being fractionalised
     /// @param _assetID tokenId of the NFT being fractionalised
     /// @param _initialTokenSupply desired initial supply
-    /// @param _initialTokenPrice desired initial token supply
+    /// @param _initialTokenPrice desired initial token price
     /// @param _curatorFee fee percentage for curator
     function initialize(
         string memory _tokenName, 
