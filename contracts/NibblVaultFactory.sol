@@ -27,12 +27,15 @@ contract NibblVaultFactory is Ownable{
     }
     
     /// @notice the function to mint a new vault
-    /// @param name the desired name of the vault
-    /// @param symbol the desired sumbol of the vault
-    // @param _assets the ERC721 token address and tokenId 
+    /// @param _assetAddress the desired name of the vault
+    /// @param _assetTokenID the desired symbol of the vault
+    /// @param _name the desired symbol of the vault
+    /// @param _symbol the desired symbol of the vault
+    /// @param _initialSupply the desired symbol of the vault
+    /// @param _initialTokenPrice the desired symbol of the vault
+    /// @param _curatorFee the desired symbol of the vault
     /// @dev _reserveBalance = valuation * reserveRatio
-    /// @dev initial Price is always fixed (default is 0.0001 ETH)
-    /// @dev initialTokenSupply = _reserveBalance/(price*reserveRatio)
+    /// @dev initialTokenSupply = _reserveBalance/(_initialTokenPrice*reserveRatio)
     function createVault(
         address _assetAddress,
         uint256 _assetTokenID,
@@ -49,14 +52,21 @@ contract NibblVaultFactory is Ownable{
         IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
     }
+
+    /// @notice the function to mint a new vault
+    /// @param _newFeeAddress the desired name of the vault
     function updateAdminFeeAddress(address _newFeeAddress) public {
         feeTo = _newFeeAddress;
     }
+
+    /// @notice the function to mint a new vault
+    /// @param _newFee the desired name of the vault
     function updateFee(uint256 _newFee) public {
         require(_newFee <= MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
         feeAdmin = _newFee;
     }
 
+    /// @notice the function to mint a new vault
     function getFee() external view returns(address, uint256) {
         return (feeTo, feeAdmin);
     }

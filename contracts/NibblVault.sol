@@ -37,7 +37,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     uint256 public buyoutRejectionValuation; //valuation at which buyout is supposed to be rejected 
     uint256 public buyoutValuationDeposit; //Deposit made by bidder to initiate buyout msg.value in initiateBuyout Method
-    //TODO: Fee admin variable and function to update it
     uint256 public initialTokenSupply;
     uint256 public primaryReserveBalance;
     uint256 public secondaryReserveBalance;
@@ -46,7 +45,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 public buyoutBid; //Valuation at whoch buyout happens
     uint256 private unlocked = 1;
     uint256 curatorFee;
-
     enum Status {initialised, buyout}
 
     Status public status;
@@ -72,6 +70,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         unlocked = 1;
     }
 
+    /// @notice the function to initialise vault parameters
+    /// @param _tokenName name of the fractional token to be created
+    /// @param _tokenSymbol symbol fo the fractional token
+    /// @param _assetAddress address of the NFT contract which is being fractionalised
+    /// @param _assetID tokenId of the NFT being fractionalised
+    /// @param _initialTokenSupply desired initial supply
+    /// @param _initialTokenPrice desired initial token supply
+    /// @param _curatorFee fee percentage for curator
     function initialize(
         string memory _tokenName, 
         string memory _tokenSymbol, 
@@ -82,6 +88,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         uint256 _initialTokenPrice,
         uint256 _curatorFee
     ) public initializer payable {
+        require(_curatorFee<10000,"NibblVault: Curator fee should be less than 1 %");
         __ERC20_init(_tokenName, _tokenSymbol);
         curatorFee = _curatorFee;
         INITIAL_TOKEN_PRICE=_initialTokenPrice;
@@ -114,7 +121,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         return _amount - (_feeAdmin + _feeCurator + _feeCurve);
     }
 
-
     function getMaxSecondaryCurveBalance() private view returns(uint256){
             return ((secondaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (1e18 * SCALE));
     }
@@ -144,6 +150,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         _mint(_to, _purchaseReturn);
     }
 
+    /// @notice the function to buy fractional tokens
+    /// @param _minAmtOut the desired name of the vault
+    /// @param _to the desired name of the vault
     function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut {
         require(_to != address(0), " NibblVault: Zero address");
         //Make update on the first tx of the block
@@ -182,6 +191,10 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         _burn(msg.sender, _amount);
     }
 
+    /// @notice the function to sell fractional tokens
+    /// @param _amtIn the desired name of the vault
+    /// @param _minAmtOut the desired name of the vault
+    /// @param _to the desired name of the vault
     function sell(uint256 _amtIn, uint256 _minAmtOut, address _to) external payable notBoughtOut lock {
         require(_to != address(0), "NibblVault: Invalid address");
         //Make update on the first tx of the block
@@ -206,6 +219,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(_success, "NibblVault: Failed to send funds");
     }
 
+    /// @notice the function to initiate buyout of a vault
     function initiateBuyOut() public payable {
         //TODO: add bid placer
         require(status == Status.initialised, "NibblVault: Only when initialised");
@@ -230,26 +244,47 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         }
     }
 
+    /// @notice the function to redeem tokens after buyout
     function redeem() public boughtOut {
         uint256 _balance = balanceOf(msg.sender);
-        uint256 redeemableBalance = address(this).balance-feeAccruedCurator;
-
-        uint256 _amtOut = (redeemableBalance * _balance) / totalSupply();
+        uint256 _amtOut;
+        if(buyoutBid<address(this).balance){
+            _amtOut = (buyoutBid * _balance) / totalSupply();
+            buyoutBid -= _amtOut;
+        }
+        else{
+           _amtOut = (address(this).balance * _balance) / totalSupply();
+        }
         _burn(msg.sender, _balance);
         (bool _success,) = payable(msg.sender).call{value: _amtOut}("");
         require(_success);
     }
 
+    /// @notice the function to mint a new vault
+    /// @param _to the address where unlocked NFT will be sent
     function unlockNFT(address _to) public boughtOut {
         require(msg.sender==bidder,"NibblVault: Only winner can unlock");
         IERC721(assetAddress).transferFrom(address(this), _to, assetID);
+        //TODO check for condition if buyout bid is more than balance on the contract
+        uint256 _amtOut = address(this).balance - buyoutBid - feeAccruedCurator;
+        (bool _success,) = payable(_to).call{value: _amtOut}("");
+        require(_success);
     }
-    
+
+    /// @notice the function to redeem curator fee
+    /// @param _to the address where curator fee will be sent
     function redeemCuratorFee(address _to) public {
         require(msg.sender==curator,"NibblVault: Only Curator can redeem");
         (bool _success,) = payable(_to).call{value: feeAccruedCurator}("");
         feeAccruedCurator = 0;
         require(_success);
+    }
+
+    /// @notice the function to update curator fee percentage
+    /// @param _newFee new curator fee percentage 
+    function updateCuratorFee(uint256 _newFee) public {
+        require(msg.sender==curator,"NibblVault: Only Curator can update the fees");
+        curatorFee = _newFee;
     }
 
     function onERC721Received(
