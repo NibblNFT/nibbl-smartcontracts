@@ -24,26 +24,51 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     //0 1 2 3 4 5 6 7 8 9 10 11 
     address public factory;
+
+    /// @notice the TokenVault logic contract
     address public curator;
+
+    /// @notice the TokenVault logic contract
     address public assetAddress;
+
+    /// @notice the TokenVault logic contract
     address public bidder;
-    
+
+    /// @notice the TokenVault logic contract
     uint256 public assetID;
+
     uint256 private constant SCALE = 1_000_000;
     uint256 private constant REJECTION_PREMIUM = 100_000; //10%
     uint256 private constant BUYOUT_DURATION = 3 days; 
-    uint256 public INITIAL_TOKEN_PRICE; //10^-4
+
+    /// @notice the initial price of the fractional Token
+    uint256 public INITIAL_TOKEN_PRICE;
     uint256 private fictitiousPrimaryReserveBalance;
 
+    /// @notice the valuation at which the buyout is rejected
     uint256 public buyoutRejectionValuation; //valuation at which buyout is supposed to be rejected 
+    
+    /// @notice deposit made by bidder to initiate buyout
     uint256 public buyoutValuationDeposit; //Deposit made by bidder to initiate buyout msg.value in initiateBuyout Method
+    
+    /// @notice initial token supply
     uint256 public initialTokenSupply;
+    
+    /// @notice reserve balance of the upper curve
     uint256 public primaryReserveBalance;
+    
+    /// @notice reserve balance of the lower curve
     uint256 public secondaryReserveBalance;
+    
+    /// @notice total fee accrued by the curator
     uint256 public feeAccruedCurator;
+    
+    /// @notice the time at which the buyout ends
     uint256 public buyoutEndTime;
+    
+    /// @notice valuation at which buyout has been started
     uint256 public buyoutBid; //Valuation at whoch buyout happens
-    uint256 private unlocked = 1;
+    bool private entered = false;
     uint256 curatorFee;
     enum Status {initialised, buyout}
 
@@ -64,10 +89,10 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     }
 
     modifier lock() {
-        require(unlocked == 1, 'NibblVault: Locked');
-        unlocked = 0;
+        require(!entered, 'NibblVault: Locked');
+        entered = true;
         _;
-        unlocked = 1;
+        entered = false;
     }
 
     /// @notice the function to initialise vault parameters
