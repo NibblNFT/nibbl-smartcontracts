@@ -96,6 +96,7 @@ describe("NibblTokenVault", function () {
       tokenSymbol,
       initialTokenSupply,
       10 ** 14,
+      MAX_FEE_CURATOR,
       { value: initialSecondaryReserveBalance }
     );
     const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);

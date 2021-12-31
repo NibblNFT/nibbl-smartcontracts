@@ -58,7 +58,7 @@ describe('NibblTokenVault', function () {
         this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
         await this.testBancorBondingCurve.deployed();
         
-        await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply,10**14, {value: initialSecondaryReserveBalance});
+        await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply,10**14,MAX_FEE_CURATOR, {value: initialSecondaryReserveBalance});
         const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
         this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     })

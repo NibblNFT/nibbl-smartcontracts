@@ -39,12 +39,13 @@ contract NibblVaultFactory is Ownable{
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply,
-        uint256 _initialTokenPrice
+        uint256 _initialTokenPrice,
+        uint256 _curatorFee
     ) public payable returns(ProxyVault _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         _proxyVault = new ProxyVault(implementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
-        _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice);
+        _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
         IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
     }

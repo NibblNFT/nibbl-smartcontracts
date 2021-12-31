@@ -45,7 +45,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 public buyoutEndTime;
     uint256 public buyoutBid; //Valuation at whoch buyout happens
     uint256 private unlocked = 1;
-
+    uint256 curatorFee;
 
     enum Status {initialised, buyout}
 
@@ -79,9 +79,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         uint256 _assetID,
         address _curator,
         uint256 _initialTokenSupply,
-        uint256 _initialTokenPrice
+        uint256 _initialTokenPrice,
+        uint256 _curatorFee
     ) public initializer payable {
         __ERC20_init(_tokenName, _tokenSymbol);
+        curatorFee = _curatorFee;
         INITIAL_TOKEN_PRICE=_initialTokenPrice;
         factory = msg.sender;
         assetAddress = _assetAddress;
@@ -123,9 +125,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     function getCurveFee() private view returns (uint256, uint256)/**curator, curve  */ {
         if (secondaryReserveRatio < primaryReserveRatio) {
-            return (4000, 4000); //.4%, .4%
+            return (curatorFee, 4000); //.4%, .4%
         } else {
-            return (8000, 0); //.8%, 0%
+            return (curatorFee, 0); //.8%, 0%
         }
     }
         
