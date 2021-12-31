@@ -309,6 +309,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @param _newFee new curator fee percentage 
     function updateCuratorFee(uint256 _newFee) public {
         require(msg.sender==curator,"NibblVault: Only Curator can update the fees");
+        require(_newFee<10000,"NibblVault: Curator fee should be less than 1 %");
         curatorFee = _newFee;
     }
 
