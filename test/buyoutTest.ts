@@ -7,7 +7,7 @@ import {
 } from "./testHelpers/singleCurveTokenVaultHelper";
 import { setTime } from "./testHelpers/time";
 
-describe("NibblTokenVault", function () {
+describe("Buyout", function () {
   type TwavObservation = {
     timestamp: BigNumber;
     cumulativeValuation: BigNumber;
