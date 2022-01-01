@@ -54,12 +54,12 @@ contract NibblVaultFactory is Ownable{
     }
 
     /// @notice the function to update the address where fee is sent
-    /// @param _newFeeAddress new fee address
+    /// @param _newFeeAddress new admin fee address
     function updateAdminFeeAddress(address _newFeeAddress) public onlyOwner{
         feeTo = _newFeeAddress;
     }
 
-    /// @notice the function to update admin fee
+    /// @notice the function to update admin fee percentage
     /// @param _newFee new fee percentage for admin
     function updateFee(uint256 _newFee) public onlyOwner{
         require(_newFee <= MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
