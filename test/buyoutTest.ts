@@ -118,8 +118,9 @@ describe("Buyout", function () {
     expect(owner).to.be.equal(this.buyer1.address);
   });
 
-  it("When after buyout in surplus condition Token holder is able to redeem tokens for ETH in proportion to the supply they own", async function () {
+  it("In the case when there is excess ETH in contract, NFT bidder gets the excess ETH on unlock and tokenholders are able to redeem tokens in proportion to their supply ownership", async function () {
     const _buyAmount = ethers.utils.parseEther("1");
+    // Buy tokens worth 1 ETH for buyer1
     await this.tokenVault
       .connect(this.buyer1)
       .buy(0, this.buyer1.address, { value: _buyAmount });
@@ -127,33 +128,42 @@ describe("Buyout", function () {
       this.buyer1.address
     );
     const buyoutBidAmount = ethers.utils.parseEther("200");
+    // Buyout initiated by bidder by putting in 200 ETH
     await this.tokenVault
       .connect(this.addr1)
       .initiateBuyOut({ value: buyoutBidAmount });
     const buyoutBid = await this.tokenVault.buyoutBid();
-    //more buying to increase vault balance
+    //5 ETH worth of buying after buyout is initiated
     await this.tokenVault
       .connect(this.addr1)
-      .buy(0, this.addr1.address, { value: _buyAmount.mul(5) }); //5 ETH buy
+      .buy(0, this.addr1.address, { value: _buyAmount.mul(5) });
+    // Time passes and buyout succeeds
     await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
 
     const contractBalBeforeUnlock = await this.admin.provider.getBalance(
       this.tokenVault.address
     );
+
+    // Checking if the bidder gets money back alongside the NFT when he triggers unlock.
+    // This money is the extra money that was deposited in the curve
     await this.tokenVault.connect(this.addr1).unlockNFT(this.addr1.address);
 
     const curatorFee = await this.tokenVault.feeAccruedCurator();
-    const contractBalBeforeRedeem = await this.admin.provider.getBalance(
+    const contractBalAfterUnlock = await this.admin.provider.getBalance(
       this.tokenVault.address
     );
-    const expectedRefund = contractBalBeforeUnlock.sub(
-      buyoutBid.add(curatorFee)
-    );
-    const refundIssued = contractBalBeforeUnlock.sub(contractBalBeforeRedeem);
+    // contract balance - (buyout bid + curator fees)
+    const expectedRefund = contractBalBeforeUnlock.sub(buyoutBid.add(curatorFee));
+    const refundIssued = contractBalBeforeUnlock.sub(contractBalAfterUnlock); 
     expect(expectedRefund).to.be.equal(refundIssued);
 
+    // Checking if the person who deposited 1 ETH to buy tokens before buyout started 
+    // is able to redeem his tokens for the correct amount of ETH, 
+    // his token balance should go to zero on successful redemption.
     const totalSupply = await this.tokenVault.totalSupply();
+    // Tokenholder should get money from the buyout bid in proprtion to the token supply he owns
     const expectedETH = tokenBalBeforeRedeem.mul(buyoutBid).div(totalSupply);
+    // Redeem function triggered
     await this.tokenVault.connect(this.buyer1).redeem();
     const contractBalAfterRedeem = await this.admin.provider.getBalance(
       this.tokenVault.address
@@ -161,12 +171,15 @@ describe("Buyout", function () {
     const tokenBalAfterRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
-    const redeemedAmount = contractBalBeforeRedeem.sub(contractBalAfterRedeem);
+    //contractBalAfterUnlock has the current contract balance
+    const redeemedAmount = contractBalAfterUnlock.sub(contractBalAfterRedeem);
+    
     expect(tokenBalAfterRedeem).to.be.equal(0);
     expect(redeemedAmount).to.be.equal(expectedETH);
   });
 
-  it("Redeeming before unlocking", async function () {
+  it("Tokenholder redeems his tokens before NFT unlock has been triggered by bidder", async function () {
+    // Buy tokens worth 1 ETH for buyer1
     const _buyAmount = ethers.utils.parseEther("1");
     await this.tokenVault
       .connect(this.buyer1)
@@ -174,22 +187,25 @@ describe("Buyout", function () {
     const tokenBalBeforeRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
+    // Buyout initiated by bidder by putting in 200 ETH
     const buyoutBidAmount = ethers.utils.parseEther("200");
     await this.tokenVault
       .connect(this.addr1)
       .initiateBuyOut({ value: buyoutBidAmount });
     const buyoutBid = await this.tokenVault.buyoutBid();
-    //more buying to increase vault balance
     await this.tokenVault
       .connect(this.addr1)
-      .buy(0, this.addr1.address, { value: _buyAmount.mul(5) }); //5 ETH buy
+      .buy(0, this.addr1.address, { value: _buyAmount.mul(5) });
+    // Time passes and buyout succeeds
     await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
     const contractBalBeforeRedeem = await this.admin.provider.getBalance(
       this.tokenVault.address
     );
 
     const totalSupply = await this.tokenVault.totalSupply();
+    // Tokenholder should get money from the buyout bid in proprtion to the token supply he owns
     const expectedETH = tokenBalBeforeRedeem.mul(buyoutBid).div(totalSupply);
+    // Redeem function triggered
     await this.tokenVault.connect(this.buyer1).redeem();
     const contractBalAfterRedeem = await this.admin.provider.getBalance(
       this.tokenVault.address
@@ -197,13 +213,16 @@ describe("Buyout", function () {
     const tokenBalAfterRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
+    // TODO: Instead of checking contract balance, it might be better to directly check tokenholder balance.
     const redeemedAmount = contractBalBeforeRedeem.sub(contractBalAfterRedeem);
     expect(tokenBalAfterRedeem).to.be.equal(0);
     expect(redeemedAmount).to.be.equal(expectedETH);
   });
 
-  it("When after buyout in deficit condition Token holder is able to redeem tokens for ETH in proportion to the supply they own", async function () {
-    //Buying some tokens to sell later
+  it("Token redemption in the case where the contract balance becomes less than buyout bid", async function () {
+    // This case happens when people sell tokens after buyout is triggered, although the incentive for this case happening are very less,
+    //there is still a possibility.
+    // Buy tokens worth 1 ETH for buyer1
     const _buyAmount = ethers.utils.parseEther("1");
     await this.tokenVault
       .connect(this.buyer1)
@@ -211,41 +230,54 @@ describe("Buyout", function () {
     const tokenBalBeforeRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
+    // Buyout started with a bid of 100 ETH
     const buyoutBidAmount = ethers.utils.parseEther("100");
     await this.tokenVault
       .connect(this.addr1)
       .initiateBuyOut({ value: buyoutBidAmount });
+    // Buyout bid value = 10 (reserve balance) + 100 + 0.994 (1 ETH buy order - admin fees - curator fees) = 110.994
     const buyoutBid = await this.tokenVault.buyoutBid();
-    //selling tokens to decrease the contract balance
+
+    // Selling same # of tokens bought earlier to decrease the contract balance 
+    // (Note : selling is done from curator address instead of buyer1 address), 110.015 is the new contract balance
+    //  Contract balance < buyout bid amount in this case
     await this.tokenVault
       .connect(this.curator)
       .sell(tokenBalBeforeRedeem, 0, this.curator.address);
+    // Time passes and buyout succeeds
     await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
     const totalSupply = await this.tokenVault.totalSupply();
+
     const contractBalBeforeUnlock = await this.admin.provider.getBalance(
       this.tokenVault.address
     );
-
+    
     await this.tokenVault.connect(this.addr1).unlockNFT(this.addr1.address);
-    const contractBalBeforeRedeem = await this.admin.provider.getBalance(
+    const contractBalAfterUnlock = await this.admin.provider.getBalance(
       this.tokenVault.address
     );
-    const refundIssued = contractBalBeforeUnlock.sub(contractBalBeforeRedeem);
+    const refundIssued = contractBalBeforeUnlock.sub(contractBalAfterUnlock);
+    // Buyout bidder doesn't receive any excess ETH in this case.
     expect(refundIssued).to.be.equal(0);
 
     await this.tokenVault.connect(this.buyer1).redeem();
     const tokenBalAfterRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
+    // After a successful redemption, token balance becomes 0
     expect(tokenBalAfterRedeem).to.be.equal(0);
     const curatorFee = await this.tokenVault.feeAccruedCurator();
     const contractBalAfterRedeem = await this.admin.provider.getBalance(
       this.tokenVault.address
     );
-    const redeemedAmount = contractBalBeforeRedeem.sub(contractBalAfterRedeem);
+    const redeemedAmount = contractBalAfterUnlock.sub(contractBalAfterRedeem);
+    // redeemed Amount = tokenBalance * (contractBalance - feeAccruedCurator)/ totalSupply
+    // Even though buyer1 put in 1 ETH just before buyout, he will get more ETH (1.08 ETH in this case) 
+    //as someone sold below the current valuation
     const expectedETH = tokenBalBeforeRedeem
-      .mul(contractBalBeforeRedeem.sub(curatorFee))
+      .mul(contractBalAfterUnlock.sub(curatorFee))
       .div(totalSupply);
+    
     expect(redeemedAmount).to.be.equal(expectedETH);
   });
 
