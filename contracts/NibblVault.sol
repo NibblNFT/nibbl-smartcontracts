@@ -269,7 +269,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     function redeem() public boughtOut {
         uint256 _balance = balanceOf(msg.sender);
         uint256 _amtOut;
-        if(buyoutBid<(address(this).balance - feeAccruedCurator)){
+        if(buyoutBid + feeAccruedCurator<address(this).balance){
             _amtOut = (buyoutBid * _balance) / totalSupply();
         }
         else{

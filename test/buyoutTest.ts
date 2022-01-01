@@ -106,15 +106,68 @@ describe("NibblTokenVault", function () {
       this.curator
     );
   });
-  it("Buyout succeeds when time passes and twav<buyoutrejectionvaluation throughout the 3 days", async function () {
-    const buyoutBid = ethers.utils.parseEther("200");
-    await this.tokenVault
-      .connect(this.buyer1)
-      .initiateBuyOut({ value: buyoutBid });
-    await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
-    await this.tokenVault.connect(this.buyer1).unlockNFT(this.buyer1.address);
-  });
-  it("Token holder is able to redeem tokens for ETH in proportion to the supply they own", async function () {
+
+    it("Buyout succeeds when time passes and twav<buyoutrejectionvaluation throughout the 3 days", async function () {
+      const buyoutBid = ethers.utils.parseEther("200");
+      await this.tokenVault
+        .connect(this.buyer1)
+        .initiateBuyOut({ value: buyoutBid });
+      await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
+      await this.tokenVault.connect(this.buyer1).unlockNFT(this.buyer1.address);
+      const owner = await this.nft.ownerOf(0)
+      expect(owner).to.be.equal(this.buyer1.address)
+    });
+
+    it("When after buyout in surplus condition Token holder is able to redeem tokens for ETH in proportion to the supply they own", async function () {
+      const _buyAmount = ethers.utils.parseEther("1");
+      await this.tokenVault
+        .connect(this.buyer1)
+        .buy(0, this.buyer1.address, { value: _buyAmount });
+      const tokenBalBeforeRedeem = await this.tokenVault.balanceOf(
+        this.buyer1.address
+      );
+      const buyoutBidAmount = ethers.utils.parseEther("200");
+      await this.tokenVault
+        .connect(this.addr1)
+        .initiateBuyOut({ value: buyoutBidAmount });
+      const buyoutBid = await this.tokenVault.buyoutBid();
+      //more buying to increase vault balance
+      await this.tokenVault
+        .connect(this.addr1)
+        .buy(0, this.addr1.address, { value: _buyAmount.mul(5) }); //5 ETH buy
+      await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
+
+      const contractBalBeforeUnlock = await this.admin.provider.getBalance(
+        this.tokenVault.address
+      );
+      await this.tokenVault.connect(this.addr1).unlockNFT(this.addr1.address);
+
+      const curatorFee = await this.tokenVault.feeAccruedCurator();
+      const contractBalBeforeRedeem = await this.admin.provider.getBalance(
+        this.tokenVault.address
+      );
+      const expectedRefund = contractBalBeforeUnlock.sub(
+        buyoutBid.add(curatorFee)
+      );
+      const refundIssued = contractBalBeforeUnlock.sub(contractBalBeforeRedeem);
+      expect(expectedRefund).to.be.equal(refundIssued);
+
+      const totalSupply = await this.tokenVault.totalSupply();
+      const expectedETH = tokenBalBeforeRedeem.mul(buyoutBid).div(totalSupply);
+      await this.tokenVault.connect(this.buyer1).redeem();
+      const contractBalAfterRedeem = await this.admin.provider.getBalance(
+        this.tokenVault.address
+      );
+      const tokenBalAfterRedeem = await this.tokenVault.balanceOf(
+        this.buyer1.address
+      );
+      const redeemedAmount = contractBalBeforeRedeem.sub(contractBalAfterRedeem)
+      expect(tokenBalAfterRedeem).to.be.equal(0);
+      expect(redeemedAmount).to.be.equal(expectedETH)
+    });
+
+  it("When after buyout in deficit condition Token holder is able to redeem tokens for ETH in proportion to the supply they own", async function () {
+    //Buying some tokens to sell later
     const _buyAmount = ethers.utils.parseEther("1");
     await this.tokenVault
       .connect(this.buyer1)
@@ -122,110 +175,123 @@ describe("NibblTokenVault", function () {
     const tokenBalBeforeRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
-    const totalSupply = await this.tokenVault.totalSupply();
-    const ethBalBeforeRedeem = await this.admin.provider.getBalance(
-      this.buyer1.address
-    );
-    const buyoutBid = ethers.utils.parseEther("200");
+    const buyoutBidAmount = ethers.utils.parseEther("100");
     await this.tokenVault
       .connect(this.addr1)
-      .initiateBuyOut({ value: buyoutBid });
+      .initiateBuyOut({ value: buyoutBidAmount });
+    const buyoutBid = await this.tokenVault.buyoutBid();
+    //selling tokens to decrease the contract balance
+    await this.tokenVault
+      .connect(this.curator)
+      .sell(tokenBalBeforeRedeem, 0, this.curator.address);
     await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
+    const totalSupply = await this.tokenVault.totalSupply();
+    const contractBalBeforeUnlock = await this.admin.provider.getBalance(
+      this.tokenVault.address
+    );
+
     await this.tokenVault.connect(this.addr1).unlockNFT(this.addr1.address);
     const contractBalBeforeRedeem = await this.admin.provider.getBalance(
       this.tokenVault.address
     );
-    const expectedETH = tokenBalBeforeRedeem*(contractBalBeforeRedeem)/totalSupply
+    const refundIssued = contractBalBeforeUnlock.sub(contractBalBeforeRedeem);
+    expect(refundIssued).to.be.equal(0);
+
     await this.tokenVault.connect(this.buyer1).redeem();
     const tokenBalAfterRedeem = await this.tokenVault.balanceOf(
       this.buyer1.address
     );
-    const ethBalAfterRedeem = await this.admin.provider.getBalance(
-      this.buyer1.address
-    );
     expect(tokenBalAfterRedeem).to.be.equal(0);
-    console.log(ethBalAfterRedeem.sub(ethBalBeforeRedeem).toString());
-    console.log(expectedETH)
+    const curatorFee = await this.tokenVault.feeAccruedCurator();
+    const contractBalAfterRedeem = await this.admin.provider.getBalance(
+      this.tokenVault.address
+    );
+    const redeemedAmount = contractBalBeforeRedeem.sub(contractBalAfterRedeem);
+    const expectedETH = tokenBalBeforeRedeem
+      .mul(contractBalBeforeRedeem.sub(curatorFee))
+      .div(totalSupply);
+    expect(redeemedAmount).to.be.equal(expectedETH);
   });
-  it(" Mint/Burn stops after success", async function () {
-    const _buyAmount = ethers.utils.parseEther("1");
-    const buyoutBid = ethers.utils.parseEther("200");
-    this.tokenVault
-      .connect(this.buyer1)
-      .buy(0, this.buyer1.address, { value: _buyAmount });
-    await this.tokenVault
-      .connect(this.buyer1)
-      .initiateBuyOut({ value: buyoutBid });
-    await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60]);
-    await expect(
+
+    it(" Mint/Burn stops after success", async function () {
+      const _buyAmount = ethers.utils.parseEther("1");
+      const buyoutBid = ethers.utils.parseEther("200");
       this.tokenVault
         .connect(this.buyer1)
-        .buy(0, this.buyer1.address, { value: _buyAmount })
-    ).to.revertedWith("NFT has been bought");
-    await expect(
-      this.tokenVault
-        .connect(this.buyer1)
-        .sell(_buyAmount, 0, this.buyer1.address)
-    ).to.revertedWith("NFT has been bought");
-  });
-  it("No more buyout bids possible", async function () {
-    const buyoutBid = ethers.utils.parseEther("200");
-    await this.tokenVault
-      .connect(this.buyer1)
-      .initiateBuyOut({ value: buyoutBid });
-    await expect(
-      this.tokenVault.connect(this.addr1).initiateBuyOut({ value: buyoutBid })
-    ).to.revertedWith("NibblVault: Only when initialised");
-  });
-  it("Buyout rejects automatically when twav>=buyoutrejectionvaluation within 3 days", async function () {
-    const _buyAmount = ethers.utils.parseEther("1");
-    //Filling the TWAV array
-    for (let i = 0; i < 12; i++) {
-      this.tokenVault
-        .connect(this.addr1)
         .buy(0, this.buyer1.address, { value: _buyAmount });
-    }
-    const weightedValuation = await this.tokenVault._getTwav();
-    const bidAmount = weightedValuation;
-    await this.tokenVault
-      .connect(this.buyer1)
-      .initiateBuyOut({ value: bidAmount });
-    let buyoutRejectionValuation =
-      await this.tokenVault.buyoutRejectionValuation();
-    const buyAmountToReject = buyoutRejectionValuation.sub(weightedValuation);
-    const balanceBeforeRejection = await this.admin.provider.getBalance(
-      this.buyer1.address
-    );
-    this.tokenVault
-      .connect(this.addr1)
-      .buy(0, this.addr1.address, { value: buyAmountToReject });
-    for (let i = 0; i < 12; i++) {
+      await this.tokenVault
+        .connect(this.buyer1)
+        .initiateBuyOut({ value: buyoutBid });
+      await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60]);
+      await expect(
+        this.tokenVault
+          .connect(this.buyer1)
+          .buy(0, this.buyer1.address, { value: _buyAmount })
+      ).to.revertedWith("NFT has been bought");
+      await expect(
+        this.tokenVault
+          .connect(this.buyer1)
+          .sell(_buyAmount, 0, this.buyer1.address)
+      ).to.revertedWith("NFT has been bought");
+    });
+    it("No more buyout bids possible", async function () {
+      const buyoutBid = ethers.utils.parseEther("200");
+      await this.tokenVault
+        .connect(this.buyer1)
+        .initiateBuyOut({ value: buyoutBid });
+      await expect(
+        this.tokenVault.connect(this.addr1).initiateBuyOut({ value: buyoutBid })
+      ).to.revertedWith("NibblVault: Only when initialised");
+    });
+    it("Buyout rejects automatically when twav>=buyoutrejectionvaluation within 3 days", async function () {
+      const _buyAmount = ethers.utils.parseEther("1");
+      //Filling the TWAV array
+      for (let i = 0; i < 12; i++) {
+        this.tokenVault
+          .connect(this.addr1)
+          .buy(0, this.buyer1.address, { value: _buyAmount });
+      }
+      const weightedValuation = await this.tokenVault._getTwav();
+      const bidAmount = weightedValuation;
+      await this.tokenVault
+        .connect(this.buyer1)
+        .initiateBuyOut({ value: bidAmount });
+      let buyoutRejectionValuation =
+        await this.tokenVault.buyoutRejectionValuation();
+      const buyAmountToReject = buyoutRejectionValuation.sub(weightedValuation);
+      const balanceBeforeRejection = await this.admin.provider.getBalance(
+        this.buyer1.address
+      );
       this.tokenVault
         .connect(this.addr1)
-        .buy(0, this.addr1.address, { value: _buyAmount });
-      let valuationAfterOrder = await this.tokenVault._getTwav();
-      const status = await this.tokenVault.status();
-      if (valuationAfterOrder > buyoutRejectionValuation) {
-        expect(status).to.be.equal(0);
-      } else {
-        expect(status).to.be.equal(1);
+        .buy(0, this.addr1.address, { value: buyAmountToReject });
+      for (let i = 0; i < 12; i++) {
+        this.tokenVault
+          .connect(this.addr1)
+          .buy(0, this.addr1.address, { value: _buyAmount });
+        let valuationAfterOrder = await this.tokenVault._getTwav();
+        const status = await this.tokenVault.status();
+        if (valuationAfterOrder > buyoutRejectionValuation) {
+          expect(status).to.be.equal(0);
+        } else {
+          expect(status).to.be.equal(1);
+        }
       }
-    }
-    const balanceAfterRejection = await this.admin.provider.getBalance(
-      this.buyer1.address
-    );
-    expect(balanceAfterRejection).to.be.equal(
-      balanceBeforeRejection.add(bidAmount)
-    );
-    //Mint Works after rejection
-    await this.tokenVault
-      .connect(this.buyer1)
-      .buy(0, this.buyer1.address, { value: _buyAmount });
-  });
-  it("Buyout bid is rejected if the valuation is low", async function () {
-    const buyoutBid = ethers.utils.parseEther("1");
-    await expect(
-      this.tokenVault.connect(this.buyer1).initiateBuyOut({ value: buyoutBid })
-    ).to.revertedWith("NibblVault: Low buyout valuation");
-  });
+      const balanceAfterRejection = await this.admin.provider.getBalance(
+        this.buyer1.address
+      );
+      expect(balanceAfterRejection).to.be.equal(
+        balanceBeforeRejection.add(bidAmount)
+      );
+      //Mint Works after rejection
+      await this.tokenVault
+        .connect(this.buyer1)
+        .buy(0, this.buyer1.address, { value: _buyAmount });
+    });
+    it("Buyout bid is rejected if the valuation is low", async function () {
+      const buyoutBid = ethers.utils.parseEther("1");
+      await expect(
+        this.tokenVault.connect(this.buyer1).initiateBuyOut({ value: buyoutBid })
+      ).to.revertedWith("NibblVault: Low buyout valuation");
+    });
 });
