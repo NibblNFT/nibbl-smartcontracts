@@ -65,7 +65,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @notice valuation at which buyout has been started
     uint256 public buyoutBid; //Valuation at whoch buyout happens
     bool private entered = false;
-    uint256 curatorFee;
+    uint256 public curatorFee;
     enum Status {initialised, buyout}
 
     Status public status;
@@ -109,7 +109,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         uint256 _initialTokenPrice,
         uint256 _curatorFee
     ) public initializer payable {
-        require(_curatorFee<10000,"NibblVault: Curator fee should be less than 1 %");
+        require(_curatorFee<=10000,"NibblVault: Curator fee should not be more than 1 %");
         __ERC20_init(_tokenName, _tokenSymbol);
         curatorFee = _curatorFee;
         initialTokenPrice=_initialTokenPrice;
@@ -307,7 +307,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @param _newFee new curator fee percentage 
     function updateCuratorFee(uint256 _newFee) public {
         require(msg.sender==curator,"NibblVault: Only Curator can update the fees");
-        require(_newFee<10000,"NibblVault: Curator fee should be less than 1 %");
+        require(_newFee<=10000,"NibblVault: Curator fee should not be more than 1 %");
         curatorFee = _newFee;
     }
 
