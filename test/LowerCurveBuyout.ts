@@ -7,7 +7,7 @@ import {
 } from "./testHelpers/singleCurveTokenVaultHelper";
 import { setTime } from "./testHelpers/time";
 
-describe("Buyout", function () {
+describe("Lower Curve Buyout", function () {
   type TwavObservation = {
     timestamp: BigNumber;
     cumulativeValuation: BigNumber;
@@ -105,6 +105,13 @@ describe("Buyout", function () {
       this.NibblVault.interface,
       this.curator
     );
+    const curatorBalance = await this.tokenVault.balanceOf(
+      this.curator.address
+    );
+    const _buyAmount = ethers.utils.parseEther("100");
+    await this.tokenVault
+      .connect(this.curator)
+      .sell(curatorBalance.div(2), 0, this.curator.address);
   });
 
   it("Buyout succeeds when time passes and twav<buyoutrejectionvaluation throughout the 3 days", async function () {
@@ -200,77 +207,6 @@ describe("Buyout", function () {
     const redeemedAmount = contractBalBeforeRedeem.sub(contractBalAfterRedeem);
     expect(tokenBalAfterRedeem).to.be.equal(0);
     expect(redeemedAmount).to.be.equal(expectedETH);
-  });
-  it("Redeem-unlock-Redeem", async function () {
-    const _buyAmount = ethers.utils.parseEther("1");
-    await this.tokenVault
-      .connect(this.buyer1)
-      .buy(0, this.buyer1.address, { value: _buyAmount });
-    await this.tokenVault
-      .connect(this.addr2)
-      .buy(0, this.addr2.address, { value: _buyAmount });
-    const tokenBalBeforeRedeem = await this.tokenVault.balanceOf(
-      this.buyer1.address
-    );
-    const tokenBalBeforeRedeemAddr2 = await this.tokenVault.balanceOf(
-      this.addr2.address
-    );
-    const buyoutBidAmount = ethers.utils.parseEther("200");
-    await this.tokenVault
-      .connect(this.addr1)
-      .initiateBuyOut({ value: buyoutBidAmount });
-    let buyoutBid = await this.tokenVault.buyoutBid();
-    //more buying to increase vault balance
-    await this.tokenVault
-      .connect(this.addr1)
-      .buy(0, this.addr1.address, { value: _buyAmount.mul(5) }); //5 ETH buy
-    await network.provider.send("evm_increaseTime", [3 * 24 * 60 * 60 + 1]);
-    const contractBalBeforeRedeem = await this.admin.provider.getBalance(
-      this.tokenVault.address
-    );
-
-    let totalSupply = await this.tokenVault.totalSupply();
-    const expectedETH = tokenBalBeforeRedeem.mul(buyoutBid).div(totalSupply);
-    await this.tokenVault.connect(this.buyer1).redeem();
-    const contractBalAfterRedeem = await this.admin.provider.getBalance(
-      this.tokenVault.address
-    );
-    const tokenBalAfterRedeem = await this.tokenVault.balanceOf(
-      this.buyer1.address
-    );
-    const redeemedAmount = contractBalBeforeRedeem.sub(contractBalAfterRedeem);
-    expect(tokenBalAfterRedeem).to.be.equal(0);
-    expect(redeemedAmount).to.be.equal(expectedETH);
-
-    buyoutBid = await this.tokenVault.buyoutBid();
-    await this.tokenVault.connect(this.addr1).unlockNFT(this.addr1.address);
-    const contractBalAfterUnlock = await this.admin.provider.getBalance(
-      this.tokenVault.address
-    );
-    const curatorFee = await this.tokenVault.feeAccruedCurator();
-    const expectedRefund = contractBalAfterRedeem.sub(
-      buyoutBid.add(curatorFee)
-    );
-    const refundIssued = contractBalAfterRedeem.sub(contractBalAfterUnlock);
-    expect(expectedRefund).to.be.equal(refundIssued);
-
-    totalSupply = await this.tokenVault.totalSupply();
-    await this.tokenVault.connect(this.addr2).redeem();
-
-    const contractBalAfterRedeemAddr2 = await this.admin.provider.getBalance(
-      this.tokenVault.address
-    );
-    const tokenBalAfterRedeemAddr2 = await this.tokenVault.balanceOf(
-      this.addr2.address
-    );
-    const redeemedAmountAddr2 = contractBalAfterUnlock.sub(
-      contractBalAfterRedeemAddr2
-    );
-    const expectedETHAddr2 = tokenBalBeforeRedeemAddr2
-      .mul(buyoutBid)
-      .div(totalSupply);
-    expect(redeemedAmountAddr2).to.be.equal(expectedETHAddr2);
-    expect(tokenBalAfterRedeemAddr2).to.be.equal(0);
   });
 
   it("When after buyout in deficit condition Token holder is able to redeem tokens for ETH in proportion to the supply they own", async function () {
