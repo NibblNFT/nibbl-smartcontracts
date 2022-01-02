@@ -127,7 +127,7 @@ describe("Curator Fees", function () {
     const accuredFee = await this.tokenVault.feeAccruedCurator();
     const expectedFee = _buyAmount.mul(MAX_FEE_CURATOR).div(SCALE);
     expect(accuredFee).to.be.equal(expectedFee);
-    await this.tokenVault.redeemCuratorFee();
+    await this.tokenVault.connect(this.curator).redeemCuratorFee(this.curator.address);
     const accuredFeeAfterRedeem = await this.tokenVault.feeAccruedCurator();
     expect(accuredFeeAfterRedeem).to.be.equal(0);
   });
