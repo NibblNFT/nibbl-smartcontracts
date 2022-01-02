@@ -7,6 +7,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { NibblVault } from "./NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { ProxyVault } from "./Proxy/ProxyVault.sol";
+import { Basket } from "./Basket.sol";
+
 import "hardhat/console.sol";
 
 contract NibblVaultFactory is Ownable{
@@ -51,7 +53,28 @@ contract NibblVaultFactory is Ownable{
         nibbledTokens.push(_proxyVault);
     }
 
-    /// @notice Function to update the address where fee is sent
+    function createMultiVault(
+        address[] memory _assetAddresses,
+        uint256[] memory _assetTokenIDs,
+        string memory _name,
+        string memory _symbol,
+        uint256 _initialSupply,
+        uint256 _initialTokenPrice,
+        uint256 _curatorFee
+    ) public payable returns(ProxyVault _proxyVault) {
+        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
+        _proxyVault = new ProxyVault(implementation);
+        NibblVault _vault = NibblVault(address(_proxyVault));
+        Basket _basket = new Basket();
+        for (uint256 index = 0; index < _assetAddresses.length; index++) {
+            IERC721(_assetAddresses[index]).transferFrom(msg.sender, address(_basket), _assetTokenIDs[index]);
+        }
+        _vault.initialize{value: msg.value}(_name, _symbol, address(_basket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
+        IERC721(address(_basket)).transferFrom(msg.sender, address(_vault), 0);
+        nibbledTokens.push(_proxyVault);
+    }
+
+    /// @notice the function to update the address where fee is sent
     /// @param _newFeeAddress new admin fee address
     function updateAdminFeeAddress(address _newFeeAddress) public onlyOwner{
         feeTo = _newFeeAddress;
