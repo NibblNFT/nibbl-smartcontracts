@@ -272,8 +272,7 @@ describe("Buyout", function () {
     );
     const redeemedAmount = contractBalAfterUnlock.sub(contractBalAfterRedeem);
     // redeemed Amount = tokenBalance * (contractBalance - feeAccruedCurator)/ totalSupply
-    // Even though buyer1 put in 1 ETH just before buyout, he will get more ETH (1.08 ETH in this case) 
-    //as someone sold below the current valuation
+    // Buyer1 will get more ETH than he put in as someone sold below the current valuation
     const expectedETH = tokenBalBeforeRedeem
       .mul(contractBalAfterUnlock.sub(curatorFee))
       .div(totalSupply);
