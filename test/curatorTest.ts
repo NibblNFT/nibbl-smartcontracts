@@ -119,7 +119,7 @@ describe("Curator Fees", function () {
       this.tokenVault.connect(this.curator).updateCuratorFee(newFee)
     ).to.be.revertedWith("NibblVault: Invalid fee");
   });
-  it("Curator fees is accured correctly", async function () {
+  it("Curator fees is accured and redeemed correctly", async function () {
     const _buyAmount = ethers.utils.parseEther("1");
     await this.tokenVault
       .connect(this.buyer1)
@@ -127,6 +127,9 @@ describe("Curator Fees", function () {
     const accuredFee = await this.tokenVault.feeAccruedCurator();
     const expectedFee = _buyAmount.mul(MAX_FEE_CURATOR).div(SCALE);
     expect(accuredFee).to.be.equal(expectedFee);
+    await this.tokenVault.redeemCuratorFee();
+    const accuredFeeAfterRedeem = await this.tokenVault.feeAccruedCurator();
+    expect(accuredFeeAfterRedeem).to.be.equal(0);
   });
   it("Only Curator can change fees", async function () {
     const newFee = 10000;
