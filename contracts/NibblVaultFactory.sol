@@ -30,12 +30,10 @@ contract NibblVaultFactory is Ownable{
     /// @param _assetAddress address of the NFT contract which is being fractionalised
     /// @param _assetTokenID tokenId of the NFT being fractionalised
     /// @param _name name of the fractional token to be created
-    /// @param _symbol symbol fo the fractional token
+    /// @param _symbol symbol of the fractional token
     /// @param _initialSupply desired initial token supply
     /// @param _initialTokenPrice desired initial token price
     /// @param _curatorFee fee percentage for curator
-    /// @dev _reserveBalance = valuation * reserveRatio
-    /// @dev initialTokenSupply = _reserveBalance/(_initialTokenPrice*reserveRatio)
     function createVault(
         address _assetAddress,
         uint256 _assetTokenID,
@@ -53,20 +51,21 @@ contract NibblVaultFactory is Ownable{
         nibbledTokens.push(_proxyVault);
     }
 
-    /// @notice the function to update the address where fee is sent
+    /// @notice Function to update the address where fee is sent
     /// @param _newFeeAddress new admin fee address
     function updateAdminFeeAddress(address _newFeeAddress) public onlyOwner{
         feeTo = _newFeeAddress;
     }
 
-    /// @notice the function to update admin fee percentage
+    /// @notice Function to update admin fee percentage
     /// @param _newFee new fee percentage for admin
     function updateFee(uint256 _newFee) public onlyOwner{
         require(_newFee <= MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
         feeAdmin = _newFee;
     }
 
-    /// @notice the function to mint a new vault
+    /// @notice Function to fetch admin fee
+    /// @return Address to send the fee to and fee percentage
     function getFee() external view returns(address, uint256) {
         return (feeTo, feeAdmin);
     }
