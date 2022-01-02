@@ -295,7 +295,7 @@ describe("Lower Curve Buyout", function () {
         .buy(0, this.buyer1.address, { value: _buyAmount });
     }
     const weightedValuation = await this.tokenVault._getTwav();
-    const bidAmount = weightedValuation;
+    const bidAmount = weightedValuation.mul(3);
     await this.tokenVault
       .connect(this.buyer1)
       .initiateBuyOut({ value: bidAmount });
@@ -327,7 +327,6 @@ describe("Lower Curve Buyout", function () {
       balanceBeforeRejection.add(bidAmount)
     );
     //Mint Works after rejection
-
     await this.tokenVault
       .connect(this.buyer1)
       .buy(0, this.buyer1.address, { value: _buyAmount });
@@ -336,7 +335,8 @@ describe("Lower Curve Buyout", function () {
       .sell(_buyAmount, 0, this.buyer1.address);
   });
   it("Buyout bid is rejected if the valuation is low", async function () {
-    const buyoutBid = ethers.utils.parseEther("1");
+    //TODO compute valutation and place bid acordingly
+    const buyoutBid = ethers.utils.parseEther("0.01");
     await expect(
       this.tokenVault.connect(this.buyer1).initiateBuyOut({ value: buyoutBid })
     ).to.revertedWith("NibblVault: Low buyout valuation");
