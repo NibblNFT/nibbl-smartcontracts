@@ -137,4 +137,23 @@ describe("Curator Fees", function () {
       this.tokenVault.connect(this.addr1).updateCuratorFee(newFee)
     ).to.be.revertedWith("NibblVault: Only Curator");
   });
+  it("Check if correct curator fee is returned", async function () {
+    const _buyAmount = ethers.utils.parseEther("100");
+    const fee = await this.tokenVault.MAX_CURATOR_FEE()
+    expect(fee).to.be.equal(5000)
+    let secondaryReserveRatio;
+    do{
+      secondaryReserveRatio = await this.tokenVault.secondaryReserveRatio()      
+      await this.tokenVault
+      .connect(this.buyer1)
+      .buy(0, this.buyer1.address, { value: _buyAmount });
+      const tokenBal = await this.tokenVault.balanceOf(this.buyer1.address)
+      await this.tokenVault
+      .connect(this.buyer1)
+      .sell(tokenBal,0, this.buyer1.address);
+    }
+    while(secondaryReserveRatio < 500000) //secondaryReserveRatio > primaryReserveRatio
+    const fee2 = await this.tokenVault.MAX_CURATOR_FEE()
+    expect(fee2).to.be.equal(10000)
+  });
 });
