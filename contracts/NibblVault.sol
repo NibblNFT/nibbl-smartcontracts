@@ -14,46 +14,53 @@ import "hardhat/console.sol";
 
 
 contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgradeable, Twav {
-    
-    uint32 private constant primaryReserveRatio = 500_000; //50%
-    uint32 public secondaryReserveRatio;
-
-    //0 1 2 3 4 5 6 7 8 9 10 11 
-    address public factory;
-
-    /// @notice the TokenVault logic contract
-    address public curator;
-
-    /// @notice the TokenVault logic contract
-    address public assetAddress;
-
-    /// @notice the TokenVault logic contract
-    address public bidder;
-
-    /// @notice the TokenVault logic contract
-    uint256 public assetID;
     // scale = 10^6
     uint256 private constant SCALE = 1_000_000;
-    uint256 private constant REJECTION_PREMIUM = 100_000; //10%
+
+    // primary reserve ratio = 50%
+    uint32 private constant primaryReserveRatio = 500_000;
+
+    uint32 public secondaryReserveRatio;
+
+    /// @notice address of the Nibbl factory contract
+    address public factory;
+
+    /// @notice address of the original NFT owner
+    address public curator;
+
+    /// @notice token address of the NFT being deposited in the vault
+    address public assetAddress;
+
+    /// @notice token ID of the NFT being deposited in the vault
+    uint256 public assetID;
+
+    /// @notice address which triggered the buyout
+    address public bidder;
+
+    // premium above the buyout bid that the bonding curve valuation needs to go to for buyout to get rejected
+    uint256 private constant REJECTION_PREMIUM = 100_000;
+
+    // time till buyout rejection can happen, otherwise buyout succeeds
     uint256 private constant BUYOUT_DURATION = 3 days; 
 
-    /// @notice the initial price of the fractional Token
+    /// @notice initial price of the fractional ERC20 Token set by the curator
     uint256 public initialTokenPrice;
+
     uint256 private fictitiousPrimaryReserveBalance;
 
     /// @notice the valuation at which the buyout is rejected
-    uint256 public buyoutRejectionValuation; //valuation at which buyout is supposed to be rejected 
+    uint256 public buyoutRejectionValuation;
     
     /// @notice deposit made by bidder to initiate buyout
-    uint256 public buyoutValuationDeposit; //Deposit made by bidder to initiate buyout msg.value in initiateBuyout Method
+    uint256 public buyoutValuationDeposit;
     
     /// @notice initial token supply
     uint256 public initialTokenSupply;
     
-    /// @notice reserve balance of the upper curve
+    /// @notice reserve balance of the primary/upper curve
     uint256 public primaryReserveBalance;
     
-    /// @notice reserve balance of the lower curve
+    /// @notice reserve balance of the secondary/lower curve
     uint256 public secondaryReserveBalance;
     
     /// @notice total fee accrued by the curator
@@ -62,15 +69,17 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @notice the time at which the buyout ends
     uint256 public buyoutEndTime;
     
-    /// @notice valuation at which buyout has been started
-    uint256 public buyoutBid; //Valuation at whoch buyout happens
-    bool private entered = false;
+    /// @notice valuation at which buyout was triggered
+    uint256 public buyoutBid;
+
+    /// @notice percentage of transaction fee that goes to the curator
     uint256 public curatorFee;
+
+    bool private entered = false;
+
     enum Status {initialised, buyout}
 
     Status public status;
-
-    //TODO: Change modifiers to initialised, buyout, buyoutCompleted
 
     modifier notBoughtOut() {
         //For the case when buyoutTime has ended and buyout has not been rejected
