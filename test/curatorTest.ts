@@ -108,7 +108,7 @@ describe("Curator Fees", function () {
   });
 
   it("Curator fees is updated correctly", async function () {
-    const newFee = 10000;
+    const newFee = 5000;
     await this.tokenVault.connect(this.curator).updateCuratorFee(newFee);
     const curatorFeeFromContract = await this.tokenVault.curatorFee();
     expect(curatorFeeFromContract).to.be.equal(newFee);
@@ -117,7 +117,7 @@ describe("Curator Fees", function () {
     const newFee = 10001;
     await expect(
       this.tokenVault.connect(this.curator).updateCuratorFee(newFee)
-    ).to.be.revertedWith("NibblVault: Curator fee should not be more than 1 %");
+    ).to.be.revertedWith("NibblVault: Invalid fee");
   });
   it("Curator fees is accured correctly", async function () {
     const _buyAmount = ethers.utils.parseEther("1");
@@ -132,6 +132,6 @@ describe("Curator Fees", function () {
     const newFee = 10000;
     await expect(
       this.tokenVault.connect(this.addr1).updateCuratorFee(newFee)
-    ).to.be.revertedWith("NibblVault: Only Curator can update the fees");
+    ).to.be.revertedWith("NibblVault: Only Curator");
   });
 });

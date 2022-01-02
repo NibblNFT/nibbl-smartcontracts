@@ -109,7 +109,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         uint256 _initialTokenPrice,
         uint256 _curatorFee
     ) public initializer payable {
-        require(_curatorFee<=10000,"NibblVault: Curator fee should not be more than 1 %");
+        require(_curatorFee<=MAX_CURATOR_FEE(),"NibblVault: Curator fee should not be more than 1 %");
         __ERC20_init(_tokenName, _tokenSymbol);
         curatorFee = _curatorFee;
         initialTokenPrice=_initialTokenPrice;
@@ -158,6 +158,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         }
     }
         
+    function MAX_CURATOR_FEE() view public returns (uint256) {
+        if (secondaryReserveRatio < primaryReserveRatio) {
+            return 5000;
+        } else {
+            return 10000;
+        }            
+    }
+
     function _buyPrimaryCurve(address _to, uint256 _amount) private returns (uint256 _purchaseReturn) {
         uint256 _amountIn = _chargeFee(_amount);
         _purchaseReturn = _calculatePurchaseReturn(totalSupply(), primaryReserveBalance, primaryReserveRatio, _amountIn);
@@ -306,8 +314,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @notice the function to update curator fee percentage
     /// @param _newFee new curator fee percentage 
     function updateCuratorFee(uint256 _newFee) public {
-        require(msg.sender==curator,"NibblVault: Only Curator can update the fees");
-        require(_newFee<=10000,"NibblVault: Curator fee should not be more than 1 %");
+        require(msg.sender==curator,"NibblVault: Only Curator");
+        require(_newFee<=MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
         curatorFee = _newFee;
     }
 

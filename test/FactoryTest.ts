@@ -108,15 +108,16 @@ describe("NibblVaultFactory", function () {
   });
   it("updates admin fee address", async function () {
     await this.tokenVaultFactory
-      .connect(this.admin)
+      .connect(this.curator)
       .updateAdminFeeAddress(this.addr1.address);
+    
     const updatedFeeTo = await this.tokenVaultFactory.feeTo();
     expect(updatedFeeTo).to.be.equal(this.addr1.address);
   });
   it("updates admin fee percentage", async function () {
     const _buyAmount = ethers.utils.parseEther("1");
     const _newFee = 1000;
-    await this.tokenVaultFactory.connect(this.admin).updateFee(_newFee);
+    await this.tokenVaultFactory.connect(this.curator).updateFee(_newFee);
     const balanceBeforeTx = await this.admin.provider.getBalance(
       this.admin.address
     );
@@ -132,6 +133,6 @@ describe("NibblVaultFactory", function () {
   });
   it("Transaction fails when more than MAX value is set for admin fees ", async function () {
     const _newFee = 2001
-    await expect(this.tokenVaultFactory.connect(this.admin).updateFee(_newFee)).to.be.revertedWith("NibblVaultFactory: New fee value is greater than max fee allowed");
+    await expect(this.tokenVaultFactory.connect(this.curator).updateFee(_newFee)).to.be.revertedWith("NibblVaultFactory: New fee value is greater than max fee allowed");
   });
 });
