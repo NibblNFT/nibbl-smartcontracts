@@ -81,6 +81,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     Status public status;
 
+    event BuyoutInitiated(address indexed bidder, uint256 indexed bid);
+    event BuyoutRejected();
+    event CuratorFeeUpdated(uint256 indexed fee);
+
+
     modifier notBoughtOut() {
         //For the case when buyoutTime has ended and buyout has not been rejected
         require(buyoutEndTime > block.timestamp || buyoutEndTime == 0,'NFT has been bought');
@@ -296,7 +301,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// This ensures that the original bidder doesn't need to support the whole valuation and liquidity in reserve can be used as well.
     /// Buyout is initiated only when total bid amount is more than current curve valuation
     function initiateBuyOut() public payable {
-        //TODO: add bid placer
         require(status == Status.initialised, "NibblVault: Only when initialised");
         uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         require(_buyoutBid >= getCurrentValuation(), "NibblVault: Low buyout valuation");
@@ -306,6 +310,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         buyoutEndTime = block.timestamp + BUYOUT_DURATION;
         buyoutBid = _buyoutBid;
         status = Status.buyout;
+        event BuyoutInitiated(msg.sender, _buyoutBid);
     }
     /// @dev Triggered when someone buys tokens and curve valuation increases
     ///      Checks if TWAV >= Buyout rejection valuation and rejects current buyout
@@ -319,6 +324,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             (bool _success,) = payable(bidder).call{value: buyoutValuationDeposit}("");
             require(_success);
         }
+        event BuyoutRejected();
     }
 
     /// @notice Function for tokenholders to redeem their tokens for reserve token in case of buyout
@@ -379,6 +385,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(msg.sender==curator,"NibblVault: Only Curator");
         require(_newFee<=MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
         curatorFee = _newFee;
+        emit CuratorFeeUpdated(_newFee);
     }
 
     function onERC721Received(
