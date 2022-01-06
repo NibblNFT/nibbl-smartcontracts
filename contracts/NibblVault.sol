@@ -373,7 +373,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     /// @notice Function to allow curator to redeem accumulated curator fee.
     /// @param _to the address where curator fee will be sent
-    function redeemCuratorFee(address _to) public {
+    function redeemCuratorFee(address _to) public lock {
         require(msg.sender==curator,"NibblVault: Only Curator can redeem");
         (bool _success,) = payable(_to).call{value: feeAccruedCurator}("");
         feeAccruedCurator = 0;
