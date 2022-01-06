@@ -360,7 +360,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @dev Bidder also gets some reserve token which is actually the extra reserve 
     /// that came into the system from the time someone triggered a buyout to when buyout succeeded
     /// @param _to the address where unlocked NFT will be sent
-    function unlockNFT(address _to) public boughtOut {
+    function unlockNFT(address _to) public boughtOut lock {
         require(msg.sender==bidder,"NibblVault: Only winner can unlock");
         IERC721(assetAddress).transferFrom(address(this), _to, assetID);
         //TODO check for condition if buyout bid is more than balance on the contract
