@@ -341,7 +341,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     ///      then contract balance would be buyout bid amount + new reserve balance that came into the system 
     ///      as curve tends to buyout bid amount.
 
-    function redeem() public boughtOut {
+    function redeem() public boughtOut lock {
         uint256 _balance = balanceOf(msg.sender);
         uint256 _amtOut;
         if(buyoutBid + feeAccruedCurator<address(this).balance){
