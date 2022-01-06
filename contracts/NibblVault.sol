@@ -141,6 +141,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds"); //secResratio <= PrimaryResRatio
         _mint(_curator, _initialTokenSupply);
     }
+
     /// @notice Function which charges fees on buying and selling
     /// @dev There are 3 types of fee charged (all in wei) - admin, curator and curve
     ///      Admin fee amount is fetched from the factory contract and the fee charged is transferred to admin address
@@ -218,7 +219,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     ///      and with the amount left, we buy by calling _buyPrimaryCurve
     /// @param _minAmtOut Amount in wei deposited for buying
     /// @param _to Address to send the bought tokens to
-    function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut {
+    function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut lock {
         require(_to != address(0), " NibblVault: Zero address");
         //Make update on the first tx of the block
         uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
