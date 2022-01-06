@@ -22,8 +22,10 @@ contract NibblVaultFactory is Ownable{
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9; //1%
 
     ProxyVault[] public nibbledTokens;
-
-    event Fractionalise(address _assetAddress, uint256 _assetTokenID);
+    
+    event Fractionalise(address indexed assetAddress, uint256 indexed assetTokenID, address indexed proxyVault);
+    event FractionaliseBasket(address indexed basketAddress, address indexed proxyVault);
+    
 
     constructor (address _implementation, address _feeTo) {
         implementation = _implementation;
@@ -53,7 +55,8 @@ contract NibblVaultFactory is Ownable{
         _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
         IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
-        emit Fractionalise(_assetAddress, _assetTokenID);
+        emit Fractionalise(_assetAddress, _assetTokenID, address(_proxyVault));
+
     }
 
     function createMultiVault(
@@ -65,13 +68,19 @@ contract NibblVaultFactory is Ownable{
         uint256 _initialTokenPrice,
         uint256 _curatorFee
     ) public payable returns(ProxyVault _proxyVault) {
-     
+        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         Basket _basket = new Basket();
         for (uint256 index = 0; index < _assetAddresses.length; index++) {
             IERC721(_assetAddresses[index]).transferFrom(msg.sender, address(_basket), _assetTokenIDs[index]);
         }
 
-        createVault(address(_basket), 0, _name, _symbol, _initialSupply, _initialTokenPrice, _curatorFee);
+        _proxyVault = new ProxyVault(implementation);
+        NibblVault _vault = NibblVault(address(_proxyVault));
+        _vault.initialize{value: msg.value}(_name, _symbol, address(_basket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
+        IERC721(address(_basket)).transferFrom(address(this), address(_vault), 0);
+        nibbledTokens.push(_proxyVault);
+
+        emit FractionaliseBasket(address(_basket), address(_proxyVault));
     }
 
     /// @notice the function to update the address where fee is sent
