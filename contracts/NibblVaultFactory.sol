@@ -23,7 +23,7 @@ contract NibblVaultFactory is Ownable{
 
     ProxyVault[] public nibbledTokens;
 
-    event Fracitionalise(address _assetAddress, uint256 _assetTokenID);
+    event Fractionalise(address _assetAddress, uint256 _assetTokenID);
 
     constructor (address _implementation, address _feeTo) {
         implementation = _implementation;
@@ -53,7 +53,7 @@ contract NibblVaultFactory is Ownable{
         _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
         IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
-        emit Fracitionalise(_assetAddress, _assetTokenID);
+        emit Fractionalise(_assetAddress, _assetTokenID);
     }
 
     function createMultiVault(
