@@ -310,7 +310,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         buyoutEndTime = block.timestamp + BUYOUT_DURATION;
         buyoutBid = _buyoutBid;
         status = Status.buyout;
-        event BuyoutInitiated(msg.sender, _buyoutBid);
+        emit BuyoutInitiated(msg.sender, _buyoutBid);
     }
     /// @dev Triggered when someone buys tokens and curve valuation increases
     ///      Checks if TWAV >= Buyout rejection valuation and rejects current buyout
@@ -324,7 +324,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             (bool _success,) = payable(bidder).call{value: buyoutValuationDeposit}("");
             require(_success);
         }
-        event BuyoutRejected();
+        emit BuyoutRejected();
     }
 
     /// @notice Function for tokenholders to redeem their tokens for reserve token in case of buyout
