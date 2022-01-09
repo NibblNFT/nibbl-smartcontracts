@@ -14,7 +14,6 @@ contract Twav {
     uint8 public twavObservationsIndex;
     uint8 private constant TWAV_BLOCK_NUMBERS = 12; //3 MIN TWAV => 3 * 4 
     uint32 public lastBlockTimeStamp;
-    // 0 1 2 3 4 5 6 7 8 9 10 11
 
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;
 
@@ -23,9 +22,7 @@ contract Twav {
         unchecked{
             _timeElapsed = _blockTimestamp - lastBlockTimeStamp;
         }
-
         uint256 _prevCumulativeValuation = twavObservations[((twavObservationsIndex + TWAV_BLOCK_NUMBERS) - 1) % TWAV_BLOCK_NUMBERS].cumulativeValuation;
-
         twavObservations[((twavObservationsIndex++) % TWAV_BLOCK_NUMBERS)] = TwavObservation(_blockTimestamp, _prevCumulativeValuation + (_valuation * _timeElapsed)); //add the previous observation to make it cumulative
         lastBlockTimeStamp = _blockTimestamp;
     }

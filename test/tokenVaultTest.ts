@@ -29,7 +29,7 @@ describe('NibblTokenVault', function () {
     const requiredReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
     const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
     const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);    
-
+  const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
     beforeEach(async function () {        
         const [curator, admin ,buyer1, addr1, addr2, addr3, addr4] = await ethers.getSigners();
         this.curator = curator;
@@ -83,13 +83,13 @@ describe('NibblTokenVault', function () {
         const _initialPrimaryBalance = await this.tokenVault.primaryReserveBalance();
         const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
         const _purchaseReturn = await mintTokens(this.testBancorBondingCurve, initialTokenSupply, primaryReserveBalance, primaryReserveRatio, _buyAmountWithFee);
-        const _initialBalanceAdmin = await this.admin.provider.getBalance(this.admin.address);
+        const _initialBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
         const _newSecBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
         await this.tokenVault.connect(this.buyer1).buy(_purchaseReturn, this.buyer1.address, { value: _buyAmount });
         expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.equal(_purchaseReturn);
         expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_newSecBalance);
         expect(await this.tokenVault.primaryReserveBalance()).to.equal(_initialPrimaryBalance.add(_buyAmountWithFee));
-        expect((await this.admin.provider.getBalance(this.admin.address)).sub(_initialBalanceAdmin)).to.equal((_buyAmount.mul(FEE_ADMIN)).div(SCALE));        
+        expect((await this.admin.provider.getBalance(this.tokenVaultFactory.address)).sub(_initialBalanceFactory)).to.equal((_buyAmount.mul(FEE_ADMIN)).div(SCALE));        
         expect(await this.tokenVault.secondaryReserveRatio()).to.equal((_newSecBalance.mul(SCALE)).div(initialValuation));        
         expect(await this.tokenVault.feeAccruedCurator()).to.equal((_buyAmount.mul(FEE_CURATOR)).div(SCALE));        
     })
@@ -148,14 +148,14 @@ describe('NibblTokenVault', function () {
         const _initialPrimaryBalance = await this.tokenVault.primaryReserveBalance();
         const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
         const _purchaseReturn = await mintTokens(this.testBancorBondingCurve, initialTokenSupply, primaryReserveBalance, primaryReserveRatio, _buyAmountWithFee);
-        let _balanceAdmin = await this.admin.provider.getBalance(this.admin.address);
+        let _initialBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
         let _newSecBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURVE)).div(SCALE));
         await this.tokenVault.connect(this.buyer1).buy(_purchaseReturn, this.buyer1.address, { value: _buyAmount });
         expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.equal(_purchaseReturn);
         expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_newSecBalance);
         expect(await this.tokenVault.totalSupply()).to.equal(initialTokenSupply.add(_purchaseReturn));
         expect(await this.tokenVault.primaryReserveBalance()).to.equal(_initialPrimaryBalance.add(_buyAmountWithFee));
-        expect((await this.admin.provider.getBalance(this.admin.address)).sub(_balanceAdmin)).to.equal((_buyAmount.mul(FEE_ADMIN)).div(SCALE));        
+        expect((await this.admin.provider.getBalance(this.tokenVaultFactory.address)).sub(_initialBalanceFactory)).to.equal((_buyAmount.mul(FEE_ADMIN)).div(SCALE));        
         expect(await this.tokenVault.secondaryReserveRatio()).to.equal((_newSecBalance.mul(SCALE)).div(initialValuation));        
         expect(await this.tokenVault.feeAccruedCurator()).to.equal((_buyAmount.mul(FEE_CURATOR)).div(SCALE));        
         // ------------------Tokens Bought----------------
@@ -164,9 +164,9 @@ describe('NibblTokenVault', function () {
         const _sellAmount = _purchaseReturn.div(2); //Only selling half the amount bought
         const _sellReturn = await burnTokens(this.testBancorBondingCurve, initialTokenSupply.add(_purchaseReturn),  _initialPrimaryBalance.add(_buyAmountWithFee), primaryReserveRatio, _sellAmount);
         const _sellReturnWithFee = _sellReturn.sub(_sellReturn.mul(_feeTotal).div(SCALE));
-        _balanceAdmin = await this.admin.provider.getBalance(this.admin.address);        
+        _initialBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
         await this.tokenVault.connect(this.buyer1).sell(_sellAmount, _sellReturnWithFee, this.buyer1.address);
-        expect((await this.admin.provider.getBalance(this.admin.address)).sub(_balanceAdmin)).to.equal((_sellReturn.mul(FEE_ADMIN)).div(SCALE));        
+        expect((await this.admin.provider.getBalance(this.tokenVaultFactory.address)).sub(_initialBalanceFactory)).to.equal((_sellReturn.mul(FEE_ADMIN)).div(SCALE));        
         expect(await this.tokenVault.totalSupply()).to.equal(initialTokenSupply.add(_purchaseReturn).sub(_sellAmount));
         expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.equal(_purchaseReturn.sub(_sellAmount));
         expect((await this.tokenVault.feeAccruedCurator()).sub(_feeAccruedInitial)).to.equal((_sellReturn.mul(FEE_CURATOR)).div(SCALE));
@@ -200,7 +200,7 @@ describe('NibblTokenVault', function () {
         const _initialPrimaryBalance = primaryReserveBalance.add(_buyAmountWithFee);
         const _sellAmount = initialTokenSupply.div(2); //Only selling half the amount bought initially 500k
         const _totalSupplyInitial = initialTokenSupply.add(_purchaseReturn);
-        const _expectedSaleReturnPrimary = await burnTokens(this.testBancorBondingCurve, _totalSupplyInitial, _initialPrimaryBalance, primaryReserveRatio, _purchaseReturn);        
+        const _expectedSaleReturnPrimary = _initialPrimaryBalance.sub(fictitiousPrimaryReserveBalance);        
         const _expectedSaleReturnPrimaryWithFee = _expectedSaleReturnPrimary.sub(_expectedSaleReturnPrimary.mul(_feeTotal).div(SCALE));
         const newSecResBal = initialSecondaryReserveBalance.add(_expectedSaleReturnPrimary.mul(FEE_CURVE).div(SCALE)).add(_buyAmount.mul(FEE_CURVE).div(SCALE))
         const newSecResRatio = newSecResBal.mul(SCALE).div(initialValuation) 

@@ -11,13 +11,11 @@ import { Basket } from "./Basket.sol";
 
 import "hardhat/console.sol";
 
-contract NibblVaultFactory is Ownable{
+contract NibblVaultFactory is Ownable {
 //TODO: Add pending functions
     address public implementation;
     address public feeTo;
-     
     uint256 public feeAdmin = 2_000;
-
     uint256 private constant MAX_ADMIN_FEE = 2_000; //.2%
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9; //1%
 
@@ -96,9 +94,8 @@ contract NibblVaultFactory is Ownable{
         feeAdmin = _newFee;
     }
 
-    /// @notice Function to fetch admin fee
-    /// @return Address to send the fee to and fee percentage
-    function getFee() external view returns(address, uint256) {
-        return (feeTo, feeAdmin);
+    receive() external payable {
+
     }
+
 }
