@@ -13,7 +13,7 @@ pragma solidity 0.8.4;
  *
  * The success and return data of the delegated call will be returned back to the caller of the proxy.
  */
-contract ProxyVault {
+contract Proxy {
     address immutable public implementation;
 
     constructor(address _implementation) {

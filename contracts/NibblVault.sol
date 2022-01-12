@@ -80,6 +80,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 public totalUnsettledBids;
 
     bool private entered = false;
+
     mapping(address => uint256) public unsettledBids;
 
     enum Status {initialised, buyout}
@@ -182,15 +183,15 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             return (secondaryReserveBalance * SCALE /secondaryReserveRatio) + ((primaryReserveBalance - fictitiousPrimaryReserveBalance) * SCALE  /primaryReserveRatio);
     }
 
-    /// @dev Curve fee is non-zero only till secondary reserve ratio has not become equal to primary reserve ratio
-    /// @return Curator and curve fee respectively
-    function getCurveFee() private view returns (uint256, uint256)/**curator, curve  */ {
-        if (secondaryReserveRatio < primaryReserveRatio) {
-            return (curatorFee, 4000);
-        } else {
-            return (curatorFee, 0);
-        }
-    }
+    // /// @dev Curve fee is non-zero only till secondary reserve ratio has not become equal to primary reserve ratio
+    // /// @return Curator and curve fee respectively
+    // function getCurveFee() private view returns (uint256, uint256)/**curator, curve  */ {
+    //     if (secondaryReserveRatio < primaryReserveRatio) {
+    //         return (curatorFee, 4000);
+    //     } else {
+    //         return (curatorFee, 0);
+    //     }
+    // }
 
     /// @dev Possible maximum curator fee is less till the point secondary reserve ratio has not become equal to primary reserve ratio
     /// @return Maximum curator fee possible
@@ -234,9 +235,12 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut lock {
         require(_to != address(0), " NibblVault: Zero address");
         //Make update on the first tx of the block
-        uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
-        if (_blockTimestamp != lastBlockTimeStamp) {
-            _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+        if (status == Status.buyout) {
+            uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
+            if (_blockTimestamp != lastBlockTimeStamp) {
+                _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+                _rejectBuyout();
+            }
         }
         uint256 _purchaseReturn;
         if (totalSupply() >= initialTokenSupply) { 
@@ -246,18 +250,15 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
             if (_lowerCurveDiff >= msg.value) {
                 _purchaseReturn = _buySecondaryCurve(_to, msg.value);
             } else {
-                //TODO: Change logic for optimization
-                // _purchaseReturn = initialTokenSupply - totalSupply();
-                // secondaryReserveBalance += _lowerCurveDiff;
-                // _mint(_to, _purchaseReturn);
-                _purchaseReturn = _buySecondaryCurve(_to, _lowerCurveDiff);
+                //Gas Optimization
+                _purchaseReturn = initialTokenSupply - totalSupply();
+                secondaryReserveBalance += _lowerCurveDiff;
+                _mint(_to, _purchaseReturn);
+                // _purchaseReturn = _buySecondaryCurve(_to, _lowerCurveDiff);
                 _purchaseReturn += _buyPrimaryCurve(_to, msg.value - _lowerCurveDiff);
             } 
         }
         require(_minAmtOut <= _purchaseReturn, "NibblVault: Insufficient amount out");
-        if (status == Status.buyout) {
-            _rejectBuyout();
-        }
     }
 
     /// @dev This is executed when current supply>initial supply
@@ -291,9 +292,12 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     function sell(uint256 _amtIn, uint256 _minAmtOut, address _to) external notBoughtOut lock {
         require(_to != address(0), "NibblVault: Invalid address");
         //Make update on the first tx of the block
-        uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
-        if(_blockTimestamp != lastBlockTimeStamp) {
-            _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+        if (status == Status.buyout) {
+            uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
+            if (_blockTimestamp != lastBlockTimeStamp) {
+                _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+                _rejectBuyout();
+            }
         }
         uint256 _saleReturn;
         if(totalSupply() > initialTokenSupply) {
@@ -306,7 +310,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
                 primaryReserveBalance -= _saleReturn;
                 _burn(msg.sender, _tokensPrimaryCurve);
                 _saleReturn = _chargeFee(_saleReturn);
-
                 // _saleReturn = _sellPrimaryCurve(_tokensPrimaryCurve);
                 _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve);
             } } else {
@@ -332,6 +335,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         buyoutRejectionValuation = (_currentValuation * (SCALE + REJECTION_PREMIUM)) / SCALE;
         buyoutEndTime = block.timestamp + BUYOUT_DURATION;
         status = Status.buyout;
+        _updateTWAV(_currentValuation, uint32(block.timestamp % 2**32));
         if (_buyoutBid > _currentValuation) {
             (bool _success, ) = payable(msg.sender).call{value: (_buyoutBid - _currentValuation)}("");
             require(_success, "NibblVault: Failed to return extra funds");
@@ -344,20 +348,24 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     ///      Original buyout bidder is refunded his buyout deposit
     function _rejectBuyout() internal notBoughtOut {
         uint256 _twav = _getTwav();
+        // TODO: gas optimisation unsettledBids[bidder] use memory
         if (_twav >= buyoutRejectionValuation) {
             unsettledBids[bidder] = msg.value;
             totalUnsettledBids += unsettledBids[bidder];
             delete buyoutRejectionValuation;
             delete buyoutEndTime;
             delete bidder;
+            delete twavObservations;
+            delete twavObservationsIndex;
             status = Status.initialised;
+            emit BuyoutRejected();
         }
-        emit BuyoutRejected();
     }
 
     function withdrawUnsettledBids(address payable _to) public {
         uint _amount = unsettledBids[msg.sender];
         delete unsettledBids[msg.sender];
+        totalUnsettledBids -= _amount;
         (bool _success, ) = _to.call{value: _amount}("");
         require(_success, "NibblVault: Failed to send funds");
     }

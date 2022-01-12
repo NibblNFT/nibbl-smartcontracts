@@ -6,27 +6,26 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { NibblVault } from "./NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import { ProxyVault } from "./Proxy/ProxyVault.sol";
+import { Proxy } from "./Proxy/Proxy.sol";
 import { Basket } from "./Basket.sol";
 
 import "hardhat/console.sol";
 
 contract NibblVaultFactory is Ownable {
 //TODO: Add pending functions
-    address public implementation;
+    address public vaultImplementation;
     address public feeTo;
     uint256 public feeAdmin = 2_000;
     uint256 private constant MAX_ADMIN_FEE = 2_000; //.2%
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9; //1%
 
-    ProxyVault[] public nibbledTokens;
-    
+    Proxy[] public nibbledTokens;
+
     event Fractionalise(address indexed assetAddress, uint256 indexed assetTokenID, address indexed proxyVault);
     event FractionaliseBasket(address indexed basketAddress, address indexed proxyVault);
-    
 
-    constructor (address _implementation, address _feeTo) {
-        implementation = _implementation;
+    constructor (address _vaultImplementation, address _feeTo) {
+        vaultImplementation = _vaultImplementation;
         feeTo = _feeTo;
     }
 
@@ -46,15 +45,14 @@ contract NibblVaultFactory is Ownable {
         uint256 _initialSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public payable returns(ProxyVault _proxyVault) {
+    ) public payable returns(Proxy _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
-        _proxyVault = new ProxyVault(implementation);
+        _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
         _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
         IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
         emit Fractionalise(_assetAddress, _assetTokenID, address(_proxyVault));
-
     }
 
     function createMultiVault(
@@ -65,14 +63,13 @@ contract NibblVaultFactory is Ownable {
         uint256 _initialSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public payable returns(ProxyVault _proxyVault) {
+    ) public payable returns(Proxy _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         Basket _basket = new Basket();
         for (uint256 index = 0; index < _assetAddresses.length; index++) {
             IERC721(_assetAddresses[index]).transferFrom(msg.sender, address(_basket), _assetTokenIDs[index]);
         }
-
-        _proxyVault = new ProxyVault(implementation);
+        _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
         _vault.initialize{value: msg.value}(_name, _symbol, address(_basket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
         IERC721(address(_basket)).transferFrom(address(this), address(_vault), 0);
