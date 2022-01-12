@@ -25,7 +25,6 @@ contract Twav {
         }
         uint256 _prevCumulativeValuation = twavObservations[((twavObservationsIndex + TWAV_BLOCK_NUMBERS) - 1) % TWAV_BLOCK_NUMBERS].cumulativeValuation;
         twavObservations[twavObservationsIndex] = TwavObservation(_blockTimestamp, _prevCumulativeValuation + (_valuation * _timeElapsed)); //add the previous observation to make it cumulative
-        console.log(_valuation, _timeElapsed);
         twavObservationsIndex = (twavObservationsIndex + 1) % TWAV_BLOCK_NUMBERS;
         lastBlockTimeStamp = _blockTimestamp;
     }

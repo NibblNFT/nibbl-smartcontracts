@@ -28,7 +28,7 @@ describe("Buyout", function () {
   const THREE_MINS: BigNumber = BigNumber.from(180)
   const rejectionPremium: BigNumber = BigNumber.from(100000);
   const primaryReserveRatio: BigNumber = BigNumber.from(500000);
-  let blockTime: BigNumber;
+  let blockTime: BigNumber = BigNumber.from(Math.ceil((Date.now() / 1e3)));
   const initialTokenPrice: BigNumber = BigNumber.from((1e14).toString()); //10 ^-4 eth
   const initialValuation: BigNumber = BigNumber.from((1e20).toString()); //100 eth
   const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(decimal);
@@ -158,6 +158,98 @@ describe("Buyout", function () {
     // ----------------------------2nd Buy Operation-----------------------------------  
   });
 
+  it("Should update twav on sell when in buyout", async function () {
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    let currentValuation: BigNumber = initialValuation;
+    const buyoutBidDeposit: BigNumber = currentValuation.sub(primaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).sub(initialSecondaryReserveBalance);
+    this.twav.addObservation(currentValuation, blockTime);
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+    const twavObs = await this.tokenVault.twavObservations(0);
+    expect(twavObs.timestamp).to.equal(this.twav.twavObservations[0].timestamp);
+    expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[0].cumulativeValuation);
+    // -------------------------Buyout Initiated--------------------------
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const _sellAmount = initialTokenSupply.div(5);
+    let _balanceAddr1 = await this.addr1.provider.getBalance(this.addr1.address);
+    const _expectedSaleReturn = await burnTokens(this.testBancorBondingCurve, initialTokenSupply, initialSecondaryReserveBalance, initialSecondaryReserveRatio, _sellAmount);        
+    this.twav.addObservation(currentValuation, blockTime);
+    await this.tokenVault.connect(this.curator).sell(_sellAmount, _expectedSaleReturn, this.addr1.address);
+    expect(await this.tokenVault.balanceOf(this.curator.address)).to.equal(initialTokenSupply.sub(_sellAmount));
+    expect((await this.addr1.provider.getBalance(this.addr1.address)).sub(_balanceAddr1)).to.equal((_expectedSaleReturn));        
+    expect(await this.tokenVault.secondaryReserveBalance()).to.equal(initialSecondaryReserveBalance.sub(_expectedSaleReturn));
+    expect(await this.tokenVault.totalSupply()).to.equal(initialTokenSupply.sub(_sellAmount));
+    const twavObs1 = await this.tokenVault.twavObservations(1)
+    expect(twavObs1.timestamp).to.equal(this.twav.twavObservations[1].timestamp);
+    expect(twavObs1.cumulativeValuation).to.equal(this.twav.twavObservations[1].cumulativeValuation);
+    // ----------------------------1st Sell Operation-----------------------------------  
+    // ----------------------------2nd Sell Operation Initiated-----------------------------------  
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const _newSecondaryBalance = initialSecondaryReserveBalance.sub(_expectedSaleReturn);
+    const _newSecondaryResRatio = initialSecondaryReserveRatio;//SecResRatio doesnt change
+    expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_newSecondaryBalance);
+    currentValuation = (_newSecondaryBalance.mul(SCALE).div(_newSecondaryResRatio));
+    this.twav.addObservation(currentValuation, blockTime);
+    await this.tokenVault.connect(this.curator).sell(_sellAmount, 0, this.addr1.address);
+    const twavObs2 = await this.tokenVault.twavObservations(2)
+    expect(twavObs2.timestamp).to.equal(this.twav.twavObservations[2].timestamp);
+    expect(twavObs2.cumulativeValuation).to.equal(this.twav.twavObservations[2].cumulativeValuation);
+    // ----------------------------2nd Buy Operation-----------------------------------  
+  });
+
+  
+  it("Should reject buyout", async function () {
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    let currentValuation: BigNumber = initialValuation;
+    const buyoutBidDeposit: BigNumber = currentValuation.sub(primaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).sub(initialSecondaryReserveBalance);
+    const buyoutRejectionValuation: BigNumber = currentValuation.mul(SCALE.add(rejectionPremium)).div(SCALE);
+    this.twav.addObservation(currentValuation, blockTime);
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+    const twavObs = await this.tokenVault.twavObservations(0);
+    expect(twavObs.timestamp).to.equal(this.twav.twavObservations[0].timestamp);
+    expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[0].cumulativeValuation);
+    // -------------------------Buyout Initiated--------------------------
+
+    for (let index = 0; true; index++) {
+      blockTime = blockTime.add(THREE_MINS);      
+      await setTime(blockTime.toNumber());      
+      const _buyAmount = ethers.utils.parseEther("2");      
+      const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
+      const _initialSecondaryBalance = await this.tokenVault.secondaryReserveBalance();
+      const _initialPrimaryBalance = await this.tokenVault.primaryReserveBalance();
+      const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
+      const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
+      const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
+      const _newSecondaryResRatio = _newSecondaryBalance.mul(SCALE).div(initialValuation);
+      this.twav.addObservation(currentValuation, blockTime);
+      await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
+      currentValuation = (_newSecondaryBalance.mul(SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(fictitiousPrimaryReserveBalance)).mul(SCALE).div(primaryReserveRatio));
+      let twavObs = await this.tokenVault.twavObservations(index)
+      if (this.twav.getTwav() >= buyoutRejectionValuation) {
+        await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
+        expect(await this.tokenVault.buyoutRejectionValuation()).to.equal(ZERO);
+        expect(await this.tokenVault.buyoutEndTime()).to.equal(ZERO);
+        expect(await this.tokenVault.twavObservationsIndex()).to.equal(ZERO);
+        // expect(await this.tokenVault.bidder()).to.equal(ZERO);
+        // expect(await this.tokenVault.buyoutEndTime()).to.equal(ZERO);
+
+            // delete buyoutRejectionValuation;
+            // delete buyoutEndTime;
+            // delete bidder;
+            // delete twavObservations;
+            // delete twavObservationsIndex;
+        // expect(twavObs.timestamp).to.equal(this.twav.twavObservations[index].timestamp);
+        // expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[index].cumulativeValuation);
+        break;
+      }
+      
+    
+    }
+
+  });
   // it("Tokenholder redeems his tokens before NFT unlock has been triggered by bidder", async function () {
   //   // Buy tokens worth 1 ETH for buyer1
   //   const _buyAmount = ethers.utils.parseEther("1");

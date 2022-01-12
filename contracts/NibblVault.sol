@@ -351,7 +351,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         // TODO: gas optimisation unsettledBids[bidder] use memory
         if (_twav >= buyoutRejectionValuation) {
             unsettledBids[bidder] = msg.value;
-            totalUnsettledBids += unsettledBids[bidder];
+            totalUnsettledBids += msg.value;
             delete buyoutRejectionValuation;
             delete buyoutEndTime;
             delete bidder;

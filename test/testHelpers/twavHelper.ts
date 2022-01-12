@@ -21,9 +21,7 @@ export class TWAV {
 
     addObservation(_valuation: BigNumber, _blockTimestamp: BigNumber) { 
         const _timeElapsed: BigNumber =_blockTimestamp.sub(this.lastBlockTimeStamp);
-        const _prevCumulativeValuation: BigNumber = this.twavObservations[((this.twavObservationIndex + this.TWAV_BLOCK_NUMBERS) - 1) % this.TWAV_BLOCK_NUMBERS].cumulativeValuation;
-        console.log(_valuation,_timeElapsed);
-        
+        const _prevCumulativeValuation: BigNumber = this.twavObservations[((this.twavObservationIndex + this.TWAV_BLOCK_NUMBERS) - 1) % this.TWAV_BLOCK_NUMBERS].cumulativeValuation;        
         this.twavObservations[this.twavObservationIndex] = { timestamp: _blockTimestamp, cumulativeValuation: _prevCumulativeValuation.add(_valuation.mul(_timeElapsed)) };
         this.twavObservationIndex = (this.twavObservationIndex + 1) % this.TWAV_BLOCK_NUMBERS;
         this.lastBlockTimeStamp = _blockTimestamp;
