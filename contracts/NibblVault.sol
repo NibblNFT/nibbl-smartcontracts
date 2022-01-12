@@ -225,7 +225,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     }
 
     /// @notice The function to buy fractional tokens by deposting wei
-    /// @dev We only update TWAV if it's the first transaction in a block
+    /// @dev We only update TWAV if it's the first transaction in a block and a buyout is active.
     ///      if current supply<initial supply,
     ///      then we first check if the order is only on secondary curve or if it extends till primary curve
     ///      if it extends, then we buy from current point to initial fractionalization point
@@ -281,7 +281,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     }
 
     /// @notice The function to sell fractional tokens for reserve token
-    /// @dev We only update TWAV if it's the first transaction in a block
+    /// @dev We only update TWAV if it's the first transaction in a block and a buyout is active.
     ///      if current supply>initial supply,
     ///      then we first check if the order is only on primary curve or if it extends till secondary curve.
     ///      if it extends, then we sell from current point to initial fractionalization point
@@ -324,6 +324,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @dev Total bid amount is calculated as sum of primary and secondary reserve balances and the amount of money by user
     /// This ensures that the original bidder doesn't need to support the whole valuation and liquidity in reserve can be used as well.
     /// Buyout is initiated only when total bid amount is more than current curve valuation
+    /// Buyout is triggered at current valuation and any extra amount deposited by bidder is refunded
     function initiateBuyout() public payable {
         require(status == Status.initialised, "NibblVault: Only when initialised");
         require(unsettledBids[msg.sender] == 0, "NibblVault: Unsettled Bids");
@@ -345,7 +346,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     /// @dev Triggered when someone buys tokens and curve valuation increases
     ///      Checks if TWAV >= Buyout rejection valuation and rejects current buyout
-    ///      Original buyout bidder is refunded his buyout deposit
     function _rejectBuyout() internal notBoughtOut {
         uint256 _twav = _getTwav();
         // TODO: gas optimisation unsettledBids[bidder] use memory
@@ -362,6 +362,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         }
     }
 
+    /// @notice Function to allow withdrawal of unsuccessful buyout bids
     function withdrawUnsettledBids(address payable _to) public {
         uint _amount = unsettledBids[msg.sender];
         delete unsettledBids[msg.sender];
@@ -372,16 +373,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     /// @notice Function for tokenholders to redeem their tokens for reserve token in case of buyout
     /// @dev The redeemed reserve token are in proportion to the token supply someone owns
-    ///      There are 2 scenarios when someone triggers a buyout
-    ///      SCENARIO 1 (most probable) : Bonding curve valuation increases from current and tends to total buyout bid amount
-    ///      In this scenario, we supply compute the reserve token redeemed by someone via the total buyout bid amount
-    ///      SCENARIO 2 : Bonding curve valuation decreases from current valuation
-    ///      In this scenario, there wouldn't be enough reserve token in the system to calculate redemption amount from total buyout bid amount
-    ///      So we calculate the money avaialble for redemption from contract balance - feeaccruedcurator
-    ///      Note: We don't want people to redeem more than buyout bid amount in any case, 
-    ///      so we can't use Scenario 2 redemption method in Scenario 1 because if there is more buying 
-    ///      then contract balance would be buyout bid amount + new reserve balance that came into the system 
-    ///      as curve tends to buyout bid amount.
+    ///      The amount available for redemption is contract balance - (value of total unsettled bid and curator fees accrued in contract)
     function redeem(address payable _to) public boughtOut lock returns(uint256 _amtOut){
         uint256 _balance = balanceOf(msg.sender);
         _amtOut = ((address(this).balance - feeAccruedCurator - totalUnsettledBids) * _balance) / totalSupply();
@@ -391,8 +383,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     }
 
     /// @notice Function for allowing bidder to unlock his NFT in case of buyout success
-    /// @dev Bidder also gets some reserve token which is actually the extra reserve 
-    /// that came into the system from the time someone triggered a buyout to when buyout succeeded
     /// @param _to the address where unlocked NFT will be sent
     function unlockNFT(address _to) public boughtOut {
         require(msg.sender==bidder,"NibblVault: Only winner");
@@ -408,8 +398,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(_success);
     }
 
-    /// @notice Function to update curator fee percentage
-    /// @param _newFee New curator fee percentage 
+    /// @notice Function to update curator fee
+    /// @param _newFee New curator fee 
     function updateCuratorFee(uint256 _newFee) public {
         require(msg.sender==curator,"NibblVault: Only Curator");
         require(_newFee<=MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
