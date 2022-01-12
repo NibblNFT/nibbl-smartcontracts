@@ -69,15 +69,15 @@ describe("Curator Fees", function () {
     this.NibblVault = await ethers.getContractFactory("NibblVault");
     this.nibblVaultImplementation = await this.NibblVault.deploy();
     await this.nibblVaultImplementation.deployed();
+// Basket
+    this.Basket = await ethers.getContractFactory("Basket");
+    this.basketImplementation = await this.Basket.deploy();
+    await this.basketImplementation.deployed();
 
-    this.NibblVaultFactory = await ethers.getContractFactory(
-      "NibblVaultFactory"
-    );
-    this.tokenVaultFactory = await this.NibblVaultFactory.deploy(
-      this.nibblVaultImplementation.address,
-      this.admin.address
-    );
+    this.NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
+    this.tokenVaultFactory = await this.NibblVaultFactory.deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address);
     await this.tokenVaultFactory.deployed();
+      
     this.nft.approve(this.tokenVaultFactory.address, 0);
 
     this.TestBancorBondingCurve = await ethers.getContractFactory(

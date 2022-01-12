@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
  * Mint a single ERC721 which can hold NFTs
  */
-contract Basket is ERC721, IERC721Receiver, IERC1155Receiver {
+contract Basket is ERC721("NFT Basket", "NFTB"), IERC721Receiver, IERC1155Receiver, Initializable {
 
     event DepositERC721(address indexed token, uint256 tokenId, address indexed from);
     event WithdrawERC721(address indexed token, uint256 tokenId, address indexed to);
@@ -20,7 +21,7 @@ contract Basket is ERC721, IERC721Receiver, IERC1155Receiver {
     event WithdrawETH(address indexed who);
     event WithdrawERC20(address indexed token, address indexed who);
 
-    constructor() ERC721("NFT Basket", "NFTB") {
+    function initialise() public initializer {
         _mint(msg.sender, 0);
     }
 

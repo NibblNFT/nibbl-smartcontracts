@@ -14,6 +14,7 @@ import "hardhat/console.sol";
 contract NibblVaultFactory is Ownable {
 //TODO: Add pending functions
     address public vaultImplementation;
+    address public basketImplementation;
     address public feeTo;
     uint256 public feeAdmin = 2_000;
     uint256 private constant MAX_ADMIN_FEE = 2_000; //.2%
@@ -24,8 +25,9 @@ contract NibblVaultFactory is Ownable {
     event Fractionalise(address indexed assetAddress, uint256 indexed assetTokenID, address indexed proxyVault);
     event FractionaliseBasket(address indexed basketAddress, address indexed proxyVault);
 
-    constructor (address _vaultImplementation, address _feeTo) {
+    constructor (address _vaultImplementation, address _basketImplementation, address _feeTo) {
         vaultImplementation = _vaultImplementation;
+        basketImplementation = _basketImplementation;        
         feeTo = _feeTo;
     }
 
@@ -63,25 +65,32 @@ contract NibblVaultFactory is Ownable {
         uint256 _initialSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public payable returns(Proxy _proxyVault) {
+    ) public payable returns(Proxy _proxyVault,Proxy _proxyBasket ) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
-        Basket _basket = new Basket();
+        _proxyBasket = new Proxy(basketImplementation);
+        Basket _basket = Basket(payable(_proxyBasket));
+        _basket.initialise();
         for (uint256 index = 0; index < _assetAddresses.length; index++) {
-            IERC721(_assetAddresses[index]).transferFrom(msg.sender, address(_basket), _assetTokenIDs[index]);
+            IERC721(_assetAddresses[index]).transferFrom(msg.sender, address(_proxyBasket), _assetTokenIDs[index]);
         }
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
-        _vault.initialize{value: msg.value}(_name, _symbol, address(_basket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
-        IERC721(address(_basket)).transferFrom(address(this), address(_vault), 0);
+        _vault.initialize{value: msg.value}(_name, _symbol, address(_proxyBasket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
+        IERC721(address(_proxyBasket)).transferFrom(address(this), address(_vault), 0);
         nibbledTokens.push(_proxyVault);
 
-        emit FractionaliseBasket(address(_basket), address(_proxyVault));
+        emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
     }
 
     /// @notice the function to update the address where fee is sent
     /// @param _newFeeAddress new admin fee address
     function updateAdminFeeAddress(address _newFeeAddress) public onlyOwner{
         feeTo = _newFeeAddress;
+    }
+
+    function withdrawAdminFee() public onlyOwner {
+        (bool _success, ) = payable(owner()).call{value: address(this).balance}("");
+        require(_success);
     }
 
     /// @notice Function to update admin fee percentage
