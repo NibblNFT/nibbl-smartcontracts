@@ -132,39 +132,30 @@ describe("Buyout", function () {
     // -------------------------Buyout Initiated--------------------------
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    
     const _buyAmount = ethers.utils.parseEther("1");
     const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
     const _initialSecondaryBalance = await this.tokenVault.secondaryReserveBalance();
     const _initialPrimaryBalance = await this.tokenVault.primaryReserveBalance();
     const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
-    const _purchaseReturn = await mintTokens(this.testBancorBondingCurve, initialTokenSupply, primaryReserveBalance, primaryReserveRatio, _buyAmountWithFee);
-    const _initialBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
     const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
     const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
     const _newSecondaryResRatio = _newSecondaryBalance.mul(SCALE).div(initialValuation);
     this.twav.addObservation(currentValuation, blockTime);
-    await this.tokenVault.connect(this.buyer1).buy(_purchaseReturn, this.buyer1.address, { value: _buyAmount });
-    currentValuation = (_newSecondaryBalance.mul(SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(fictitiousPrimaryReserveBalance)).mul(SCALE).div(primaryReserveRatio));
-    expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.equal(_purchaseReturn);
-    // secondaryReserveBalance * SCALE /secondaryReserveRatio) + ((primaryReserveBalance - fictitiousPrimaryReserveBalance) * SCALE  /primaryReserveRatio
-    expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_newSecondaryBalance);
-    expect(await this.tokenVault.primaryReserveBalance()).to.equal(_initialPrimaryBalance.add(_buyAmountWithFee));
-    // const twavObs0 = await this.tokenVault.twavObservations(0)
+    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
     const twavObs1 = await this.tokenVault.twavObservations(1)
-    
-    expect(twavObs1.timestamp).to.equal(this.twav.twavObservations[1].timestamp);    
+    expect(twavObs1.timestamp).to.equal(this.twav.twavObservations[1].timestamp);
     expect(twavObs1.cumulativeValuation).to.equal(this.twav.twavObservations[1].cumulativeValuation);
-    // expect(await this.tokenVault.getCurrentValuation()).to.equal(_newValuation);
-    // expect((await this.admin.provider.getBalance(this.tokenVaultFactory.address)).sub(_initialBalanceFactory)).to.equal((_buyAmount.mul(FEE_ADMIN)).div(SCALE));        
-    // expect(await this.tokenVault.secondaryReserveRatio()).to.equal(_newSecResRatio);        
-    // expect(await this.tokenVault.feeAccruedCurator()).to.equal((_buyAmount.mul(FEE_CURATOR)).div(SCALE));        
-
-
-    // ---------------------------Bought Tokens--------------------------------
-
-
-  
+    // ----------------------------1st Buy Operation-----------------------------------  
+    // ----------------------------2nd Buy Operation Initiated-----------------------------------  
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    currentValuation = (_newSecondaryBalance.mul(SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(fictitiousPrimaryReserveBalance)).mul(SCALE).div(primaryReserveRatio));
+    this.twav.addObservation(currentValuation, blockTime);
+    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
+    const twavObs2 = await this.tokenVault.twavObservations(2)
+    expect(twavObs2.timestamp).to.equal(this.twav.twavObservations[2].timestamp);
+    expect(twavObs2.cumulativeValuation).to.equal(this.twav.twavObservations[2].cumulativeValuation);
+    // ----------------------------2nd Buy Operation-----------------------------------  
   });
 
   // it("Tokenholder redeems his tokens before NFT unlock has been triggered by bidder", async function () {
