@@ -249,8 +249,6 @@ describe("Buyout", function () {
         // expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[index].cumulativeValuation);
         break;
       }
-      
-    
     }
 
   });

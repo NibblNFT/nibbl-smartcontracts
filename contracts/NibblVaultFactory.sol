@@ -100,6 +100,14 @@ contract NibblVaultFactory is Ownable {
         feeAdmin = _newFee;
     }
 
+    function updateVaultImplementation(address _vaultImplementation) public onlyOwner{
+        vaultImplementation = _vaultImplementation;
+    }
+    
+    function updateBasketImplementation(address _basketImplementation) public onlyOwner{
+        basketImplementation = _basketImplementation;
+    }
+
     receive() external payable {
 
     }

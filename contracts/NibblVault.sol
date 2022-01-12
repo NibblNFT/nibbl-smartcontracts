@@ -328,6 +328,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     function initiateBuyout() public payable {
         require(status == Status.initialised, "NibblVault: Only when initialised");
         require(unsettledBids[msg.sender] == 0, "NibblVault: Unsettled Bids");
+        buyoutValuationDeposit = msg.value;
         uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         uint256 _currentValuation = getCurrentValuation();
         require(_buyoutBid >= _currentValuation, "NibblVault: Bid too low");
@@ -350,8 +351,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         uint256 _twav = _getTwav();
         // TODO: gas optimisation unsettledBids[bidder] use memory
         if (_twav >= buyoutRejectionValuation) {
-            unsettledBids[bidder] = msg.value;
-            totalUnsettledBids += msg.value;
+            unsettledBids[bidder] = buyoutValuationDeposit;
+            totalUnsettledBids += buyoutValuationDeposit;
+            console.log("reject");
             delete buyoutRejectionValuation;
             delete buyoutEndTime;
             delete bidder;
