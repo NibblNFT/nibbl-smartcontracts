@@ -89,12 +89,14 @@ describe("Buyout", function () {
     const buyoutRejectionValuation: BigNumber = currentValuation.mul(SCALE.add(rejectionPremium)).div(SCALE);
     const buyoutBidDeposit: BigNumber = currentValuation.sub(primaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).sub(initialSecondaryReserveBalance);
     this.twav.addObservation(currentValuation, blockTime);
+
     await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
-    expect(await this.tokenVault.buyoutBid()).to.equal(currentValuation);
+    expect(await this.tokenVault.buyoutValuationDeposit()).to.equal(buyoutBidDeposit);
     expect(await this.tokenVault.bidder()).to.equal(this.buyer1.address);
+    expect(await this.tokenVault.buyoutBid()).to.equal(currentValuation);
     expect(await this.tokenVault.buyoutRejectionValuation()).to.equal(buyoutRejectionValuation);
-    expect(await this.tokenVault.status()).to.equal(1);
     expect(await this.tokenVault.buyoutEndTime()).to.equal(blockTime.add(BUYOUT_DURATION));
+    expect(await this.tokenVault.status()).to.equal(1);
     expect(await this.tokenVault.lastBlockTimeStamp()).to.equal(blockTime);
     expect(await this.buyer1.provider.getBalance(this.tokenVault.address)).to.equal(initialTokenVaultBalance.add(buyoutBidDeposit));
     const twavObs = await this.tokenVault.twavObservations(0);
@@ -111,13 +113,14 @@ describe("Buyout", function () {
     const buyoutBidDeposit: BigNumber = currentValuation.sub(primaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).sub(initialSecondaryReserveBalance);
     this.twav.addObservation(currentValuation, blockTime);
     await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
-    expect(await this.tokenVault.buyoutBid()).to.equal(currentValuation);
+    expect(await this.tokenVault.buyoutValuationDeposit()).to.equal(buyoutBidDeposit);
     expect(await this.tokenVault.bidder()).to.equal(this.buyer1.address);
+    expect(await this.tokenVault.buyoutBid()).to.equal(currentValuation);
     expect(await this.tokenVault.buyoutRejectionValuation()).to.equal(buyoutRejectionValuation);
-    expect(await this.tokenVault.status()).to.equal(1);
-    expect(await this.buyer1.provider.getBalance(this.tokenVault.address)).to.equal(initialTokenVaultBalance.add(buyoutBidDeposit));
     expect(await this.tokenVault.buyoutEndTime()).to.equal(blockTime.add(BUYOUT_DURATION));
+    expect(await this.tokenVault.status()).to.equal(1);
     expect(await this.tokenVault.lastBlockTimeStamp()).to.equal(blockTime);
+    expect(await this.buyer1.provider.getBalance(this.tokenVault.address)).to.equal(initialTokenVaultBalance.add(buyoutBidDeposit));
     const twavObs = await this.tokenVault.twavObservations(0)
     expect(twavObs.timestamp).to.equal(this.twav.twavObservations[0].timestamp);
     expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[0].cumulativeValuation);
@@ -217,9 +220,9 @@ describe("Buyout", function () {
     expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[0].cumulativeValuation);
     // -------------------------Buyout Initiated--------------------------
 
-    for (let index = 0; true; index++) {
+    for (let index = 0; index < 10; index++) {
       blockTime = blockTime.add(THREE_MINS);      
-      await setTime(blockTime.toNumber());      
+      await setTime(blockTime.toNumber());        
       const _buyAmount = ethers.utils.parseEther("2");      
       const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
       const _initialSecondaryBalance = await this.tokenVault.secondaryReserveBalance();
@@ -229,24 +232,20 @@ describe("Buyout", function () {
       const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
       const _newSecondaryResRatio = _newSecondaryBalance.mul(SCALE).div(initialValuation);
       this.twav.addObservation(currentValuation, blockTime);
+      let twavObs = await this.tokenVault.twavObservations(index % 6)
       await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
       currentValuation = (_newSecondaryBalance.mul(SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(fictitiousPrimaryReserveBalance)).mul(SCALE).div(primaryReserveRatio));
-      let twavObs = await this.tokenVault.twavObservations(index)
+      expect(twavObs.timestamp).to.equal(this.twav.twavObservations[index % 6].timestamp);
+      expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[index % 6].cumulativeValuation);
       if (this.twav.getTwav() >= buyoutRejectionValuation) {
         await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
-        expect(await this.tokenVault.buyoutRejectionValuation()).to.equal(ZERO);
-        expect(await this.tokenVault.buyoutEndTime()).to.equal(ZERO);
-        expect(await this.tokenVault.twavObservationsIndex()).to.equal(ZERO);
-        // expect(await this.tokenVault.bidder()).to.equal(ZERO);
-        // expect(await this.tokenVault.buyoutEndTime()).to.equal(ZERO);
-
-            // delete buyoutRejectionValuation;
-            // delete buyoutEndTime;
-            // delete bidder;
-            // delete twavObservations;
-            // delete twavObservationsIndex;
-        // expect(twavObs.timestamp).to.equal(this.twav.twavObservations[index].timestamp);
-        // expect(twavObs.cumulativeValuation).to.equal(this.twav.twavObservations[index].cumulativeValuation);
+        expect(await this.tokenVault.buyoutRejectionValuation()).to.equal(ethers.constants.Zero);
+        expect(await this.tokenVault.buyoutEndTime()).to.equal(ethers.constants.Zero);
+        expect((await this.tokenVault.bidder())).to.equal(ethers.constants.AddressZero);
+        expect((await this.tokenVault.twavObservations(0))[0]).to.equal(ethers.constants.Zero);
+        expect(await this.tokenVault.twavObservationsIndex()).to.equal(ethers.constants.Zero);
+        expect(await this.tokenVault.totalUnsettledBids()).to.equal(buyoutBidDeposit);
+        expect(await this.tokenVault.unsettledBids(this.buyer1.address)).to.equal(buyoutBidDeposit);
         break;
       }
     }

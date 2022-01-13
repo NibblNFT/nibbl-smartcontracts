@@ -328,12 +328,15 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     function initiateBuyout() public payable {
         require(status == Status.initialised, "NibblVault: Only when initialised");
         require(unsettledBids[msg.sender] == 0, "NibblVault: Unsettled Bids");
-        buyoutValuationDeposit = msg.value;
         uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
+        //_buyoutBid: Bid User has made
         uint256 _currentValuation = getCurrentValuation();
         require(_buyoutBid >= _currentValuation, "NibblVault: Bid too low");
+        // buyoutValuationDeposit = _currentValuation - ((primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance); //TODO Chane this
+        buyoutValuationDeposit = msg.value - (_buyoutBid - _currentValuation);
         bidder = msg.sender;
         buyoutBid = _currentValuation;
+        // buyoutBid: Bid can only be placed at current valuation
         buyoutRejectionValuation = (_currentValuation * (SCALE + REJECTION_PREMIUM)) / SCALE;
         buyoutEndTime = block.timestamp + BUYOUT_DURATION;
         status = Status.buyout;
@@ -351,8 +354,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         uint256 _twav = _getTwav();
         // TODO: gas optimisation unsettledBids[bidder] use memory
         if (_twav >= buyoutRejectionValuation) {
-            unsettledBids[bidder] = buyoutValuationDeposit;
-            totalUnsettledBids += buyoutValuationDeposit;
+            uint256 _buyoutValuationDeposit = buyoutValuationDeposit;
+            unsettledBids[bidder] = _buyoutValuationDeposit;
+            totalUnsettledBids += _buyoutValuationDeposit;
             delete buyoutRejectionValuation;
             delete buyoutEndTime;
             delete bidder;
