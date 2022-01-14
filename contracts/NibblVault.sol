@@ -342,8 +342,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         status = Status.buyout;
         _updateTWAV(_currentValuation, uint32(block.timestamp % 2**32));
         if (_buyoutBid > _currentValuation) {
-            (bool _success, ) = payable(msg.sender).call{value: (_buyoutBid - _currentValuation)}("");
-            require(_success, "NibblVault: Failed to return extra funds");
+            (bool _success, ) = payable(msg.sender).call{value: (_buyoutBid - _currentValuation)}(""); //Remaining amount is refunded to the bidder
+            require(_success, "NibblVault: Failed to refund");
         }
         emit BuyoutInitiated(msg.sender, _buyoutBid);
     }
