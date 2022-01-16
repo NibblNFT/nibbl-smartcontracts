@@ -37,4 +37,8 @@ contract TestTwav {
         _twav = (_twavObservationCurrent.cumulativeValuation - _twavObservationPrev.cumulativeValuation) / (_twavObservationCurrent.timestamp - _twavObservationPrev.timestamp);
     }
 
+    function getCurrentBlockTime() public view returns(uint256)  {
+        return block.timestamp;
+    }
+
 }
