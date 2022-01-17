@@ -5,7 +5,7 @@ import { mintTokens, burnTokens } from "./testHelpers/singleCurveTokenVaultHelpe
 import { setTime , increaseTime } from "./testHelpers/time";
 import { TWAV } from "./testHelpers/twavHelper";
 
-describe("Buyout", function () {
+describe("Lower Curve Buyout", function () {
   type TwavObservation = {
     timestamp: BigNumber;
     cumulativeValuation: BigNumber;

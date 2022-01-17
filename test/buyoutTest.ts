@@ -399,8 +399,58 @@ describe("Buyout", function () {
     expect(await this.tokenVault.bidder()).to.equal(this.buyer1.address);
     expect(await this.tokenVault.buyoutBid()).to.equal(currentValuation);
     expect(await this.tokenVault.buyoutEndTime()).to.equal(blockTime.add(BUYOUT_DURATION));
-    
   });
+
+  it("Users should be able redeem funds after buyout", async function () {
+    let balanceContract = initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
+    blockTime = await this.testTWAV.getCurrentBlockTime();
+    let _primaryReserveBalance = primaryReserveBalance;
+    const FEE_TOTAL = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
+
+    let _buyAmount = ethers.utils.parseEther("20");      
+    balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
+    curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
+    _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
+    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount }); 
+        
+    _buyAmount = ethers.utils.parseEther("20");      
+    balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
+    curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
+    _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
+    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount }); 
+    
+    _buyAmount = ethers.utils.parseEther("20");      
+    balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
+    curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
+    _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
+    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount }); 
+    
+    _buyAmount = ethers.utils.parseEther("20");      
+    balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
+    curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
+    _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
+    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount }); 
+        
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const buyoutBidDeposit = BigNumber.from("168880000000000000000");
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    
+    // ---------------------Buyout Initiated--------------------------//
+    _buyAmount = ethers.utils.parseEther("2");      
+    balanceContract = balanceContract.add(buyoutBidDeposit);
+    console.log(curatorFeeAccrued, balanceContract);
+    increaseTime(3, "days");
+    const balanceBuyer = await this.tokenVault.balanceOf(this.buyer1.address);
+    const totalSupply = await this.tokenVault.totalSupply();
+    const returnAmt: BigNumber = ((balanceContract.sub(curatorFeeAccrued)).mul(balanceBuyer)).div(totalSupply);
+    const initialBalAddr1: BigNumber = await this.admin.provider.getBalance(this.addr1.address);
+    await this.tokenVault.connect(this.buyer1).redeem(this.addr1.address); 
+    expect(await this.admin.provider.getBalance(this.addr1.address)).to.be.equal(initialBalAddr1.add(returnAmt));
+    expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.be.equal(ethers.constants.Zero);
+  });
+
+
 
   // it("Tokenholder redeems his tokens before NFT unlock has been triggered by bidder", async function () {
   //   // Buy tokens worth 1 ETH for buyer1
