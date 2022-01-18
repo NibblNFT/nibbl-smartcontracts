@@ -3,6 +3,8 @@
 pragma solidity 0.8.4;
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { NibblVault } from "./NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -56,10 +58,11 @@ contract NibblVaultFactory is Ownable {
         nibbledTokens.push(_proxyVault);
         emit Fractionalise(_assetAddress, _assetTokenID, address(_proxyVault));
     }
-
+    
+    // this function should be called from a contract which performs important safety checks
     function createMultiVault(
-        address[] memory _assetAddresses,
-        uint256[] memory _assetTokenIDs,
+        address[] memory _assetAddressesERC721,
+        uint256[] memory _assetTokenIDsERC721,
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply,
@@ -70,8 +73,8 @@ contract NibblVaultFactory is Ownable {
         _proxyBasket = new Proxy(basketImplementation);
         Basket _basket = Basket(payable(_proxyBasket));
         _basket.initialise();
-        for (uint256 index = 0; index < _assetAddresses.length; index++) {
-            IERC721(_assetAddresses[index]).transferFrom(msg.sender, address(_proxyBasket), _assetTokenIDs[index]);
+        for (uint256 index = 0; index < _assetAddressesERC721.length; index++) {
+            IERC721(_assetAddressesERC721[index]).transferFrom(msg.sender, address(_proxyBasket), _assetTokenIDsERC721[index]);
         }
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(address(_proxyVault));

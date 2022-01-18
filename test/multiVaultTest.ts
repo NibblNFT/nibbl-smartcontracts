@@ -44,7 +44,7 @@ describe('MultiVault', function () {
         let _erc721ArrayAddress: string[] = [];
         let _erc721ArrayTokenIDs: number[] = [];
         
-        for (let index = 0; index < 5; index++) {
+        for (let index = 0; index < 10; index++) {
            await this.nft.mint(this.curator.address, index);
             _erc721ArrayAddress.push(this.nft.address);
             _erc721ArrayTokenIDs.push(index);
@@ -62,11 +62,7 @@ describe('MultiVault', function () {
         this.tokenVaultFactory = await this.NibblVaultFactory.deploy(this.nibblVaultImplementation.address,this.basketImplementation.address, this.admin.address);
         await this.tokenVaultFactory.deployed();
 
-        for (let index = 0; index < 5; index++) {
-           await this.nft.approve(this.tokenVaultFactory.address, index);
-        }
-
-        for (let index = 0; index < 5; index++) {
+        for (let index = 0; index < 10; index++) {
            await this.nft.approve(this.tokenVaultFactory.address, index);
         }
 

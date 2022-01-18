@@ -6,42 +6,18 @@ import { setTime , increaseTime } from "./testHelpers/time";
 import { TWAV } from "./testHelpers/twavHelper";
 
 describe("Buyout", function () {
-  type TwavObservation = {
-    timestamp: BigNumber;
-    cumulativeValuation: BigNumber;
-  };
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
   const SCALE: BigNumber = BigNumber.from(1e9);
   const decimal = BigNumber.from((1e18).toString());
-
-  // const FEE_ADMIN: BigNumber = BigNumber.from(2000);
-  // const FEE_CURATOR: BigNumber = BigNumber.from(4000);
-  // const FEE_CURVE: BigNumber = BigNumber.from(4000);
-  // const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2000);
-  // const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4000);
-  // const MAX_FEE_CURVE: BigNumber = BigNumber.from(4000);
-  // const rejectionPremium: BigNumber = BigNumber.from(100000);
-  // const primaryReserveRatio: BigNumber = BigNumber.from(500000);
-
-
-
-
-
-    const FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
-    const FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
-    const FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
-    const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
-    const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
-    const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
-    const rejectionPremium: BigNumber = BigNumber.from(100_000_000);
-    const primaryReserveRatio: BigNumber = BigNumber.from(500_000_000);
-
-
-
-
-
-
+  const FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
+  const FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
+  const FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
+  const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
+  const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
+  const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
+  const rejectionPremium: BigNumber = BigNumber.from(100_000_000);
+  const primaryReserveRatio: BigNumber = BigNumber.from(500_000_000);
   const BUYOUT_DURATION: BigNumber = BigNumber.from(3 * 24 * 60 * 60);   
   const THREE_MINS: BigNumber = BigNumber.from(180)
   let blockTime: BigNumber = BigNumber.from(Math.ceil((Date.now() / 1e3)));

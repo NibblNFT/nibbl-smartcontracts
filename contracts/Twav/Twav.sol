@@ -20,7 +20,7 @@ contract Twav {
     function _updateTWAV(uint256 _valuation, uint32 _blockTimestamp) internal {
         //TODO: Should time elapsed be zero while initiating?
         uint32 _timeElapsed; 
-        unchecked{
+        unchecked {
             _timeElapsed = _blockTimestamp - lastBlockTimeStamp;
         }
         uint256 _prevCumulativeValuation = twavObservations[((twavObservationsIndex + TWAV_BLOCK_NUMBERS) - 1) % TWAV_BLOCK_NUMBERS].cumulativeValuation;

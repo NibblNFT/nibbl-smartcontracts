@@ -5,6 +5,7 @@ pragma solidity 0.8.4;
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import { BancorBondingCurve } from "./Bancor/BancorBondingCurve.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMathUpgradeable } from  "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import { IERC721ReceiverUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
@@ -411,6 +412,19 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         require(_newFee<=MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
         curatorFee = _newFee;
         emit CuratorFeeUpdated(_newFee);
+    }
+
+    /// @notice withdraw ERC20 in the case a held NFT earned ERC20
+    function withdrawERC20(address _token) external boughtOut {
+        require(msg.sender == bidder, "NibblVault: Only winner");
+        IERC20(_token).transfer(msg.sender, IERC20(_token).balanceOf(address(this)));
+    }
+
+    function withdrawMultipleERC20(address[] memory _tokens) external boughtOut {
+        require(msg.sender == bidder, "NibblVault: Only winner");
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            IERC20(_tokens[i]).transfer(msg.sender, IERC20(_tokens[i]).balanceOf(address(this)));
+        }
     }
 
     function onERC721Received(
