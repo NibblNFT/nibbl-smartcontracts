@@ -14,19 +14,19 @@ describe("NibblVaultFactory", function () {
   };
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
-  const SCALE: BigNumber = BigNumber.from(1e6);
+  const SCALE: BigNumber = BigNumber.from(1e9);
   const ONE = BigNumber.from(1);
   const decimal = BigNumber.from((1e18).toString());
 
-  const FEE_ADMIN: BigNumber = BigNumber.from(2000);
-  const FEE_CURATOR: BigNumber = BigNumber.from(4000);
-  const FEE_CURVE: BigNumber = BigNumber.from(4000);
-
-  const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2000);
-  const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4000);
-  const MAX_FEE_CURVE: BigNumber = BigNumber.from(4000);
-  const rejectionPremium: BigNumber = BigNumber.from(100000);
-  const primaryReserveRatio: BigNumber = BigNumber.from(500000);
+    const FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
+    const FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
+    const FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
+    
+    const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
+    const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
+    const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
+    const rejectionPremium: BigNumber = BigNumber.from(100_000_000);
+    const primaryReserveRatio: BigNumber = BigNumber.from(500_000_000);
 
   const initialTokenPrice: BigNumber = BigNumber.from((1e14).toString()); //10 ^-4 eth
   const initialValuation: BigNumber = BigNumber.from((1e20).toString()); //100 eth

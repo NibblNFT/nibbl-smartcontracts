@@ -16,8 +16,8 @@ contract NibblVaultFactory is Ownable {
     address public vaultImplementation;
     address public basketImplementation;
     address public feeTo;
-    uint256 public feeAdmin = 2_000;
-    uint256 private constant MAX_ADMIN_FEE = 2_000; //.2%
+    uint256 public feeAdmin = 2_000_000;
+    uint256 private constant MAX_ADMIN_FEE = 2_000_000; //.2%
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9; //1%
 
     Proxy[] public nibbledTokens;

@@ -15,10 +15,18 @@ import "hardhat/console.sol";
 
 contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgradeable, Twav {
     // scale = 10^6
-    uint256 private constant SCALE = 1_000_000;
+    uint256 private constant SCALE = 1_000_000_000;
 
     // primary reserve ratio = 50%
-    uint32 private constant primaryReserveRatio = 500_000;
+    uint32 private constant primaryReserveRatio = 500_000_000;
+    
+    // premium above the buyout bid that the bonding curve valuation needs to go to for buyout to get rejected
+    uint256 private constant REJECTION_PREMIUM = 100_000_000;
+
+    // time till buyout rejection can happen, otherwise buyout succeeds
+    uint256 private constant BUYOUT_DURATION = 3 days; 
+
+    uint256 private constant CURVE_FEE_AMT = 4_000_000; 
 
     uint32 public secondaryReserveRatio;
 
@@ -37,13 +45,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @notice address which triggered the buyout
     address public bidder;
 
-    // premium above the buyout bid that the bonding curve valuation needs to go to for buyout to get rejected
-    uint256 private constant REJECTION_PREMIUM = 100_000;
-
-    // time till buyout rejection can happen, otherwise buyout succeeds
-    uint256 private constant BUYOUT_DURATION = 3 days; 
-
-    uint256 private constant CURVE_FEE_AMT = 4000; 
 
     /// @notice initial price of the fractional ERC20 Token set by the curator
     uint256 public initialTokenPrice;
@@ -180,7 +181,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     ///      Real reserve balance in primary curve = primaryReserveBalance - fictitiousPrimaryReserveBalance
     /// @return Current valuation in bonding curve
     function getCurrentValuation() private view returns(uint256){
-            return (secondaryReserveBalance * SCALE /secondaryReserveRatio) + ((primaryReserveBalance - fictitiousPrimaryReserveBalance) * SCALE  /primaryReserveRatio);
+            return totalSupply() < initialTokenSupply ? (secondaryReserveBalance * SCALE /secondaryReserveRatio) : ((primaryReserveBalance) * SCALE  / primaryReserveRatio);
     }
 
     // /// @dev Curve fee is non-zero only till secondary reserve ratio has not become equal to primary reserve ratio
@@ -197,9 +198,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @return Maximum curator fee possible
     function MAX_CURATOR_FEE() view public returns (uint256) {
         if (secondaryReserveRatio < primaryReserveRatio) {
-            return 5000;
+            return 5_000_000;
         } else {
-            return 10000;
+            return 10_000_000;
         }            
     }
 
