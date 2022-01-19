@@ -60,9 +60,9 @@ describe("Buyout", function () {
     this.nft.approve(this.tokenVaultFactory.address, 0);
 
     this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
-    this.TestTWAPContract = await ethers.getContractFactory("TestTwav");
+    this.TestTWAVContract = await ethers.getContractFactory("TestTwav");
     this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
-    this.testTWAV = await this.TestTWAPContract.deploy();
+    this.testTWAV = await this.TestTWAVContract.deploy();
     await this.testTWAV.deployed();
     await this.testBancorBondingCurve.deployed();
 
@@ -73,7 +73,7 @@ describe("Buyout", function () {
   });
 
   it("Should initiate buyout when bid == currentValuation", async function () {
-    blockTime = BigNumber.from(Math.ceil((Date.now() / 1e3)));
+    blockTime = await this.testTWAV.getCurrentBlockTime();
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
     const currentValuation: BigNumber = initialValuation;

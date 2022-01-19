@@ -69,7 +69,7 @@ describe('MultiVault', function () {
         this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
         this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
         await this.testBancorBondingCurve.deployed();
-        await this.tokenVaultFactory.createMultiVault(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply,10**14,MAX_FEE_CURATOR, {value: initialSecondaryReserveBalance});
+        await this.tokenVaultFactory.createMultiVaultERC721(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply, 10**14, MAX_FEE_CURATOR, {value: initialSecondaryReserveBalance});
         const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
         this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     })

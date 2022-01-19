@@ -6,10 +6,6 @@ import { setTime , increaseTime } from "./testHelpers/time";
 import { TWAV } from "./testHelpers/twavHelper";
 
 describe("Lower Curve Buyout", function () {
-  type TwavObservation = {
-    timestamp: BigNumber;
-    cumulativeValuation: BigNumber;
-  };
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
   const SCALE: BigNumber = BigNumber.from(1e9);

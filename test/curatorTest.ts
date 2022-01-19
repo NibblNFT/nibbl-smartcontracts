@@ -8,51 +8,32 @@ import {
 import { setTime } from "./testHelpers/time";
 
 describe("Curator Fees", function () {
-  type TwavObservation = {
-    timestamp: BigNumber;
-    cumulativeValuation: BigNumber;
-  };
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
   const SCALE: BigNumber = BigNumber.from(1e9);
   const ONE = BigNumber.from(1);
   const decimal = BigNumber.from((1e18).toString());
-
-    const FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
-    const FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
-    const FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
-    
-    const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
-    const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
-    const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
-    const rejectionPremium: BigNumber = BigNumber.from(100_000_000);
-    const primaryReserveRatio: BigNumber = BigNumber.from(500_000_000);
-
+  const FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
+  const FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
+  const FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
+  const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
+  const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
+  const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
+  const rejectionPremium: BigNumber = BigNumber.from(100_000_000);
+  const primaryReserveRatio: BigNumber = BigNumber.from(500_000_000);
   const initialTokenPrice: BigNumber = BigNumber.from((1e14).toString()); //10 ^-4 eth
   const initialValuation: BigNumber = BigNumber.from((1e20).toString()); //100 eth
-  const initialTokenSupply: BigNumber = initialValuation
-    .div(initialTokenPrice)
-    .mul(decimal);
-  const initialSecondaryReserveBalance: BigNumber =
-    ethers.utils.parseEther("10");
-  const requiredReserveBalance: BigNumber = primaryReserveRatio
-    .mul(initialValuation)
-    .div(SCALE);
-  const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance
-    .mul(SCALE)
-    .div(initialValuation);
-  const primaryReserveBalance: BigNumber = primaryReserveRatio
-    .mul(initialValuation)
-    .div(SCALE);
-  const fictitiousPrimaryReserveBalance = primaryReserveRatio
-    .mul(initialValuation)
-    .div(SCALE);
+  const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(decimal);
+  const initialSecondaryReserveBalance: BigNumber = ethers.utils.parseEther("10");
+  const requiredReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
+  const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
+  const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
+  const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
 
   // (primaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (SCALE * 1e18);
 
   beforeEach(async function () {
-    const [curator, admin, buyer1, addr1, addr2, addr3, addr4] =
-      await ethers.getSigners();
+    const [curator, admin, buyer1, addr1, addr2, addr3, addr4] = await ethers.getSigners();
     this.curator = curator;
     this.admin = admin;
     this.buyer1 = buyer1;
@@ -89,22 +70,9 @@ describe("Curator Fees", function () {
     await this.testTWAV.deployed();
     await this.testBancorBondingCurve.deployed();
 
-    await this.tokenVaultFactory.createVault(
-      this.nft.address,
-      0,
-      tokenName,
-      tokenSymbol,
-      initialTokenSupply,
-      10 ** 14,
-      MAX_FEE_CURATOR,
-      { value: initialSecondaryReserveBalance }
-    );
+    await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR, { value: initialSecondaryReserveBalance });
     const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
-    this.tokenVault = new ethers.Contract(
-      proxyAddress.toString(),
-      this.NibblVault.interface,
-      this.curator
-    );
+    this.tokenVault = new ethers.Contract( proxyAddress.toString(), this.NibblVault.interface, this.curator);
   });
 
   it("Curator fees is updated correctly", async function () {
@@ -113,6 +81,7 @@ describe("Curator Fees", function () {
     const curatorFeeFromContract = await this.tokenVault.curatorFee();
     expect(curatorFeeFromContract).to.be.equal(newFee);
   });
+
   it("Curator fees cannot be more than 1%", async function () {
     const newFee = 10001;
     await expect(

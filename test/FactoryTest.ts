@@ -8,10 +8,6 @@ import {
 import { setTime } from "./testHelpers/time";
 
 describe("NibblVaultFactory", function () {
-  type TwavObservation = {
-    timestamp: BigNumber;
-    cumulativeValuation: BigNumber;
-  };
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
   const SCALE: BigNumber = BigNumber.from(1e9);
