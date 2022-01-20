@@ -53,18 +53,19 @@ contract Basket is ERC721("NFT Basket", "NFTB"), IERC721Receiver, IERC1155Receiv
     /// @notice withdraw an ERC721 token from this contract into your wallet
     /// @param _token the address of the NFT you are withdrawing
     /// @param _tokenId the ID of the NFT you are withdrawing
-    /// @param _amount the amount of the NFT you are withdrawing
-    function withdrawERC1155(address _token, uint256 _tokenId, uint256 _amount) external {
+    function withdrawERC1155(address _token, uint256 _tokenId, address _to) external {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
-        IERC1155(_token).safeTransferFrom(address(this), msg.sender, _tokenId, _amount, "0");
-        emit WithdrawERC1155(_token, _tokenId, _amount, msg.sender);
+        uint256 _balance = IERC1155(_token).balanceOf(address(this),  _tokenId);
+        IERC1155(_token).safeTransferFrom(address(this), _to, _tokenId, _balance, "0");
+        emit WithdrawERC1155(_token, _tokenId, _balance, _to);
     }
 
-    function withdrawMultipleERC1155(address[] memory _tokens, uint256[] memory _tokenIds, uint256[] memory _amounts) external {
+    function withdrawMultipleERC1155(address[] memory _tokens, uint256[] memory _tokenIds, address _to) external {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         for (uint256 i = 0; i < _tokens.length; i++) {
-            IERC1155(_tokens[i]).safeTransferFrom(address(this), msg.sender, _tokenIds[i], _amounts[i], "0");
-            emit WithdrawERC1155(_tokens[i], _tokenIds[i], _amounts[i], msg.sender);
+            uint256 _balance = IERC1155(_tokens[i]).balanceOf(address(this),  _tokenIds[i]);
+            IERC1155(_tokens[i]).safeTransferFrom(address(this), _to, _tokenIds[i], _balance, "0");
+            emit WithdrawERC1155(_tokens[i], _tokenIds[i], _balance, _to);
         }
     }
 

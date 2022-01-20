@@ -18,7 +18,6 @@ contract Twav {
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;
 
     function _updateTWAV(uint256 _valuation, uint32 _blockTimestamp) internal {
-        //TODO: Should time elapsed be zero while initiating?
         uint32 _timeElapsed; 
         unchecked {
             _timeElapsed = _blockTimestamp - lastBlockTimeStamp;

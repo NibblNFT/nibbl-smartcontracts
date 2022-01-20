@@ -448,8 +448,9 @@ describe("Buyout", function () {
     // ---------------------Buyout Initiated--------------------------//
     increaseTime(3, "days");
     // ---------------------Buyout Finished--------------------------//
-    // unlockNFT(address _to)
-    await this.tokenVault.connect(this.buyer1).unlockNFT(this.addr1.address);
+    //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
+
+    await this.tokenVault.connect(this.buyer1).withdrawNFT(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address);
     expect(await this.nft.ownerOf(0)).to.be.equal(this.addr1.address);
   });
 });

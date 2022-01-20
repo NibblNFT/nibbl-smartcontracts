@@ -5,16 +5,18 @@ pragma solidity 0.8.4;
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import { BancorBondingCurve } from "./Bancor/BancorBondingCurve.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMathUpgradeable } from  "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import { IERC721ReceiverUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
+// import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+// import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 
 import "hardhat/console.sol";
 
 
-contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgradeable, Twav {
+contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     // scale = 10^6
     uint256 private constant SCALE = 1_000_000_000;
 
@@ -56,7 +58,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     uint256 public buyoutRejectionValuation;
     
     /// @notice deposit made by bidder to initiate buyout
-    uint256 public buyoutValuationDeposit; //TODO: Remove this variable
+    uint256 public buyoutValuationDeposit;
     
     /// @notice initial token supply
     uint256 public initialTokenSupply;
@@ -141,11 +143,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         assetID = _assetID;
         curator = _curator;
         initialTokenSupply = _initialTokenSupply;
-        primaryReserveBalance = (primaryReserveRatio * initialTokenSupply * initialTokenPrice) / (SCALE * 1e18);
-        fictitiousPrimaryReserveBalance = primaryReserveBalance; //TODO: GAS IMPROVISATION
+        uint _primaryReserveBalance = (primaryReserveRatio * initialTokenSupply * initialTokenPrice) / (SCALE * 1e18);
+        primaryReserveBalance = _primaryReserveBalance;
+        fictitiousPrimaryReserveBalance = _primaryReserveBalance;
         secondaryReserveBalance = msg.value;
-        secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * initialTokenPrice));
-        require(secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds"); //secResratio <= PrimaryResRatio
+        uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * initialTokenPrice));
+        secondaryReserveRatio = _secondaryReserveRatio;
+        require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds"); //secResratio <= PrimaryResRatio
+        require(_secondaryReserveRatio >= 1_000_000, "NibblVault: SecondaryReserveRatio too low");
         _mint(_curator, _initialTokenSupply);
     }
 
@@ -334,7 +339,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
         //_buyoutBid: Bid User has made
         uint256 _currentValuation = getCurrentValuation();
         require(_buyoutBid >= _currentValuation, "NibblVault: Bid too low");
-        // buyoutValuationDeposit = _currentValuation - ((primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance); //TODO Chane this
+        // buyoutValuationDeposit = _currentValuation - ((primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance); 
         buyoutValuationDeposit = msg.value - (_buyoutBid - _currentValuation);
         bidder = msg.sender;
         buyoutBid = _currentValuation;
@@ -354,7 +359,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     ///      Checks if TWAV >= Buyout rejection valuation and rejects current buyout
     function _rejectBuyout() internal notBoughtOut {
         uint256 _twav = _getTwav();
-        // TODO: gas optimisation unsettledBids[bidder] use memory
         if (_twav >= buyoutRejectionValuation) {
             uint256 _buyoutValuationDeposit = buyoutValuationDeposit;
             unsettledBids[bidder] = _buyoutValuationDeposit;
@@ -391,9 +395,16 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     /// @notice Function for allowing bidder to unlock his NFT in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
-    function unlockNFT(address _to) public boughtOut {
+    function withdrawNFT(address _assetAddress, uint256 _assetID, address _to) external boughtOut {
         require(msg.sender == bidder,"NibblVault: Only winner");
-        IERC721(assetAddress).transferFrom(address(this), _to, assetID);
+        IERC721(_assetAddress).transferFrom(address(this), _to, _assetID);
+    }
+
+    function withdrawMultipleERC721(address[] memory _assetAddresses, uint256[] memory _assetIDs, address _to) external {
+        require(msg.sender == bidder,"NibblVault: Only winner");
+        for (uint256 i = 0; i < _assetAddresses.length; i++) {
+            IERC721(_assetAddresses[i]).safeTransferFrom(address(this), _to, _assetIDs[i]);
+        }
     }
 
     /// @notice Function to allow curator to redeem accumulated curator fee.
@@ -415,24 +426,42 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     }
 
     /// @notice withdraw ERC20 in the case a held NFT earned ERC20
-    function withdrawERC20(address _token) external boughtOut {
+    function withdrawERC20(address _asset, address _to) external boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
-        IERC20(_token).transfer(msg.sender, IERC20(_token).balanceOf(address(this)));
+        IERC20(_asset).transfer(_to, IERC20(_asset).balanceOf(address(this)));
     }
 
-    function withdrawMultipleERC20(address[] memory _tokens) external boughtOut {
+    function withdrawMultipleERC20(address[] memory _assets, address _to) external boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            IERC20(_tokens[i]).transfer(msg.sender, IERC20(_tokens[i]).balanceOf(address(this)));
+        for (uint256 i = 0; i < _assets.length; i++) {
+            IERC20(_assets[i]).transfer(_to, IERC20(_assets[i]).balanceOf(address(this)));
         }
     }
 
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure override returns (bytes4) {
+    function withdrawERC1155(address _asset, uint256 _assetID, address _to) external boughtOut {
+        require(msg.sender == bidder, "NibblVault: Only winner");
+        uint256 balance = IERC1155(_asset).balanceOf(address(this),  _assetID);
+        IERC1155(_asset).safeTransferFrom(address(this), _to, _assetID, balance, "0");
+    }
+
+    function withdrawMultipleERC1155(address[] memory _assets, uint256[] memory _assetIDs, address _to) external boughtOut {
+        require(msg.sender == bidder, "NibblVault: Only winner");
+        for (uint256 i = 0; i < _assets.length; i++) {
+            uint256 balance = IERC1155(_assets[i]).balanceOf(address(this),  _assetIDs[i]);
+            IERC1155(_assets[i]).safeTransferFrom(address(this), _to, _assetIDs[i], balance, "0");
+        }
+    }
+
+
+    function onERC721Received( address, address, uint256, bytes calldata ) external pure returns (bytes4) {
         return this.onERC721Received.selector;
+    }
+    
+    function onERC1155Received(address, address, uint256, uint256, bytes memory) external pure returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
+
+    function onERC1155BatchReceived(address, address, uint256[] memory, uint256[] memory, bytes memory) external pure returns (bytes4) {
+        return this.onERC1155BatchReceived.selector;
     }
 }

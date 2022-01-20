@@ -90,22 +90,21 @@ describe("Basket", function () {
     });
 
     it("Owner of the basket should be able to withdraw ERC1155 from basket", async function () {
-        await this.basket.connect(this.curator).withdrawERC1155(this.erc1155Token.address, 0, 500);
+        await this.basket.connect(this.curator).withdrawERC1155(this.erc1155Token.address, 0, this.curator.address);
         expect(await this.erc1155Token.balanceOf(this.curator.address, 0)).to.equal(500);
     });
     // function withdrawMultipleERC1155(address[] memory _tokens, uint256[] memory _tokenIds, uint256[] memory _amounts) external {
 
 
     it("Owner of the basket should be able to withdraw multiple ERC1155 from basket", async function () {
-        let tokenAddressArray = [], tokenIdArray = [], amountArray = [];
+        let tokenAddressArray = [], tokenIdArray = [];
         
         for (let i = 0; i < 10; i++) {
             tokenAddressArray.push(this.erc1155Token.address);
             tokenIdArray.push(i);
-            amountArray.push(500);
         }
 
-        await this.basket.connect(this.curator).withdrawMultipleERC1155(tokenAddressArray, tokenIdArray, amountArray);
+        await this.basket.connect(this.curator).withdrawMultipleERC1155(tokenAddressArray, tokenIdArray, this.curator.address);
         for (let i = 0; i < 10; i++) {
             expect(await this.erc1155Token.balanceOf(this.curator.address, i)).to.equal(500);
         }
