@@ -101,6 +101,11 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
         nibbledTokens.push(_proxyVault);
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
     }
+    
+    function withdrawAdminFee() public onlyOwner {
+        (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");
+        require(_success);
+    }
 
     function proposeNewAdminFeeAddress(address _newFeeAddress) public onlyOwner{
         pendingFeeTo = _newFeeAddress;
@@ -108,25 +113,21 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
     }
 
     function updateNewAdminFeeAddress() public {
-        require(block.timestamp >= feeToUpdateTime);
+        require(block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeTo = pendingFeeTo;
     }
 
-    function withdrawAdminFee() public onlyOwner {
-        (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");
-        require(_success);
-    }
 
     /// @notice Function to update admin fee percentage
     /// @param _newFee new fee percentage for admin
     function proposeNewAdminFee(uint256 _newFee) public onlyOwner{
-        require(_newFee <= MAX_ADMIN_FEE,"NibblVaultFactory: New fee value is greater than max fee allowed");
+        require(_newFee <= MAX_ADMIN_FEE, "NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
         pendingFeeAdmin = _newFee;
         feeAdminUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
     function updateNewAdminFee() public {
-        require(block.timestamp >= feeAdminUpdateTime);
+        require(block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeAdmin = pendingFeeAdmin;
     }
 
@@ -136,7 +137,7 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
     }
 
     function updateVaultImplementation() public {
-        require(block.timestamp >= vaultUpdateTime);
+        require(block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         vaultImplementation = pendingVaultImplementation;
     }
     
@@ -146,7 +147,7 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
     }
 
     function updateBasketImplementation() public {
-        require(block.timestamp >= basketUpdateTime);
+        require(block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         basketImplementation = pendingBasketImplementation;
     }
 

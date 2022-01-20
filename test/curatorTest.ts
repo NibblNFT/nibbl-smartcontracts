@@ -33,10 +33,11 @@ describe("Curator Fees", function () {
   // (primaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (SCALE * 1e18);
 
   beforeEach(async function () {
-    const [curator, admin, buyer1, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    const [curator, admin, buyer1, buyer2, addr1, addr2, addr3, addr4] = await ethers.getSigners();
     this.curator = curator;
     this.admin = admin;
     this.buyer1 = buyer1;
+    this.buyer2 = buyer2;
     this.addr1 = addr1;
     this.addr2 = addr2;
     this.addr3 = addr3;
@@ -58,71 +59,65 @@ describe("Curator Fees", function () {
     this.NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
     this.tokenVaultFactory = await this.NibblVaultFactory.deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address);
     await this.tokenVaultFactory.deployed();
-      
     this.nft.approve(this.tokenVaultFactory.address, 0);
 
-    this.TestBancorBondingCurve = await ethers.getContractFactory(
-      "TestBancorBondingCurve"
-    );
-    this.TestTWAPContract = await ethers.getContractFactory("TestTwav");
+    this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
+    this.TestTWAVContract = await ethers.getContractFactory("TestTwav");
     this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
-    this.testTWAV = await this.TestTWAPContract.deploy();
+    this.testTWAV = await this.TestTWAVContract.deploy();
     await this.testTWAV.deployed();
     await this.testBancorBondingCurve.deployed();
 
     await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR, { value: initialSecondaryReserveBalance });
     const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
-    this.tokenVault = new ethers.Contract( proxyAddress.toString(), this.NibblVault.interface, this.curator);
+    this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
   });
 
-  it("Curator fees is updated correctly", async function () {
-    const newFee = 5000;
+  it("should update curator fee", async function () {
+    const newFee = 3_000_000;
     await this.tokenVault.connect(this.curator).updateCuratorFee(newFee);
     const curatorFeeFromContract = await this.tokenVault.curatorFee();
     expect(curatorFeeFromContract).to.be.equal(newFee);
   });
 
-  it("Curator fees cannot be more than 1%", async function () {
-    const newFee = 10001;
-    await expect(
-      this.tokenVault.connect(this.curator).updateCuratorFee(newFee)
-    ).to.be.revertedWith("NibblVault: Invalid fee");
+  it("should fail to update curator fee if Invalid", async function () {
+    const newFee = 5_000_001;
+    await expect(this.tokenVault.connect(this.curator).updateCuratorFee(newFee)).to.be.revertedWith("NibblVault: Invalid fee");
   });
-  it("Curator fees is accured and redeemed correctly", async function () {
+
+  it("should accure and redeem curator fee correctly", async function () {
     const _buyAmount = ethers.utils.parseEther("1");
-    await this.tokenVault
-      .connect(this.buyer1)
-      .buy(0, this.buyer1.address, { value: _buyAmount });
-    const accuredFee = await this.tokenVault.feeAccruedCurator();
+    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
     const expectedFee = _buyAmount.mul(MAX_FEE_CURATOR).div(SCALE);
-    expect(accuredFee).to.be.equal(expectedFee);
+    expect(await this.tokenVault.feeAccruedCurator()).to.be.equal(expectedFee);
     await this.tokenVault.connect(this.curator).redeemCuratorFee(this.curator.address);
     const accuredFeeAfterRedeem = await this.tokenVault.feeAccruedCurator();
     expect(accuredFeeAfterRedeem).to.be.equal(0);
   });
-  it("Only Curator can change fees", async function () {
+
+  it("should fail to update curator if msg.sender isn't curator", async function () {
     const newFee = 10000;
-    await expect(
-      this.tokenVault.connect(this.addr1).updateCuratorFee(newFee)
-    ).to.be.revertedWith("NibblVault: Only Curator");
+    await expect(this.tokenVault.connect(this.addr1).updateCuratorFee(newFee)).to.be.revertedWith("NibblVault: Only Curator");
   });
-  it("Check if correct curator fee is returned", async function () {
-    const _buyAmount = ethers.utils.parseEther("100");
-    const fee = await this.tokenVault.MAX_CURATOR_FEE()
-    expect(fee).to.be.equal(5000)
-    let secondaryReserveRatio;
-    do{
-      secondaryReserveRatio = await this.tokenVault.secondaryReserveRatio()      
-      await this.tokenVault
-      .connect(this.buyer1)
-      .buy(0, this.buyer1.address, { value: _buyAmount });
-      const tokenBal = await this.tokenVault.balanceOf(this.buyer1.address)
-      await this.tokenVault
-      .connect(this.buyer1)
-      .sell(tokenBal,0, this.buyer1.address);
-    }
-    while(secondaryReserveRatio < 500000) //secondaryReserveRatio > primaryReserveRatio
-    const fee2 = await this.tokenVault.MAX_CURATOR_FEE()
-    expect(fee2).to.be.equal(10000)
+
+  it("should withdraw curator fee", async function () {
+    const _buyAmount = ethers.utils.parseEther("100000");
+    const _expectedFee = _buyAmount.mul(MAX_FEE_CURATOR).div(SCALE);
+    const initialBalanceAddr1 = await this.admin.provider.getBalance(this.addr1.address);
+    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
+    expect(await this.tokenVault.feeAccruedCurator()).to.be.equal(_expectedFee);
+    await this.tokenVault.redeemCuratorFee(this.addr1.address);
+    expect(await this.admin.provider.getBalance(this.addr1.address)).to.equal(initialBalanceAddr1.add(_expectedFee));
   });
+
+  it("should withdraw curator fee", async function () {
+    const _buyAmount = ethers.utils.parseEther("100000");
+    const _expectedFee = _buyAmount.mul(MAX_FEE_CURATOR).div(SCALE);
+    const initialBalanceAddr1 = await this.admin.provider.getBalance(this.addr1.address);
+    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
+    expect(await this.tokenVault.feeAccruedCurator()).to.be.equal(_expectedFee);
+    await this.tokenVault.redeemCuratorFee(this.addr1.address);
+    expect(await this.admin.provider.getBalance(this.addr1.address)).to.equal(initialBalanceAddr1.add(_expectedFee));
+  });
+
 });

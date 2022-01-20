@@ -197,7 +197,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
 
     /// @dev Possible maximum curator fee is less till the point secondary reserve ratio has not become equal to primary reserve ratio
     /// @return Maximum curator fee possible
-    function MAX_CURATOR_FEE() view public returns (uint256) {
+    function MAX_CURATOR_FEE() view private returns (uint256) {
         if (secondaryReserveRatio < primaryReserveRatio) {
             return 5_000_000;
         } else {
@@ -392,7 +392,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @notice Function for allowing bidder to unlock his NFT in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
     function unlockNFT(address _to) public boughtOut {
-        require(msg.sender==bidder,"NibblVault: Only winner");
+        require(msg.sender == bidder,"NibblVault: Only winner");
         IERC721(assetAddress).transferFrom(address(this), _to, assetID);
     }
 
@@ -408,8 +408,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, IERC721ReceiverUpgr
     /// @notice Function to update curator fee
     /// @param _newFee New curator fee 
     function updateCuratorFee(uint256 _newFee) public {
-        require(msg.sender==curator,"NibblVault: Only Curator");
-        require(_newFee<=MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
+        require(msg.sender == curator,"NibblVault: Only Curator");
+        require(_newFee <= MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
         curatorFee = _newFee;
         emit CuratorFeeUpdated(_newFee);
     }

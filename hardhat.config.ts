@@ -31,6 +31,12 @@ const config: HardhatUserConfig = {
     }
   },
   networks: {
+
+    hardhat: {
+      accounts: {
+        accountsBalance: "100000000000000000000000000"
+      },
+    }
   },
   gasReporter: {
     currency: 'USD',

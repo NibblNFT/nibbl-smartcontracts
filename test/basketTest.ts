@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { BigNumber } from "ethers";
-import {  mintTokens, burnTokens } from "./testHelpers/singleCurveTokenVaultHelper";
 import { setTime } from "./testHelpers/time";
 import { TWAV } from "./testHelpers/twavHelper";
 
@@ -31,6 +30,7 @@ describe("Basket", function () {
     const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
 
     beforeEach(async function () {
+        
         const [curator, admin, buyer1, addr1, addr2, addr3, addr4] = await ethers.getSigners();
         this.curator = curator;
         this.admin = admin;
@@ -39,7 +39,6 @@ describe("Basket", function () {
         this.addr2 = addr2;
         this.addr3 = addr3;
         this.addr4 = addr4;
-
         this.NFT = await ethers.getContractFactory("NFT");
         this.nft = await this.NFT.deploy();
         await this.nft.deployed();
