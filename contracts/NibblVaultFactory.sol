@@ -4,6 +4,7 @@ pragma solidity 0.8.4;
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 
 import { Ownable } from "./Utilites/Ownable.sol";
 import { NibblVault } from "./NibblVault.sol";
@@ -35,7 +36,7 @@ contract NibblVaultFactoryData {
     uint256 public feeAdminUpdateTime;
 }
 
-contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
+contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
 //TODO: Add pending functions
 
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9; //1%
@@ -67,7 +68,7 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
         uint256 _initialSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public payable returns(Proxy _proxyVault) {
+    ) public payable whenNotPaused returns(Proxy _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
@@ -86,7 +87,7 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
         uint256 _initialSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public payable returns(Proxy _proxyVault,Proxy _proxyBasket ) {
+    ) public payable whenNotPaused returns(Proxy _proxyVault, Proxy _proxyBasket ) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         _proxyBasket = new Proxy(basketImplementation);
         Basket _basket = Basket(payable(_proxyBasket));
@@ -102,7 +103,7 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
     }
     
-    function withdrawAdminFee() public onlyOwner {
+    function withdrawAdminFee() public {
         (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");
         require(_success);
     }
@@ -117,6 +118,9 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
         feeTo = pendingFeeTo;
     }
 
+    function getData() public view returns(bool, uint256)  {
+        return (paused(), feeAdmin);
+    }
 
     /// @notice Function to update admin fee percentage
     /// @param _newFee new fee percentage for admin
@@ -151,7 +155,7 @@ contract NibblVaultFactory is Ownable, NibblVaultFactoryData {
         basketImplementation = pendingBasketImplementation;
     }
 
-    receive() external payable {
+    receive() payable external {
 
     }
 
