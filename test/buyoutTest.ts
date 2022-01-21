@@ -13,9 +13,7 @@ describe("Buyout", function () {
   const FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
   const FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
   const FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
-  const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
   const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
-  const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
   const rejectionPremium: BigNumber = BigNumber.from(100_000_000);
   const primaryReserveRatio: BigNumber = BigNumber.from(500_000_000);
   const BUYOUT_DURATION: BigNumber = BigNumber.from(3 * 24 * 60 * 60);   
@@ -25,7 +23,6 @@ describe("Buyout", function () {
   const initialValuation: BigNumber = BigNumber.from((1e20).toString()); //100 eth
   const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(decimal);
   const initialSecondaryReserveBalance: BigNumber = ethers.utils.parseEther("10");
-  const requiredReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
   const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
@@ -44,6 +41,7 @@ describe("Buyout", function () {
     this.NFT = await ethers.getContractFactory("NFT");
     this.nft = await this.NFT.deploy();
     await this.nft.deployed();
+    
     this.nft.mint(this.curator.address, 0);
 
     this.NibblVault = await ethers.getContractFactory("NibblVault");
@@ -250,7 +248,7 @@ describe("Buyout", function () {
     // ---------------------Buyout Initiated--------------------------//
     await increaseTime(3, "days");
     const _buyAmount = ethers.utils.parseEther("2");      
-    await expect(this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount })).to.be.revertedWith("NFT has been bought");
+    await expect(this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount })).to.be.revertedWith("NibblVault: Bought Out");
   });
 
 
@@ -264,7 +262,7 @@ describe("Buyout", function () {
     // ---------------------Buyout Initiated--------------------------//
     await increaseTime(3, "days");
     const _sellAmount = initialTokenSupply.div(5);
-    await expect(this.tokenVault.connect(this.curator).sell(_sellAmount, 0, this.addr1.address)).to.be.revertedWith("NFT has been bought");
+    await expect(this.tokenVault.connect(this.curator).sell(_sellAmount, 0, this.addr1.address)).to.be.revertedWith("NibblVault: Bought Out");
   });
 
   it("Shouldn't be able to initiate buyout with buyout already going on", async function () {
@@ -450,9 +448,128 @@ describe("Buyout", function () {
     // ---------------------Buyout Finished--------------------------//
     //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
 
-    await this.tokenVault.connect(this.buyer1).withdrawNFT(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address);
+    await this.tokenVault.connect(this.buyer1).withdrawERC721(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address);
     expect(await this.nft.ownerOf(0)).to.be.equal(this.addr1.address);
   });
-});
 
-// unlockNFT(address _to)
+  it("Winner should be able to withdraw multiple the locked NFT", async function () {
+    blockTime = await this.testTWAV.getCurrentBlockTime();
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    increaseTime(3, "days");
+    // ---------------------Buyout Finished--------------------------//
+    this.nft.mint(this.tokenVault.address, 1);
+    this.nft.mint(this.tokenVault.address, 2);
+    let _assetAddresses = [], _assetIDs = [];
+    for (let i = 0; i < 3; i++) {
+      _assetAddresses.push(this.nft.address);
+      _assetIDs.push(i);
+    }
+    await this.tokenVault.connect(this.buyer1).withdrawMultipleERC721(_assetAddresses, _assetIDs, this.addr1.address);
+    expect(await this.nft.ownerOf(0)).to.be.equal(this.addr1.address);
+    expect(await this.nft.ownerOf(1)).to.be.equal(this.addr1.address);
+    expect(await this.nft.ownerOf(2)).to.be.equal(this.addr1.address);
+  });
+
+  it("Winner should be able to withdraw locked ERC20s", async function () {
+    blockTime = await this.testTWAV.getCurrentBlockTime();
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+
+    this.ERC20Token = await ethers.getContractFactory("ERC20Token");
+    this.erc20 = await this.ERC20Token.deploy();
+    await this.erc20.deployed();
+    await this.erc20.mint(this.tokenVault.address, amount);
+
+    increaseTime(3, "days");
+    // ---------------------Buyout Finished--------------------------//
+
+    await this.tokenVault.connect(this.buyer1).withdrawERC20(this.erc20.address, this.addr1.address);
+    expect(await this.erc20.balanceOf(this.addr1.address)).to.be.equal(amount);
+   });
+
+  
+  it("Winner should be able to withdraw locked ERC20s", async function () {
+    blockTime = await this.testTWAV.getCurrentBlockTime();
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+
+    this.ERC20Token = await ethers.getContractFactory("ERC20Token");
+    this.erc20a = await this.ERC20Token.deploy();
+    await this.erc20a.deployed();
+    await this.erc20a.mint(this.tokenVault.address, amount);
+    
+    this.erc20b = await this.ERC20Token.deploy();
+    await this.erc20b.deployed();
+    await this.erc20b.mint(this.tokenVault.address, amount);
+    
+    increaseTime(3, "days");
+    // ---------------------Buyout Finished--------------------------//
+    let _assetAddresses = [];
+    _assetAddresses.push(this.erc20a.address, this.erc20b.address);
+    
+    await this.tokenVault.connect(this.buyer1).withdrawMultipleERC20(_assetAddresses, this.addr1.address);
+    expect(await this.erc20a.balanceOf(this.addr1.address)).to.be.equal(amount);
+    expect(await this.erc20b.balanceOf(this.addr1.address)).to.be.equal(amount);
+  });
+
+
+  it("Winner should be able to withdraw locked ERC1155s", async function () {
+    blockTime = await this.testTWAV.getCurrentBlockTime();
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+
+    this.ERC1155Token = await ethers.getContractFactory("ERC1155Token");
+    this.erc1155 = await this.ERC1155Token.deploy();
+    await this.erc1155.deployed();
+    await this.erc1155.mint(this.tokenVault.address, 0, amount);
+    
+    increaseTime(3, "days");
+    // ---------------------Buyout Finished--------------------------//
+    // let _assetAddresses = [];
+    // _assetAddresses.push(this.erc20a.address, this.erc20b.address);
+    
+    await this.tokenVault.connect(this.buyer1).withdrawERC1155(this.erc1155.address, 0, this.addr1.address);
+    expect(await this.erc1155.balanceOf(this.addr1.address, 0)).to.be.equal(amount);
+  });
+
+    it("Winner should be able to withdraw multiple locked ERC1155s", async function () {
+    blockTime = await this.testTWAV.getCurrentBlockTime();
+    blockTime = blockTime.add(THREE_MINS);
+    await setTime(blockTime.toNumber());
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+
+    this.ERC1155Token = await ethers.getContractFactory("ERC1155Token");
+    this.erc1155 = await this.ERC1155Token.deploy();
+    await this.erc1155.deployed();
+    await this.erc1155.mint(this.tokenVault.address, 0, amount);
+    await this.erc1155.mint(this.tokenVault.address, 1, amount);
+    
+    increaseTime(3, "days");
+    // ---------------------Buyout Finished--------------------------//
+    let _assetAddresses = [], _assetIDs = [0, 1];
+    _assetAddresses.push(this.erc1155.address, this.erc1155.address);
+    
+    await this.tokenVault.connect(this.buyer1).withdrawMultipleERC1155(_assetAddresses, _assetIDs, this.addr1.address);
+    expect(await this.erc1155.balanceOf(this.addr1.address, 0)).to.be.equal(amount);
+    expect(await this.erc1155.balanceOf(this.addr1.address, 1)).to.be.equal(amount);
+  });
+});

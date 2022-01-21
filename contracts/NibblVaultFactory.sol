@@ -5,7 +5,6 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-
 import { Ownable } from "./Utilites/Ownable.sol";
 import { NibblVault } from "./NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -68,7 +67,7 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         uint256 _initialSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public payable whenNotPaused returns(Proxy _proxyVault) {
+    ) external payable whenNotPaused returns(Proxy _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
@@ -87,7 +86,7 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         uint256 _initialSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public payable whenNotPaused returns(Proxy _proxyVault, Proxy _proxyBasket ) {
+    ) external payable whenNotPaused returns(Proxy _proxyVault, Proxy _proxyBasket ) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
         _proxyBasket = new Proxy(basketImplementation);
         Basket _basket = Basket(payable(_proxyBasket));
@@ -103,56 +102,60 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
     }
     
-    function withdrawAdminFee() public {
+    function withdrawAdminFee() external {
         (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");
         require(_success);
     }
 
-    function proposeNewAdminFeeAddress(address _newFeeAddress) public onlyOwner{
+    function proposeNewAdminFeeAddress(address _newFeeAddress) external onlyOwner{
         pendingFeeTo = _newFeeAddress;
         feeToUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
-    function updateNewAdminFeeAddress() public {
+    function updateNewAdminFeeAddress() external {
         require(block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeTo = pendingFeeTo;
     }
 
-    function getData() public view returns(bool, uint256)  {
-        return (paused(), feeAdmin);
-    }
-
     /// @notice Function to update admin fee percentage
     /// @param _newFee new fee percentage for admin
-    function proposeNewAdminFee(uint256 _newFee) public onlyOwner{
+    function proposeNewAdminFee(uint256 _newFee) external onlyOwner{
         require(_newFee <= MAX_ADMIN_FEE, "NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
         pendingFeeAdmin = _newFee;
         feeAdminUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
-    function updateNewAdminFee() public {
+    function updateNewAdminFee() external {
         require(block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeAdmin = pendingFeeAdmin;
     }
 
-    function proposeNewVaultImplementation(address _newVaultImplementation) public onlyOwner{
+    function proposeNewVaultImplementation(address _newVaultImplementation) external onlyOwner{
         pendingVaultImplementation = _newVaultImplementation;
         vaultUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
-    function updateVaultImplementation() public {
+    function updateVaultImplementation() external {
         require(block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         vaultImplementation = pendingVaultImplementation;
     }
     
-    function proposeNewBasketImplementation(address _basketImplementation) public onlyOwner{
+    function proposeNewBasketImplementation(address _basketImplementation) external onlyOwner{
         pendingBasketImplementation = _basketImplementation;
         basketUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
-    function updateBasketImplementation() public {
+    function updateBasketImplementation() external {
         require(block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         basketImplementation = pendingBasketImplementation;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unPause() external onlyOwner {
+        _unpause();
     }
 
     receive() payable external {

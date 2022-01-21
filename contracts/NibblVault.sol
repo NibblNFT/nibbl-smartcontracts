@@ -8,16 +8,15 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMathUpgradeable } from  "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-// import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-// import { IERC1155Receiver } from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 
 import "hardhat/console.sol";
 
 
-contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
-    // scale = 10^6
+contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGuard {
+    // scale = 10^9
     uint256 private constant SCALE = 1_000_000_000;
 
     // primary reserve ratio = 50%
@@ -83,8 +82,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     uint256 public totalUnsettledBids;
 
-    bool private entered = false;
-
     mapping(address => uint256) public unsettledBids;
 
     enum Status {initialised, buyout}
@@ -97,21 +94,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     modifier notBoughtOut() {
         //For the case when buyoutTime has ended and buyout has not been rejected
-        require(buyoutEndTime > block.timestamp || buyoutEndTime == 0,'NFT has been bought');
+        require(buyoutEndTime > block.timestamp || buyoutEndTime == 0,'NibblVault: Bought Out');
         _;
     }
 
     modifier boughtOut() {
-        require(status == Status.buyout, "NFT has not been bought");
+        require(status == Status.buyout, "NibblVault: Not Bought Out");
         require(buyoutEndTime <= block.timestamp);
         _;
-    }
-
-    modifier lock() {
-        require(!entered, 'NibblVault: Locked');
-        entered = true;
-        _;
-        entered = false;
     }
 
     modifier notPaused() {
@@ -143,7 +133,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         uint256 _initialTokenSupply,
         uint256 _initialTokenPrice,
         uint256 _curatorFee
-    ) public initializer payable {
+    ) external initializer payable {
         require(_curatorFee <= MAX_CURATOR_FEE(),"NibblVault: Curator fee should not be more than 1 %");
         __ERC20_init(_tokenName, _tokenSymbol);
         curatorFee = _curatorFee;
@@ -249,7 +239,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     ///      and with the amount left, we buy by calling _buyPrimaryCurve
     /// @param _minAmtOut Amount in wei deposited for buying
     /// @param _to Address to send the bought tokens to
-    function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut lock notPaused {
+    function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut nonReentrant notPaused {
         require(_to != address(0), " NibblVault: Zero address");
         //Make update on the first tx of the block
         if (status == Status.buyout) {
@@ -306,7 +296,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @param _amtIn Number of tokens to be sold
     /// @param _minAmtOut Amount in wei to be sent after a successful sell
     /// @param _to Address to send the reserve token to
-    function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external notBoughtOut lock notPaused{
+    function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external notBoughtOut nonReentrant notPaused{
         require(_to != address(0), "NibblVault: Invalid address");
         //Make update on the first tx of the block
         if (status == Status.buyout) {
@@ -342,7 +332,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// This ensures that the original bidder doesn't need to support the whole valuation and liquidity in reserve can be used as well.
     /// Buyout is initiated only when total bid amount is more than current curve valuation
     /// Buyout is triggered at current valuation and any extra amount deposited by bidder is refunded
-    function initiateBuyout() public payable notPaused {
+    function initiateBuyout() external payable notPaused {
         require(status == Status.initialised, "NibblVault: Only when initialised");
         require(unsettledBids[msg.sender] == 0, "NibblVault: Unsettled Bids");
         uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
@@ -384,7 +374,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     }
 
     /// @notice Function to allow withdrawal of unsuccessful buyout bids
-    function withdrawUnsettledBids(address payable _to) public {
+    function withdrawUnsettledBids(address payable _to) external {
         uint _amount = unsettledBids[msg.sender];
         delete unsettledBids[msg.sender];
         totalUnsettledBids -= _amount;
@@ -395,7 +385,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @notice Function for tokenholders to redeem their tokens for reserve token in case of buyout
     /// @dev The redeemed reserve token are in proportion to the token supply someone owns
     ///      The amount available for redemption is contract balance - (value of total unsettled bid and curator fees accrued in contract)
-    function redeem(address payable _to) public boughtOut returns(uint256 _amtOut){
+    function redeem(address payable _to) external boughtOut returns(uint256 _amtOut){
         uint256 _balance = balanceOf(msg.sender);
         _amtOut = ((address(this).balance - feeAccruedCurator - totalUnsettledBids) * _balance) / totalSupply();
         _burn(msg.sender, _balance);
@@ -403,7 +393,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         require(_success);
     }
 
-    function unlockFundsWhenPaused(address payable _to) public paused returns(uint256 _amtOut){
+    function unlockFundsWhenPaused(address payable _to) external paused returns(uint256 _amtOut){
         uint256 _balance = balanceOf(msg.sender);
         _amtOut = ((address(this).balance - feeAccruedCurator - totalUnsettledBids) * _balance) / totalSupply();
         _burn(msg.sender, _balance);
@@ -413,7 +403,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     /// @notice Function to allow curator to redeem accumulated curator fee.
     /// @param _to the address where curator fee will be sent
-    function redeemCuratorFee(address payable _to) public lock {
+    function redeemCuratorFee(address payable _to) external nonReentrant {
         require(msg.sender==curator,"NibblVault: Only Curator can redeem");
         (bool _success,) = _to.call{value: feeAccruedCurator}("");
         feeAccruedCurator = 0;
@@ -422,7 +412,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     /// @notice Function to update curator fee
     /// @param _newFee New curator fee 
-    function updateCuratorFee(uint256 _newFee) public {
+    function updateCuratorFee(uint256 _newFee) external {
         require(msg.sender == curator,"NibblVault: Only Curator");
         require(_newFee <= MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
         curatorFee = _newFee;
@@ -431,7 +421,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     /// @notice Function for allowing bidder to unlock his NFT in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
-    function withdrawNFT(address _assetAddress, uint256 _assetID, address _to) external boughtOut {
+    function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external boughtOut {
         require(msg.sender == bidder,"NibblVault: Only winner");
         IERC721(_assetAddress).transferFrom(address(this), _to, _assetID);
     }
@@ -472,7 +462,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     /// @notice Function for allowing bidder to unlock his NFT in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
-    function withdrawNFTWhenPaused(address _assetAddress, uint256 _assetID, address _to) external paused {
+    function withdrawERC721WhenPaused(address _assetAddress, uint256 _assetID, address _to) external paused {
         require(msg.sender == NibblVaultFactory(factory).owner(),"NibblVault: Only Owner");
         IERC721(_assetAddress).transferFrom(address(this), _to, _assetID);
     }
