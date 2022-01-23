@@ -10,52 +10,28 @@ import { NibblVault } from "./NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Proxy } from "./Proxy/Proxy.sol";
 import { Basket } from "./Basket.sol";
+import { NibblVaultFactoryData } from "./Utilities/NibblVaultFactoryData.sol";
+import { AccessControlMechanism } from "./Utilities/AccessControlMechanism.sol";
 
-import "hardhat/console.sol";
-
-contract NibblVaultFactoryData {
-
-    uint public UPDATE_TIME = 2 days;
-    uint256 public constant MAX_ADMIN_FEE = 2_000; //.2%
-
-    address public vaultImplementation;
-    address public pendingVaultImplementation;
-    uint public vaultUpdateTime;
-
-    address public basketImplementation;
-    address public pendingBasketImplementation;
-    uint public basketUpdateTime;
-    
-    address public feeTo;
-    address public pendingFeeTo;
-    uint public feeToUpdateTime;
-
-    uint256 public feeAdmin = 2_000;
-    uint256 public pendingFeeAdmin;
-    uint256 public feeAdminUpdateTime;
-}
-
-contract NibblVaultFactory is AccessControl, Pausable, NibblVaultFactoryData {
+contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactoryData {
 
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9;
-    bytes32 public constant FEE_ROLE = keccak256("FEE_ROLE");
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant IMPLEMENTER_ROLE = keccak256("IMPLEMENTATER_ROLE");
 
     Proxy[] public nibbledTokens;
 
-    event Fractionalise(address indexed assetAddress, uint256 indexed assetTokenID, address indexed proxyVault);
-    event FractionaliseBasket(address indexed basketAddress, address indexed proxyVault);
+    event Fractionalise(address assetAddress, uint256 assetTokenID, address proxyVault);
+    event FractionaliseBasket(address basketAddress, address proxyVault);
 
     constructor (address _vaultImplementation, address _basketImplementation, address _feeTo, address _admin) {
         vaultImplementation = _vaultImplementation;
         basketImplementation = _basketImplementation;        
         feeTo = _feeTo;
-        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
-        _setRoleAdmin(FEE_ROLE, DEFAULT_ADMIN_ROLE);
-        _setRoleAdmin(PAUSER_ROLE, DEFAULT_ADMIN_ROLE);
-        _setRoleAdmin(IMPLEMENTER_ROLE, DEFAULT_ADMIN_ROLE);
+        bytes32 _defaultAdminRole = DEFAULT_ADMIN_ROLE;
+        _grantRole(_defaultAdminRole, _admin);
+        _setRoleAdmin(_defaultAdminRole, _defaultAdminRole);
+        _setRoleAdmin(FEE_ROLE, _defaultAdminRole);
+        _setRoleAdmin(PAUSER_ROLE, _defaultAdminRole);
+        _setRoleAdmin(IMPLEMENTER_ROLE, _defaultAdminRole);
     }
 
     /// @notice the function to mint a new vault
@@ -77,9 +53,9 @@ contract NibblVaultFactory is AccessControl, Pausable, NibblVaultFactoryData {
     ) external payable whenNotPaused returns(Proxy _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         _proxyVault = new Proxy(vaultImplementation);
-        NibblVault _vault = NibblVault(address(_proxyVault));
-        _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
-        IERC721(_assetAddress).transferFrom(msg.sender, address(_vault), _assetTokenID);
+        NibblVault _vault = NibblVault(payable(_proxyVault));
+        _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
+        IERC721(_assetAddress).safeTransferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
         emit Fractionalise(_assetAddress, _assetTokenID, address(_proxyVault));
     }
@@ -102,9 +78,9 @@ contract NibblVaultFactory is AccessControl, Pausable, NibblVaultFactoryData {
             IERC721(_assetAddressesERC721[index]).transferFrom(msg.sender, address(_proxyBasket), _assetTokenIDsERC721[index]);
         }
         _proxyVault = new Proxy(vaultImplementation);
-        NibblVault _vault = NibblVault(address(_proxyVault));
-        _vault.initialize{value: msg.value}(_name, _symbol, address(_proxyBasket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
-        IERC721(address(_proxyBasket)).transferFrom(address(this), address(_vault), 0);
+        NibblVault _vault = NibblVault(payable(_proxyVault));
+        _vault.initialise{value: msg.value}(_name, _symbol, address(_proxyBasket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
+        IERC721(address(_proxyBasket)).safeTransferFrom(address(this), address(_vault), 0);
         nibbledTokens.push(_proxyVault);
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
     }

@@ -4,7 +4,6 @@ pragma solidity 0.8.4;
 
 import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "hardhat/console.sol";
 /**
 * @title Bancor formula by Bancor
 *
