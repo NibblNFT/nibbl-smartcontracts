@@ -290,6 +290,26 @@ describe("NibblVaultFactory", function () {
     }
     await expect(this.tokenVaultFactory.connect(this.curator).createMultiVaultERC721(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply, 10**14, MAX_FEE_CURATOR.mul(ethers.constants.Two), {value: ethers.utils.parseEther("10")})).to.be.revertedWith("NibblVault: Invalid fee");
   });
+
+
+  it("should allow default admin to be able to change RoleAdmin", async function () {
+    await this.tokenVaultFactory.connect(this.admin).setRoleAdmin(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), await this.tokenVaultFactory.PAUSER_ROLE());
+    expect(await this.tokenVaultFactory.getRoleAdmin(await this.tokenVaultFactory.IMPLEMENTER_ROLE())).to.equal(await this.tokenVaultFactory.PAUSER_ROLE());    
+  });
+
+  it("should allow RoleAdmin to grantRole", async function () {
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.addr1.address);
+    expect(await this.tokenVaultFactory.hasRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.addr1.address)).to.equal(true);    
+  });
+
+  it("should allow RoleAdmin to revokeRole", async function () {
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.addr1.address);
+    expect(await this.tokenVaultFactory.hasRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.addr1.address)).to.equal(true);    
+    //
+    await this.tokenVaultFactory.connect(this.admin).revokeRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.addr1.address);
+    expect(await this.tokenVaultFactory.hasRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.addr1.address)).to.equal(false);    
+    
+  });
   
 
 
