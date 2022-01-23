@@ -16,7 +16,7 @@ import "hardhat/console.sol";
 contract NibblVaultFactoryData {
 
     uint public UPDATE_TIME = 2 days;
-    uint256 public constant MAX_ADMIN_FEE = 2_000_000; //.2%
+    uint256 public constant MAX_ADMIN_FEE = 2_000; //.2%
 
     address public vaultImplementation;
     address public pendingVaultImplementation;
@@ -30,7 +30,7 @@ contract NibblVaultFactoryData {
     address public pendingFeeTo;
     uint public feeToUpdateTime;
 
-    uint256 public feeAdmin = 2_000_000;
+    uint256 public feeAdmin = 2_000;
     uint256 public pendingFeeAdmin;
     uint256 public feeAdminUpdateTime;
 }

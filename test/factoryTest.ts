@@ -11,17 +11,18 @@ import { TWAV } from "./testHelpers/twavHelper";
 describe("NibblVaultFactory", function () {
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
-  const SCALE: BigNumber = BigNumber.from(1e9);
+  const SCALE: BigNumber = BigNumber.from(1e6);
   const ONE = BigNumber.from(1);
   const decimal = BigNumber.from((1e18).toString());
-  const FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
-  const FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
-  const FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
-  const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000_000);
-  const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000_000);
-  const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000_000);
-  const rejectionPremium: BigNumber = BigNumber.from(100_000_000);
-  const primaryReserveRatio: BigNumber = BigNumber.from(500_000_000);
+  const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
+  const FEE_CURATOR: BigNumber = BigNumber.from(4_000);
+  const FEE_CURVE: BigNumber = BigNumber.from(4_000);
+  const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000);
+  const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000);
+  const MAX_FEE_CURVE: BigNumber = BigNumber.from(4_000);
+  
+  const rejectionPremium: BigNumber = BigNumber.from(100_000);
+  const primaryReserveRatio: BigNumber = BigNumber.from(500_000);
   const initialTokenPrice: BigNumber = BigNumber.from((1e14).toString()); //10 ^-4 eth
   const initialValuation: BigNumber = BigNumber.from((1e20).toString()); //100 eth
   const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(decimal);
@@ -121,7 +122,7 @@ describe("NibblVaultFactory", function () {
   it("should propose new admin fee", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    const _newFee = 1_000_000;
+    const _newFee = 1_000;
     await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee);
     const pendingFeeAdmin = await this.tokenVaultFactory.pendingFeeAdmin();
     const feeAdminUpdateTime = await this.tokenVaultFactory.feeAdminUpdateTime();
@@ -130,14 +131,14 @@ describe("NibblVaultFactory", function () {
   });
 
   it("should fail to propose new admin fee is fee greater than MAX_ADMIN_FEE", async function () {
-    const _newFee = 10_000_000;
+    const _newFee = 10_000;
     await expect(this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee)).to.be.revertedWith("NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
   });
 
   it("should update new admin fee", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    const _newFee = 1_000_000;
+    const _newFee = 1_000;
     await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee);
     const pendingFeeAdmin = await this.tokenVaultFactory.pendingFeeAdmin();
     const feeAdminUpdateTime = await this.tokenVaultFactory.feeAdminUpdateTime();
@@ -153,7 +154,7 @@ describe("NibblVaultFactory", function () {
   it("should fail to update feeTo address if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    const _newFee = 1_000_000;
+    const _newFee = 1_000;
     await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee);
     const pendingFeeAdmin = await this.tokenVaultFactory.pendingFeeAdmin();
     const feeAdminUpdateTime = await this.tokenVaultFactory.feeAdminUpdateTime();

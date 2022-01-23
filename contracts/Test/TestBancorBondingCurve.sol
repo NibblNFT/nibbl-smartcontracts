@@ -18,7 +18,7 @@ contract TestBancorBondingCurve {
     string public version = '0.3';
 
     uint256 private constant ONE = 1;
-    uint32 private constant MAX_WEIGHT = 1_000_000_000;
+    uint32 private constant MAX_WEIGHT = 1_000_000;
     uint8 private constant MIN_PRECISION = 32;
     uint8 private constant MAX_PRECISION = 127;
 

@@ -16,19 +16,19 @@ import "hardhat/console.sol";
 
 
 contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGuard {
-    // scale = 10^9
-    uint256 private constant SCALE = 1_000_000_000;
+    // scale = 10^6
+    uint256 private constant SCALE = 1_000_000;
 
     // primary reserve ratio = 50%
-    uint32 private constant primaryReserveRatio = 500_000_000;
+    uint32 private constant primaryReserveRatio = 500_000;
     
     // premium above the buyout bid that the bonding curve valuation needs to go to for buyout to get rejected
-    uint256 private constant REJECTION_PREMIUM = 100_000_000;
+    uint256 private constant REJECTION_PREMIUM = 100_000;
 
     // time till buyout rejection can happen, otherwise buyout succeeds
     uint256 private constant BUYOUT_DURATION = 3 days; 
 
-    uint256 private constant CURVE_FEE_AMT = 4_000_000; 
+    uint256 private constant CURVE_FEE_AMT = 4_000; 
 
     uint32 public secondaryReserveRatio;
 
@@ -150,7 +150,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
         secondaryReserveRatio = _secondaryReserveRatio;
         require(_curatorFee <= MAX_CURATOR_FEE(), "NibblVault: Invalid fee");
         require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
-        require(_secondaryReserveRatio >= 1_000_000, "NibblVault: SecondaryReserveRatio too low");
+        require(_secondaryReserveRatio >= 1_000, "NibblVault: SecondaryReserveRatio too low");
         _mint(_curator, _initialTokenSupply);
     }
 
@@ -194,9 +194,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
     /// @return Maximum curator fee possible
     function MAX_CURATOR_FEE() view private returns (uint256) {
         if (secondaryReserveRatio < primaryReserveRatio) {
-            return 5_000_000;
+            return 5_000;
         } else {
-            return 10_000_000;
+            return 10_000;
         }            
     }
 
