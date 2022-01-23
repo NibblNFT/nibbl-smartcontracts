@@ -276,7 +276,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit: BigNumber = currentValuation.sub(primaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).sub(initialSecondaryReserveBalance);
     await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    await expect(this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit })).to.be.revertedWith("NibblVault: Only when initialised");
+    await expect(this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit })).to.be.revertedWith("NibblVault: Status!=Initialised");
   });
 
   it("User shouldn't be able to initiate buyout with unsettled bids.", async function () {
@@ -287,7 +287,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit: BigNumber = currentValuation.sub(primaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).sub(initialSecondaryReserveBalance);
     await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-
+    
     for (let index = 0; true; index++) {
       blockTime = blockTime.add(THREE_MINS);      
       await setTime(blockTime.toNumber());        

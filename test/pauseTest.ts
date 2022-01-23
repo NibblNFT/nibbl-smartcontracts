@@ -5,7 +5,7 @@ import { mintTokens, burnTokens } from "./testHelpers/singleCurveTokenVaultHelpe
 import { setTime , increaseTime } from "./testHelpers/time";
 import { TWAV } from "./testHelpers/twavHelper";
 
-describe("Pause", function () {
+describe("Access control & Pause", function () {
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
   const SCALE: BigNumber = BigNumber.from(1e6);
@@ -74,7 +74,22 @@ describe("Pause", function () {
     this.twav = new TWAV();
   });
 
-    it("Admin should be able to withdraw the locked NFT when paused", async function () {
+
+    it("Admin should be able to pause", async function () {
+      await this.tokenVaultFactory.connect(this.pauserRole).pause();
+      expect(await this.tokenVaultFactory.paused()).to.be.equal(true);
+    });
+  
+    it("Admin should be able to unpause", async function () {
+      await this.tokenVaultFactory.connect(this.pauserRole).pause();
+      expect(await this.tokenVaultFactory.paused()).to.be.equal(true);
+      await this.tokenVaultFactory.connect(this.pauserRole).unPause();
+      expect(await this.tokenVaultFactory.paused()).to.be.equal(false);
+    
+    });
+
+
+  it("Admin should be able to withdraw the locked NFT when paused", async function () {
       await this.tokenVaultFactory.connect(this.pauserRole).pause();
       await this.tokenVault.connect(this.pauserRole).withdrawERC721WhenPaused(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address);
       expect(await this.nft.ownerOf(0)).to.be.equal(this.addr1.address);
@@ -93,7 +108,7 @@ describe("Pause", function () {
       expect(await this.erc20.balanceOf(this.addr1.address)).to.be.equal(amount);
     });
 
-    it("Winner should be able to withdraw locked ERC1155s", async function () {
+    it("Admin should be able to withdraw locked ERC1155s", async function () {
       const amount = 1000000;
       this.ERC1155Token = await ethers.getContractFactory("ERC1155Token");
       this.erc1155 = await this.ERC1155Token.deploy();
@@ -186,4 +201,22 @@ describe("Pause", function () {
     await this.tokenVaultFactory.connect(this.pauserRole).pause();
     await expect(this.tokenVault.connect(this.curator).sell(10, 0, this.buyer1.address)).to.be.revertedWith("NibblVault: Paused");; 
   });
+
+  it("should allow admit to be able to propose a role", async function () {
+    await this.tokenVaultFactory.connect(this.admin).proposeGrantRole(await this.tokenVaultFactory.FEE_ROLE(), this.buyer1.address);
+    expect(await this.tokenVaultFactory.pendingRoles(await this.tokenVaultFactory.FEE_ROLE(), this.buyer1.address)).to.be.true;
+  });
+  
+  it("should allow user to be able to claim a role", async function () {
+    await this.tokenVaultFactory.connect(this.admin).proposeGrantRole(await this.tokenVaultFactory.FEE_ROLE(), this.buyer1.address);
+    expect(await this.tokenVaultFactory.pendingRoles(await this.tokenVaultFactory.FEE_ROLE(), this.buyer1.address)).to.be.true;
+    await this.tokenVaultFactory.connect(this.buyer1).claimRole(await this.tokenVaultFactory.FEE_ROLE());
+    expect(await this.tokenVaultFactory.pendingRoles(await this.tokenVaultFactory.FEE_ROLE(), this.buyer1.address)).to.be.false;
+    expect(await this.tokenVaultFactory.hasRole(await this.tokenVaultFactory.FEE_ROLE(), this.buyer1.address)).to.be.true;
+  });
+  
+  it("should be reverted if user hasn't been proposed and tries to claim", async function () {
+    await expect(this.tokenVaultFactory.connect(this.buyer1).claimRole(await this.tokenVaultFactory.FEE_ROLE())).to.be.revertedWith("AccessControl: Role not pending");
+  });
+  
 });

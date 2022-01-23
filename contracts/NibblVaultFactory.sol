@@ -5,7 +5,7 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+// import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { NibblVault } from "./NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Proxy } from "./Proxy/Proxy.sol";
@@ -14,7 +14,6 @@ import { NibblVaultFactoryData } from "./Utilities/NibblVaultFactoryData.sol";
 import { AccessControlMechanism } from "./Utilities/AccessControlMechanism.sol";
 
 contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactoryData {
-
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9;
 
     Proxy[] public nibbledTokens;
@@ -22,16 +21,10 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     event Fractionalise(address assetAddress, uint256 assetTokenID, address proxyVault);
     event FractionaliseBasket(address basketAddress, address proxyVault);
 
-    constructor (address _vaultImplementation, address _basketImplementation, address _feeTo, address _admin) {
+    constructor (address _vaultImplementation, address _basketImplementation, address _feeTo, address _admin) AccessControlMechanism(_admin) {
         vaultImplementation = _vaultImplementation;
         basketImplementation = _basketImplementation;        
         feeTo = _feeTo;
-        bytes32 _defaultAdminRole = DEFAULT_ADMIN_ROLE;
-        _grantRole(_defaultAdminRole, _admin);
-        _setRoleAdmin(_defaultAdminRole, _defaultAdminRole);
-        _setRoleAdmin(FEE_ROLE, _defaultAdminRole);
-        _setRoleAdmin(PAUSER_ROLE, _defaultAdminRole);
-        _setRoleAdmin(IMPLEMENTER_ROLE, _defaultAdminRole);
     }
 
     /// @notice the function to mint a new vault
@@ -75,7 +68,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         Basket _basket = Basket(payable(_proxyBasket));
         _basket.initialise();
         for (uint256 index = 0; index < _assetAddressesERC721.length; index++) {
-            IERC721(_assetAddressesERC721[index]).transferFrom(msg.sender, address(_proxyBasket), _assetTokenIDsERC721[index]);
+            IERC721(_assetAddressesERC721[index]).safeTransferFrom(msg.sender, address(_proxyBasket), _assetTokenIDsERC721[index]);
         }
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(payable(_proxyVault));
@@ -84,17 +77,13 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         nibbledTokens.push(_proxyVault);
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
     }
-    
-    function setRoleAdmin(bytes32 role, bytes32 adminRole) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        _setRoleAdmin(role, adminRole);
-    }
-
 
     function withdrawAdminFee() external {
         (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");
         require(_success);
     }
+
+    // Cancellation functions aren't required as we can call propose function again with different parameters
 
     function proposeNewAdminFeeAddress(address _newFeeAddress) external onlyRole(FEE_ROLE) {
         pendingFeeTo = _newFeeAddress;
