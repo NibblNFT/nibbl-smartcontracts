@@ -415,8 +415,7 @@ describe("Buyout", function () {
     balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
     curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
     _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
-    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount }); 
-        
+    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount });
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
     const buyoutBidDeposit = BigNumber.from("168880000000000000000");
@@ -504,12 +503,10 @@ describe("Buyout", function () {
     await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
     const amount = 1000000;    
-
     this.ERC20Token = await ethers.getContractFactory("ERC20Token");
     this.erc20a = await this.ERC20Token.deploy();
     await this.erc20a.deployed();
     await this.erc20a.mint(this.tokenVault.address, amount);
-    
     this.erc20b = await this.ERC20Token.deploy();
     await this.erc20b.deployed();
     await this.erc20b.mint(this.tokenVault.address, amount);

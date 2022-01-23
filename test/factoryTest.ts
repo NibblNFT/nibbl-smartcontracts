@@ -129,6 +129,11 @@ describe("NibblVaultFactory", function () {
     expect(feeAdminUpdateTime).to.be.equal(blockTime.add(TWO_DAYS));
   });
 
+  it("should fail to propose new admin fee is fee greater than MAX_ADMIN_FEE", async function () {
+    const _newFee = 10_000_000;
+    await expect(this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee)).to.be.revertedWith("NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
+  });
+
   it("should update new admin fee", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
@@ -144,7 +149,6 @@ describe("NibblVaultFactory", function () {
     await this.tokenVaultFactory.updateNewAdminFee();
     expect(await this.tokenVaultFactory.feeAdmin()).to.equal(_newFee);
   });
-
 
   it("should fail to update feeTo address if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
@@ -182,8 +186,6 @@ describe("NibblVaultFactory", function () {
     expect(await this.tokenVaultFactory.vaultImplementation()).to.equal(this.addr1.address);
   });
 
-
-
   it("should fail to update nibblVaultImplementation if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
@@ -220,8 +222,6 @@ describe("NibblVaultFactory", function () {
     expect(await this.tokenVaultFactory.basketImplementation()).to.equal(this.addr1.address);
   });
 
-
-
   it("should fail to update basketImplementation if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
@@ -242,4 +242,44 @@ describe("NibblVaultFactory", function () {
     const _finalBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
     expect(_initialBalanceFactory).to.be.equal(_finalBalanceFactory.add(_feeAmountAdmin));
   });
+
+  it("should fail to create a vault if initial balance is too low", async function () {
+    await expect(this.tokenVaultFactory.connect(this.curator).createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR, { value: 0 })).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");
+    let _erc721ArrayAddress: string[] = [];
+    let _erc721ArrayTokenIDs: number[] = [];
+    for (let index = 1; index < 10; index++) {
+        await this.nft.mint(this.curator.address, index);
+        _erc721ArrayAddress.push(this.nft.address);
+        _erc721ArrayTokenIDs.push(index);
+    }
+    for (let index = 1; index < 10; index++) {
+        await this.nft.approve(this.tokenVaultFactory.address, index);
+    }
+    await expect(this.tokenVaultFactory.createMultiVaultERC721(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply, 10**14, MAX_FEE_CURATOR, {value: 0})).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");
+  });
+
+
+
+
+  it("should fail to create a vault if curator fee is too high", async function () {
+    this.nft.mint(this.curator.address, 11);
+
+    this.nft.approve(this.tokenVaultFactory.address, 11);
+
+    await expect(this.tokenVaultFactory.connect(this.curator).createVault(this.nft.address, 1, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR.mul(ethers.constants.Two), { value: ethers.utils.parseEther("10") })).to.be.revertedWith("NibblVault: Invalid fee");
+    let _erc721ArrayAddress: string[] = [];
+    let _erc721ArrayTokenIDs: number[] = [];
+    for (let index = 12; index < 15; index++) {
+        await this.nft.mint(this.curator.address, index);
+        _erc721ArrayAddress.push(this.nft.address);
+        _erc721ArrayTokenIDs.push(index);
+    }
+    for (let index = 12; index < 15; index++) {
+        await this.nft.approve(this.tokenVaultFactory.address, index);
+    }
+    await expect(this.tokenVaultFactory.connect(this.curator).createMultiVaultERC721(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply, 10**14, MAX_FEE_CURATOR.mul(ethers.constants.Two), {value: ethers.utils.parseEther("10")})).to.be.revertedWith("NibblVault: Invalid fee");
+  });
+  
+
+
 });

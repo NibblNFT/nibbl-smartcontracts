@@ -68,7 +68,7 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         uint256 _initialTokenPrice,
         uint256 _curatorFee
     ) external payable whenNotPaused returns(Proxy _proxyVault) {
-        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
+        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(address(_proxyVault));
         _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
@@ -87,7 +87,7 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         uint256 _initialTokenPrice,
         uint256 _curatorFee
     ) external payable whenNotPaused returns(Proxy _proxyVault, Proxy _proxyBasket ) {
-        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE);
+        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         _proxyBasket = new Proxy(basketImplementation);
         Basket _basket = Basket(payable(_proxyBasket));
         _basket.initialise();

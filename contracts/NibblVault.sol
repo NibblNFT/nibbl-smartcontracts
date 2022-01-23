@@ -99,8 +99,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
     }
 
     modifier boughtOut() {
-        require(status == Status.buyout, "NibblVault: Not Bought Out");
-        require(buyoutEndTime <= block.timestamp);
+        require(status == Status.buyout, "NibblVault: status != Status.buyout");
+        require(buyoutEndTime <= block.timestamp, "buyoutEndTime <= block.timestamp");
         _;
     }
 
@@ -134,7 +134,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
         uint256 _initialTokenPrice,
         uint256 _curatorFee
     ) external initializer payable {
-        require(_curatorFee <= MAX_CURATOR_FEE(),"NibblVault: Curator fee should not be more than 1 %");
         __ERC20_init(_tokenName, _tokenSymbol);
         curatorFee = _curatorFee;
         initialTokenPrice=_initialTokenPrice;
@@ -149,7 +148,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
         secondaryReserveBalance = msg.value;
         uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * initialTokenPrice));
         secondaryReserveRatio = _secondaryReserveRatio;
-        require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds"); //secResratio <= PrimaryResRatio
+        require(_curatorFee <= MAX_CURATOR_FEE(), "NibblVault: Invalid fee");
+        require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
         require(_secondaryReserveRatio >= 1_000_000, "NibblVault: SecondaryReserveRatio too low");
         _mint(_curator, _initialTokenSupply);
     }
@@ -189,16 +189,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
     function getCurrentValuation() private view returns(uint256){
             return totalSupply() < initialTokenSupply ? (secondaryReserveBalance * SCALE /secondaryReserveRatio) : ((primaryReserveBalance) * SCALE  / primaryReserveRatio);
     }
-
-    // /// @dev Curve fee is non-zero only till secondary reserve ratio has not become equal to primary reserve ratio
-    // /// @return Curator and curve fee respectively
-    // function getCurveFee() private view returns (uint256, uint256)/**curator, curve  */ {
-    //     if (secondaryReserveRatio < primaryReserveRatio) {
-    //         return (curatorFee, 4000);
-    //     } else {
-    //         return (curatorFee, 0);
-    //     }
-    // }
 
     /// @dev Possible maximum curator fee is less till the point secondary reserve ratio has not become equal to primary reserve ratio
     /// @return Maximum curator fee possible
@@ -482,7 +472,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
     function onERC721Received( address, address, uint256, bytes calldata ) external pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
-    
+
     function onERC1155Received(address, address, uint256, uint256, bytes memory) external pure returns (bytes4) {
         return this.onERC1155Received.selector;
     }

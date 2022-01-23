@@ -166,7 +166,7 @@ describe("Paused", function () {
       await expect(this.tokenVault.connect(this.admin).withdrawERC1155WhenPaused(this.erc1155.address, 0, this.addr1.address)).to.be.revertedWith("NibblVault: Not Paused");
     });
 
-    it("Users should not be able to withdraw funds when paused", async function () {
+    it("Users should be able to withdraw funds when paused", async function () {
        let balanceContract = initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
     blockTime = await this.testTWAV.getCurrentBlockTime();
     let _primaryReserveBalance = primaryReserveBalance;
@@ -195,7 +195,7 @@ describe("Paused", function () {
     curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
     _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
     await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount }); 
-        
+    
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
     
@@ -208,8 +208,21 @@ describe("Paused", function () {
     await this.tokenVault.connect(this.buyer1).unlockFundsWhenPaused(this.addr1.address); 
     expect(await this.admin.provider.getBalance(this.addr1.address)).to.be.equal(initialBalAddr1.add(returnAmt));
     expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.be.equal(ethers.constants.Zero);
-   });
+    });
+  
+  
+  it("Users shouldn't be able to buy when paused", async function () {
+    let _buyAmount = ethers.utils.parseEther("20");      
+    await this.tokenVaultFactory.connect(this.admin).pause();
+    await expect(this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount })).to.be.revertedWith("NibblVault: Paused");; 
+  });
 
+  it("Users shouldn't be able to sell when paused", async function () {
+    await this.tokenVaultFactory.connect(this.admin).pause();
+    await expect(this.tokenVault.connect(this.curator).sell(10, 0, this.buyer1.address)).to.be.revertedWith("NibblVault: Paused");; 
+  });
 
   
+  
+
 });
