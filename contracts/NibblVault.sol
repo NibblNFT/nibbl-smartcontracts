@@ -453,18 +453,18 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, ReentrancyGua
     /// @notice Function for allowing bidder to unlock his NFT in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC721WhenPaused(address _assetAddress, uint256 _assetID, address _to) external paused {
-        require(msg.sender == NibblVaultFactory(factory).owner(),"NibblVault: Only Owner");
+        require(NibblVaultFactory(factory).hasRole(NibblVaultFactory(factory).PAUSER_ROLE(), msg.sender),"NibblVault: Only Pauser");
         IERC721(_assetAddress).transferFrom(address(this), _to, _assetID);
     }
 
     /// @notice withdraw ERC20 in the case a held NFT earned ERC20
     function withdrawERC20WhenPaused(address _asset, address _to) external paused {
-        require(msg.sender == NibblVaultFactory(factory).owner(), "NibblVault: Only Owner");
+        require(NibblVaultFactory(factory).hasRole(NibblVaultFactory(factory).PAUSER_ROLE(), msg.sender),"NibblVault: Only Pauser");
         IERC20(_asset).transfer(_to, IERC20(_asset).balanceOf(address(this)));
     }
 
     function withdrawERC1155WhenPaused(address _asset, uint256 _assetID, address _to) external paused {
-        require(msg.sender == NibblVaultFactory(factory).owner(), "NibblVault: Only Owner");
+        require(NibblVaultFactory(factory).hasRole(NibblVaultFactory(factory).PAUSER_ROLE(), msg.sender),"NibblVault: Only Pauser");
         uint256 balance = IERC1155(_asset).balanceOf(address(this),  _assetID);
         IERC1155(_asset).safeTransferFrom(address(this), _to, _assetID, balance, "0");
     }

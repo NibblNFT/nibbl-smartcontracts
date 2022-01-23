@@ -34,20 +34,20 @@ describe("Lower Curve Buyout", function () {
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
 
   beforeEach(async function () {
-    const [curator, admin, buyer1, buyer2, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
     this.curator = curator;
     this.admin = admin;
     this.buyer1 = buyer1;
     this.buyer2 = buyer2;
     this.addr1 = addr1;
-    this.addr2 = addr2;
-    this.addr3 = addr3;
-    this.addr4 = addr4;
+    this.implementerRole = implementerRole;
+    this.feeRole = feeRole;
+    this.pauserRole = pauserRole;
 
     this.NFT = await ethers.getContractFactory("NFT");
     this.nft = await this.NFT.deploy();
     await this.nft.deployed();
-    this.nft.mint(this.curator.address, 0);
+    await this.nft.mint(this.curator.address, 0);
 
     this.NibblVault = await ethers.getContractFactory("NibblVault");
     this.nibblVaultImplementation = await this.NibblVault.deploy();
@@ -58,9 +58,13 @@ describe("Lower Curve Buyout", function () {
     await this.basketImplementation.deployed();
 
     this.NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
-    this.tokenVaultFactory = await this.NibblVaultFactory.deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address);
+    this.tokenVaultFactory = await this.NibblVaultFactory.connect(this.curator).deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address, this.admin.address); 
     await this.tokenVaultFactory.deployed();
-    this.nft.approve(this.tokenVaultFactory.address, 0);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.FEE_ROLE(), this.feeRole.address);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.PAUSER_ROLE(), this.pauserRole.address);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.implementerRole.address);
+    
+    await this.nft.approve(this.tokenVaultFactory.address, 0);
 
     this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
     this.TestTWAVContract = await ethers.getContractFactory("TestTwav");

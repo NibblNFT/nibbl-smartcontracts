@@ -5,7 +5,7 @@ import { mintTokens, burnTokens } from "./testHelpers/singleCurveTokenVaultHelpe
 import { setTime , increaseTime } from "./testHelpers/time";
 import { TWAV } from "./testHelpers/twavHelper";
 
-describe("Paused", function () {
+describe("Pause", function () {
   const tokenName = "NibblToken";
   const tokenSymbol = "NIBBL";
   const SCALE: BigNumber = BigNumber.from(1e6);
@@ -28,21 +28,21 @@ describe("Paused", function () {
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
 
   beforeEach(async function () {
-    const [curator, admin, buyer1, buyer2, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
     this.curator = curator;
     this.admin = admin;
     this.buyer1 = buyer1;
     this.buyer2 = buyer2;
     this.addr1 = addr1;
-    this.addr2 = addr2;
-    this.addr3 = addr3;
-    this.addr4 = addr4;
+    this.implementerRole = implementerRole;
+    this.feeRole = feeRole;
+    this.pauserRole = pauserRole;
 
     this.NFT = await ethers.getContractFactory("NFT");
     this.nft = await this.NFT.deploy();
     await this.nft.deployed();
     
-    this.nft.mint(this.curator.address, 0);
+    await this.nft.mint(this.curator.address, 0);
 
     this.NibblVault = await ethers.getContractFactory("NibblVault");
     this.nibblVaultImplementation = await this.NibblVault.deploy();
@@ -53,9 +53,13 @@ describe("Paused", function () {
     await this.basketImplementation.deployed();
 
     this.NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
-    this.tokenVaultFactory = await this.NibblVaultFactory.deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address);
+    this.tokenVaultFactory = await this.NibblVaultFactory.connect(this.curator).deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address, this.admin.address);
     await this.tokenVaultFactory.deployed();
-    this.nft.approve(this.tokenVaultFactory.address, 0);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.FEE_ROLE(), this.feeRole.address);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.PAUSER_ROLE(), this.pauserRole.address);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.implementerRole.address);
+    
+    await this.nft.approve(this.tokenVaultFactory.address, 0);
 
     this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
     this.TestTWAVContract = await ethers.getContractFactory("TestTwav");
@@ -68,50 +72,11 @@ describe("Paused", function () {
     const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
     this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     this.twav = new TWAV();
-  })
-    beforeEach(async function () {
-      const [curator, admin, buyer1, addr1, addr2, addr3, addr4] = await ethers.getSigners();
-      this.curator = curator;
-      this.admin = admin;
-      this.buyer1 = buyer1;
-      this.addr1 = addr1;
-      this.addr2 = addr2;
-      this.addr3 = addr3;
-      this.addr4 = addr4;
-
-      this.NFT = await ethers.getContractFactory("NFT");
-      this.nft = await this.NFT.deploy();
-      await this.nft.deployed();
-      this.nft.mint(this.curator.address, 0);
-
-      this.NibblVault = await ethers.getContractFactory("NibblVault");
-      this.nibblVaultImplementation = await this.NibblVault.deploy();
-      await this.nibblVaultImplementation.deployed();
-        
-      // Basket
-      this.Basket = await ethers.getContractFactory("Basket");
-      this.basketImplementation = await this.Basket.deploy();
-      await this.basketImplementation.deployed();
-
-      this.NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
-      this.tokenVaultFactory = await this.NibblVaultFactory.connect(this.admin).deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address);
-      await this.tokenVaultFactory.deployed();
-
-      this.nft.approve(this.tokenVaultFactory.address, 0);
-
-      this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
-      this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
-      await this.testBancorBondingCurve.deployed();
-        
-      await this.tokenVaultFactory.connect(this.curator).createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR, { value: initialSecondaryReserveBalance });
-      const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
-      this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
- 
-    });
+  });
 
     it("Admin should be able to withdraw the locked NFT when paused", async function () {
-      await this.tokenVaultFactory.connect(this.admin).pause();
-      await this.tokenVault.connect(this.admin).withdrawERC721WhenPaused(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address);
+      await this.tokenVaultFactory.connect(this.pauserRole).pause();
+      await this.tokenVault.connect(this.pauserRole).withdrawERC721WhenPaused(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address);
       expect(await this.nft.ownerOf(0)).to.be.equal(this.addr1.address);
     });
 
@@ -123,8 +88,8 @@ describe("Paused", function () {
       this.erc20 = await this.ERC20Token.deploy();
       await this.erc20.deployed();
       await this.erc20.mint(this.tokenVault.address, amount);
-      await this.tokenVaultFactory.connect(this.admin).pause();
-      await this.tokenVault.connect(this.admin).withdrawERC20WhenPaused(this.erc20.address, this.addr1.address);
+      await this.tokenVaultFactory.connect(this.pauserRole).pause();
+      await this.tokenVault.connect(this.pauserRole).withdrawERC20WhenPaused(this.erc20.address, this.addr1.address);
       expect(await this.erc20.balanceOf(this.addr1.address)).to.be.equal(amount);
     });
 
@@ -135,15 +100,15 @@ describe("Paused", function () {
       await this.erc1155.deployed();
       await this.erc1155.mint(this.tokenVault.address, 0, amount);
     
-      await this.tokenVaultFactory.connect(this.admin).pause();
+      await this.tokenVaultFactory.connect(this.pauserRole).pause();
     
-      await this.tokenVault.connect(this.admin).withdrawERC1155WhenPaused(this.erc1155.address, 0, this.addr1.address);
+      await this.tokenVault.connect(this.pauserRole).withdrawERC1155WhenPaused(this.erc1155.address, 0, this.addr1.address);
       expect(await this.erc1155.balanceOf(this.addr1.address, 0)).to.be.equal(amount);
     });
     // ---------------------------- //
   
     it("Admin shouldn't be able to withdraw the locked NFT when not paused", async function () {
-      await expect(this.tokenVault.connect(this.admin).withdrawERC721WhenPaused(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address)).to.be.revertedWith("NibblVault: Not Paused");
+      await expect(this.tokenVault.connect(this.pauserRole).withdrawERC721WhenPaused(await this.tokenVault.assetAddress(), await this.tokenVault.assetID(), this.addr1.address)).to.be.revertedWith("NibblVault: Not Paused");
     });
 
 
@@ -153,7 +118,7 @@ describe("Paused", function () {
       this.erc20 = await this.ERC20Token.deploy();
       await this.erc20.deployed();
       await this.erc20.mint(this.tokenVault.address, amount);
-      await expect(this.tokenVault.connect(this.admin).withdrawERC20WhenPaused(this.erc20.address, this.addr1.address)).to.be.revertedWith("NibblVault: Not Paused");
+      await expect(this.tokenVault.connect(this.pauserRole).withdrawERC20WhenPaused(this.erc20.address, this.addr1.address)).to.be.revertedWith("NibblVault: Not Paused");
       // 
     });
 
@@ -163,7 +128,7 @@ describe("Paused", function () {
       this.erc1155 = await this.ERC1155Token.deploy();
       await this.erc1155.deployed();
       await this.erc1155.mint(this.tokenVault.address, 0, amount);
-      await expect(this.tokenVault.connect(this.admin).withdrawERC1155WhenPaused(this.erc1155.address, 0, this.addr1.address)).to.be.revertedWith("NibblVault: Not Paused");
+      await expect(this.tokenVault.connect(this.pauserRole).withdrawERC1155WhenPaused(this.erc1155.address, 0, this.addr1.address)).to.be.revertedWith("NibblVault: Not Paused");
     });
 
     it("Users should be able to withdraw funds when paused", async function () {
@@ -199,7 +164,7 @@ describe("Paused", function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
     
-    await this.tokenVaultFactory.connect(this.admin).pause();
+    await this.tokenVaultFactory.connect(this.pauserRole).pause();
     
     const balanceBuyer = await this.tokenVault.balanceOf(this.buyer1.address);
     const totalSupply = await this.tokenVault.totalSupply();
@@ -213,16 +178,12 @@ describe("Paused", function () {
   
   it("Users shouldn't be able to buy when paused", async function () {
     let _buyAmount = ethers.utils.parseEther("20");      
-    await this.tokenVaultFactory.connect(this.admin).pause();
+    await this.tokenVaultFactory.connect(this.pauserRole).pause();
     await expect(this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount })).to.be.revertedWith("NibblVault: Paused");; 
   });
 
   it("Users shouldn't be able to sell when paused", async function () {
-    await this.tokenVaultFactory.connect(this.admin).pause();
+    await this.tokenVaultFactory.connect(this.pauserRole).pause();
     await expect(this.tokenVault.connect(this.curator).sell(10, 0, this.buyer1.address)).to.be.revertedWith("NibblVault: Paused");; 
   });
-
-  
-  
-
 });

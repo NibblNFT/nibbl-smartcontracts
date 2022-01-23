@@ -38,20 +38,25 @@ describe("NibblVaultFactory", function () {
   // (primaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (SCALE * 1e18);
 
   beforeEach(async function () {
-     const [curator, admin, buyer1, buyer2, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
     this.curator = curator;
     this.admin = admin;
     this.buyer1 = buyer1;
     this.buyer2 = buyer2;
     this.addr1 = addr1;
-    this.addr2 = addr2;
-    this.addr3 = addr3;
-    this.addr4 = addr4;
+    this.implementerRole = implementerRole;
+    this.feeRole = feeRole;
+    this.pauserRole = pauserRole;
+
+//     DEFAULT_ADMIN_ROLE
+// FEE_ROLE
+// PAUSER_ROLE
+// IMPLEMENTER_ROLE
 
     this.NFT = await ethers.getContractFactory("NFT");
     this.nft = await this.NFT.deploy();
     await this.nft.deployed();
-    this.nft.mint(this.curator.address, 0);
+    await this.nft.mint(this.curator.address, 0);
 
     this.NibblVault = await ethers.getContractFactory("NibblVault");
     this.nibblVaultImplementation = await this.NibblVault.deploy();
@@ -62,9 +67,13 @@ describe("NibblVaultFactory", function () {
     await this.basketImplementation.deployed();
 
     this.NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
-    this.tokenVaultFactory = await this.NibblVaultFactory.connect(this.admin).deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address);
+    this.tokenVaultFactory = await this.NibblVaultFactory.connect(this.curator).deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address, this.admin.address); 
     await this.tokenVaultFactory.deployed();
-    this.nft.approve(this.tokenVaultFactory.address, 0);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.FEE_ROLE(), this.feeRole.address);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.PAUSER_ROLE(), this.pauserRole.address);
+    await this.tokenVaultFactory.connect(this.admin).grantRole(await this.tokenVaultFactory.IMPLEMENTER_ROLE(), this.implementerRole.address);
+    // grantRole(bytes32 role, address account)
+    await this.nft.approve(this.tokenVaultFactory.address, 0);
 
     this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
     this.TestTWAVContract = await ethers.getContractFactory("TestTwav");
@@ -83,7 +92,7 @@ describe("NibblVaultFactory", function () {
     blockTime = await this.testTWAV.getCurrentBlockTime();
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFeeAddress(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.feeRole).proposeNewAdminFeeAddress(this.addr1.address);
     const pendingFeeTo = await this.tokenVaultFactory.pendingFeeTo();
     const feeToUpdateTime = await this.tokenVaultFactory.feeToUpdateTime();
     expect(pendingFeeTo).to.be.equal(this.addr1.address);
@@ -94,7 +103,7 @@ describe("NibblVaultFactory", function () {
     blockTime = await this.testTWAV.getCurrentBlockTime();
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFeeAddress(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.admin).connect(this.feeRole).proposeNewAdminFeeAddress(this.addr1.address);
     const pendingFeeTo = await this.tokenVaultFactory.pendingFeeTo();
     const feeToUpdateTime = await this.tokenVaultFactory.feeToUpdateTime();
     expect(pendingFeeTo).to.be.equal(this.addr1.address);
@@ -110,7 +119,7 @@ describe("NibblVaultFactory", function () {
   it("should fail to update feeTo address if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFeeAddress(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.feeRole).proposeNewAdminFeeAddress(this.addr1.address);
     const pendingFeeTo = await this.tokenVaultFactory.pendingFeeTo();
     const feeToUpdateTime = await this.tokenVaultFactory.feeToUpdateTime();
     expect(pendingFeeTo).to.be.equal(this.addr1.address);
@@ -123,7 +132,7 @@ describe("NibblVaultFactory", function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
     const _newFee = 1_000;
-    await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee);
+    await this.tokenVaultFactory.connect(this.feeRole).proposeNewAdminFee(_newFee);
     const pendingFeeAdmin = await this.tokenVaultFactory.pendingFeeAdmin();
     const feeAdminUpdateTime = await this.tokenVaultFactory.feeAdminUpdateTime();
     expect(pendingFeeAdmin).to.be.equal(_newFee);
@@ -132,14 +141,14 @@ describe("NibblVaultFactory", function () {
 
   it("should fail to propose new admin fee is fee greater than MAX_ADMIN_FEE", async function () {
     const _newFee = 10_000;
-    await expect(this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee)).to.be.revertedWith("NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
+    await expect(this.tokenVaultFactory.connect(this.feeRole).proposeNewAdminFee(_newFee)).to.be.revertedWith("NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
   });
 
   it("should update new admin fee", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
     const _newFee = 1_000;
-    await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee);
+    await this.tokenVaultFactory.connect(this.feeRole).proposeNewAdminFee(_newFee);
     const pendingFeeAdmin = await this.tokenVaultFactory.pendingFeeAdmin();
     const feeAdminUpdateTime = await this.tokenVaultFactory.feeAdminUpdateTime();
     expect(pendingFeeAdmin).to.be.equal(_newFee);
@@ -150,12 +159,12 @@ describe("NibblVaultFactory", function () {
     await this.tokenVaultFactory.updateNewAdminFee();
     expect(await this.tokenVaultFactory.feeAdmin()).to.equal(_newFee);
   });
-
+  
   it("should fail to update feeTo address if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
     const _newFee = 1_000;
-    await this.tokenVaultFactory.connect(this.admin).proposeNewAdminFee(_newFee);
+    await this.tokenVaultFactory.connect(this.feeRole).proposeNewAdminFee(_newFee);
     const pendingFeeAdmin = await this.tokenVaultFactory.pendingFeeAdmin();
     const feeAdminUpdateTime = await this.tokenVaultFactory.feeAdminUpdateTime();
     expect(pendingFeeAdmin).to.be.equal(_newFee);
@@ -163,10 +172,20 @@ describe("NibblVaultFactory", function () {
     await expect(this.tokenVaultFactory.updateNewAdminFee()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME has not passed");
   });
 
+  it("should withdraw admin fee", async function () {
+    const _buyAmount = ethers.utils.parseEther("1000");
+    const _feeAmountAdmin = _buyAmount.mul(FEE_ADMIN).div(SCALE);
+    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
+    const _initialBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
+    await this.tokenVaultFactory.connect(this.admin).withdrawAdminFee();
+    const _finalBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
+    expect(_initialBalanceFactory).to.be.equal(_finalBalanceFactory.add(_feeAmountAdmin));
+  });
+  
   it("should propose nibblVaultImplementation", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewVaultImplementation(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.implementerRole).proposeNewVaultImplementation(this.addr1.address);
     const pendingVaultImplementation = await this.tokenVaultFactory.pendingVaultImplementation();
     const vaultUpdateTime = await this.tokenVaultFactory.vaultUpdateTime();
     expect(pendingVaultImplementation).to.be.equal(this.addr1.address);
@@ -176,7 +195,7 @@ describe("NibblVaultFactory", function () {
   it("should update nibblVaultImplementation", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewVaultImplementation(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.implementerRole).proposeNewVaultImplementation(this.addr1.address);
     const pendingVaultImplementation = await this.tokenVaultFactory.pendingVaultImplementation();
     const vaultUpdateTime = await this.tokenVaultFactory.vaultUpdateTime();
     expect(pendingVaultImplementation).to.be.equal(this.addr1.address);
@@ -190,7 +209,7 @@ describe("NibblVaultFactory", function () {
   it("should fail to update nibblVaultImplementation if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewVaultImplementation(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.implementerRole).proposeNewVaultImplementation(this.addr1.address);
     const pendingVaultImplementation = await this.tokenVaultFactory.pendingVaultImplementation();
     const vaultUpdateTime = await this.tokenVaultFactory.vaultUpdateTime();
     expect(pendingVaultImplementation).to.be.equal(this.addr1.address);
@@ -202,7 +221,7 @@ describe("NibblVaultFactory", function () {
   it("should propose basketImplementation", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewBasketImplementation(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.implementerRole).proposeNewBasketImplementation(this.addr1.address);
     const pendingBasketImplementation = await this.tokenVaultFactory.pendingBasketImplementation();
     const basketUpdateTime = await this.tokenVaultFactory.basketUpdateTime();
     expect(pendingBasketImplementation).to.be.equal(this.addr1.address);
@@ -212,7 +231,7 @@ describe("NibblVaultFactory", function () {
   it("should update basketImplementation", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewBasketImplementation(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.implementerRole).proposeNewBasketImplementation(this.addr1.address);
     const pendingBasketImplementation = await this.tokenVaultFactory.pendingBasketImplementation();
     const basketUpdateTime = await this.tokenVaultFactory.basketUpdateTime();
     expect(pendingBasketImplementation).to.be.equal(this.addr1.address);
@@ -226,7 +245,7 @@ describe("NibblVaultFactory", function () {
   it("should fail to update basketImplementation if UPDATE_TIME hasn't passed", async function () {
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
-    await this.tokenVaultFactory.connect(this.admin).proposeNewBasketImplementation(this.addr1.address);
+    await this.tokenVaultFactory.connect(this.implementerRole).proposeNewBasketImplementation(this.addr1.address);
     const pendingBasketImplementation = await this.tokenVaultFactory.pendingBasketImplementation();
     const basketUpdateTime = await this.tokenVaultFactory.basketUpdateTime();
     expect(pendingBasketImplementation).to.be.equal(this.addr1.address);
@@ -234,15 +253,6 @@ describe("NibblVaultFactory", function () {
     await expect(this.tokenVaultFactory.updateBasketImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME has not passed");
   });
 
-  it("should withdraw admin fee", async function () {
-    const _buyAmount = ethers.utils.parseEther("1000");
-    const _feeAmountAdmin = _buyAmount.mul(FEE_ADMIN).div(SCALE);
-    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
-    const _initialBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
-    await this.tokenVaultFactory.connect(this.admin).withdrawAdminFee();
-    const _finalBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
-    expect(_initialBalanceFactory).to.be.equal(_finalBalanceFactory.add(_feeAmountAdmin));
-  });
 
   it("should fail to create a vault if initial balance is too low", async function () {
     await expect(this.tokenVaultFactory.connect(this.curator).createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR, { value: 0 })).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");

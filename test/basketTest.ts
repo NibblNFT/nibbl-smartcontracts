@@ -31,14 +31,16 @@ describe("Basket", function () {
 
     beforeEach(async function () {
         
-        const [curator, admin, buyer1, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+        const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
         this.curator = curator;
         this.admin = admin;
         this.buyer1 = buyer1;
+        this.buyer2 = buyer2;
         this.addr1 = addr1;
-        this.addr2 = addr2;
-        this.addr3 = addr3;
-        this.addr4 = addr4;
+        this.implementerRole = implementerRole;
+        this.feeRole = feeRole;
+        this.pauserRole = pauserRole;
+
         this.NFT = await ethers.getContractFactory("NFT");
         this.nft = await this.NFT.deploy();
         await this.nft.deployed();

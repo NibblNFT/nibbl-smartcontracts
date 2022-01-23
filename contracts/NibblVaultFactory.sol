@@ -5,7 +5,7 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-import { Ownable } from "./Utilites/Ownable.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { NibblVault } from "./NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Proxy } from "./Proxy/Proxy.sol";
@@ -35,20 +35,27 @@ contract NibblVaultFactoryData {
     uint256 public feeAdminUpdateTime;
 }
 
-contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
-//TODO: Add pending functions
+contract NibblVaultFactory is AccessControl, Pausable, NibblVaultFactoryData {
 
-    uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9; //1%
+    uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9;
+    bytes32 public constant FEE_ROLE = keccak256("FEE_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant IMPLEMENTER_ROLE = keccak256("IMPLEMENTATER_ROLE");
 
     Proxy[] public nibbledTokens;
 
     event Fractionalise(address indexed assetAddress, uint256 indexed assetTokenID, address indexed proxyVault);
     event FractionaliseBasket(address indexed basketAddress, address indexed proxyVault);
 
-    constructor (address _vaultImplementation, address _basketImplementation, address _feeTo) {
+    constructor (address _vaultImplementation, address _basketImplementation, address _feeTo, address _admin) {
         vaultImplementation = _vaultImplementation;
         basketImplementation = _basketImplementation;        
         feeTo = _feeTo;
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
+        _setRoleAdmin(FEE_ROLE, DEFAULT_ADMIN_ROLE);
+        _setRoleAdmin(PAUSER_ROLE, DEFAULT_ADMIN_ROLE);
+        _setRoleAdmin(IMPLEMENTER_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
     /// @notice the function to mint a new vault
@@ -102,12 +109,18 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
     }
     
+    function setRoleAdmin(bytes32 role, bytes32 adminRole) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        _setRoleAdmin(role, adminRole);
+    }
+
+
     function withdrawAdminFee() external {
         (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");
         require(_success);
     }
 
-    function proposeNewAdminFeeAddress(address _newFeeAddress) external onlyOwner{
+    function proposeNewAdminFeeAddress(address _newFeeAddress) external onlyRole(FEE_ROLE) {
         pendingFeeTo = _newFeeAddress;
         feeToUpdateTime = block.timestamp + UPDATE_TIME;
     }
@@ -119,7 +132,7 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
 
     /// @notice Function to update admin fee percentage
     /// @param _newFee new fee percentage for admin
-    function proposeNewAdminFee(uint256 _newFee) external onlyOwner{
+    function proposeNewAdminFee(uint256 _newFee) external onlyRole(FEE_ROLE) {
         require(_newFee <= MAX_ADMIN_FEE, "NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
         pendingFeeAdmin = _newFee;
         feeAdminUpdateTime = block.timestamp + UPDATE_TIME;
@@ -130,7 +143,7 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         feeAdmin = pendingFeeAdmin;
     }
 
-    function proposeNewVaultImplementation(address _newVaultImplementation) external onlyOwner{
+    function proposeNewVaultImplementation(address _newVaultImplementation) external onlyRole(IMPLEMENTER_ROLE) {
         pendingVaultImplementation = _newVaultImplementation;
         vaultUpdateTime = block.timestamp + UPDATE_TIME;
     }
@@ -140,7 +153,7 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         vaultImplementation = pendingVaultImplementation;
     }
     
-    function proposeNewBasketImplementation(address _basketImplementation) external onlyOwner{
+    function proposeNewBasketImplementation(address _basketImplementation) external onlyRole(IMPLEMENTER_ROLE) {
         pendingBasketImplementation = _basketImplementation;
         basketUpdateTime = block.timestamp + UPDATE_TIME;
     }
@@ -150,11 +163,11 @@ contract NibblVaultFactory is Ownable, Pausable, NibblVaultFactoryData {
         basketImplementation = pendingBasketImplementation;
     }
 
-    function pause() external onlyOwner {
+    function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unPause() external onlyOwner {
+    function unPause() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
