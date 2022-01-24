@@ -9,7 +9,7 @@ contract Twav {
     }
 
     uint8 public twavObservationsIndex;
-    uint8 private constant TWAV_BLOCK_NUMBERS = 6; //TWAV of last 6 Txs 
+    uint8 private constant TWAV_BLOCK_NUMBERS = 6; //TWAV of last 6 Blocks 
     uint32 public lastBlockTimeStamp;
 
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;

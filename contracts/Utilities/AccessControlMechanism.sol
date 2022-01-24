@@ -24,14 +24,17 @@ contract AccessControlMechanism is AccessControl {
         _setRoleAdmin(IMPLEMENTER_ROLE, _defaultAdminRole);
     }
 
+    // Set role admin can only be called by admin of that role
     function setRoleAdmin(bytes32 _role, bytes32 _adminRole) external onlyRole(getRoleAdmin(_role)) {
         _setRoleAdmin(_role, _adminRole);
     }
 
+    // propose a user for a role
     function proposeGrantRole(bytes32 _role, address _to) external onlyRole(getRoleAdmin(_role)) {
         pendingRoles[_role][_to] = true;
     }
 
+    // user needs to claim proposed role
     function claimRole(bytes32 _role) external {
         require(pendingRoles[_role][msg.sender], "AccessControl: Role not pending");
         _grantRole(_role, msg.sender);
