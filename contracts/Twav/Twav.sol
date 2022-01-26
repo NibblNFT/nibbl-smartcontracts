@@ -8,12 +8,17 @@ contract Twav {
         uint256 cumulativeValuation;
     }
 
+    /// @notice current index of twavObservations index
     uint8 public twavObservationsIndex;
     uint8 private constant TWAV_BLOCK_NUMBERS = 6; //TWAV of last 6 Blocks 
     uint32 public lastBlockTimeStamp;
 
+    /// @notice record of TWAV 
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;
 
+    /// @notice updates twavObservations array
+    /// @param _blockTimestamp timestamp of the block
+    /// @param _valuation current valuation
     function _updateTWAV(uint256 _valuation, uint32 _blockTimestamp) internal {
         uint32 _timeElapsed; 
         unchecked {
@@ -25,6 +30,8 @@ contract Twav {
         lastBlockTimeStamp = _blockTimestamp;
     }
 
+    /// @notice returns the TWAV of the last 6 blocks
+    /// @return _twav TWAV of the last 6 blocks
     function _getTwav() public view returns(uint256 _twav){
         if (twavObservations[TWAV_BLOCK_NUMBERS - 1].timestamp != 0) {
             uint8 _index = ((twavObservationsIndex + TWAV_BLOCK_NUMBERS) - 1) % TWAV_BLOCK_NUMBERS;

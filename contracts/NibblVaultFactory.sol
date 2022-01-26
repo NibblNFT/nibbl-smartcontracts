@@ -95,57 +95,79 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
 
     // Cancellation functions aren't required as we can call propose function again with different parameters
 
+    /// @notice proposes new admin fee address
+    /// @dev new address can be updated only after timelock
+    /// @dev can only be called by FEE_ROLE
+    /// @param _newFeeAddress new address to recieve admin fee on address
     function proposeNewAdminFeeAddress(address _newFeeAddress) external onlyRole(FEE_ROLE) {
         pendingFeeTo = _newFeeAddress;
         feeToUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
+    /// @notice updates new admin fee address
     function updateNewAdminFeeAddress() external {
         require(feeToUpdateTime != 0 && block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeTo = pendingFeeTo;
         feeToUpdateTime = 0;
     }
 
-    /// @notice Function to update admin fee percentage
-    /// @param _newFee new fee percentage for admin
+    /// @notice proposes new admin fee
+    /// @dev new fee can be updated only after timelock
+    /// @dev can only be called by FEE_ROLE
+    /// @param _newFee new admin fee 
     function proposeNewAdminFee(uint256 _newFee) external onlyRole(FEE_ROLE) {
         require(_newFee <= MAX_ADMIN_FEE, "NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
         pendingFeeAdmin = _newFee;
         feeAdminUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
+    /// @notice updates new admin fee
     function updateNewAdminFee() external {
         require(feeAdminUpdateTime != 0 && block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeAdmin = pendingFeeAdmin;
         feeAdminUpdateTime = 0;
     }
 
+    /// @notice proposes new vault implementation
+    /// @dev new implementation can be updated only after timelock
+    /// @dev can only be called by FEE_ROLE
+    /// @param _newVaultImplementation new implementation vault address
     function proposeNewVaultImplementation(address _newVaultImplementation) external onlyRole(IMPLEMENTER_ROLE) {
         pendingVaultImplementation = _newVaultImplementation;
         vaultUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
+    /// @notice updates new vault implementation
     function updateVaultImplementation() external {
         require(vaultUpdateTime != 0 && block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         vaultImplementation = pendingVaultImplementation;
         vaultUpdateTime = 0;
     }
     
+    /// @notice proposes new basket implementation
+    /// @dev new implementation can be updated only after timelock
+    /// @dev can only be called by FEE_ROLE
+    /// @param _basketImplementation new implementation basket address
     function proposeNewBasketImplementation(address _basketImplementation) external onlyRole(IMPLEMENTER_ROLE) {
         pendingBasketImplementation = _basketImplementation;
         basketUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
+    /// @notice updates new basket implementation
     function updateBasketImplementation() external {
         require(basketUpdateTime != 0 && block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         basketImplementation = pendingBasketImplementation;
         basketUpdateTime = 0;
     }
 
+    /// @notice pauses the system
+    /// @dev can only be called by PAUSER_ROLE
     function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
+    /// @notice unpauses the system
+    /// @dev can only be called by PAUSER_ROLE
     function unPause() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
