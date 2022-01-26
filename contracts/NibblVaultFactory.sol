@@ -14,8 +14,10 @@ import { NibblVaultFactoryData } from "./Utilities/NibblVaultFactoryData.sol";
 import { AccessControlMechanism } from "./Utilities/AccessControlMechanism.sol";
 
 contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactoryData {
+    /// @notice Minimum initial reserve balance a user has to deposit to create a new vault
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9;
 
+    /// @notice array containing the addresses of all the vaults
     Proxy[] public nibbledTokens;
 
     event Fractionalise(address assetAddress, uint256 assetTokenID, address proxyVault);
@@ -27,7 +29,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         feeTo = _feeTo;
     }
 
-    /// @notice the function to mint a new vault
+    /// @notice mints a new vault
     /// @param _assetAddress address of the NFT contract which is being fractionalised
     /// @param _assetTokenID tokenId of the NFT being fractionalised
     /// @param _name name of the fractional token to be created
@@ -53,7 +55,15 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         emit Fractionalise(_assetAddress, _assetTokenID, address(_proxyVault));
     }
     
-    // this function should be called from a contract which performs important safety checks
+    /// @notice mints a new vault with multiple assets
+    /// @param _assetAddressesERC721 list of addresses of the NFT contract being fractionalised
+    /// @param _assetTokenIDsERC721 list of tokenIds of the NFT being fractionalised
+    /// @param _name name of the fractional token to be created
+    /// @param _symbol symbol of the fractional token
+    /// @param _initialSupply desired initial token supply
+    /// @param _initialTokenPrice desired initial token price
+    /// @param _curatorFee fee percentage for curator
+    /// @dev this function should be called from a contract which performs important safety checks
     function createMultiVaultERC721(
         address[] memory _assetAddressesERC721,
         uint256[] memory _assetTokenIDsERC721,
@@ -91,8 +101,9 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     }
 
     function updateNewAdminFeeAddress() external {
-        require(block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(feeToUpdateTime != 0 && block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeTo = pendingFeeTo;
+        feeToUpdateTime = 0;
     }
 
     /// @notice Function to update admin fee percentage
@@ -104,8 +115,9 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     }
 
     function updateNewAdminFee() external {
-        require(block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(feeAdminUpdateTime != 0 && block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeAdmin = pendingFeeAdmin;
+        feeAdminUpdateTime = 0;
     }
 
     function proposeNewVaultImplementation(address _newVaultImplementation) external onlyRole(IMPLEMENTER_ROLE) {
@@ -114,8 +126,9 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     }
 
     function updateVaultImplementation() external {
-        require(block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(vaultUpdateTime != 0 && block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         vaultImplementation = pendingVaultImplementation;
+        vaultUpdateTime = 0;
     }
     
     function proposeNewBasketImplementation(address _basketImplementation) external onlyRole(IMPLEMENTER_ROLE) {
@@ -124,8 +137,9 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     }
 
     function updateBasketImplementation() external {
-        require(block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(basketUpdateTime != 0 && block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         basketImplementation = pendingBasketImplementation;
+        basketUpdateTime = 0;
     }
 
     function pause() external onlyRole(PAUSER_ROLE) {

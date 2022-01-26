@@ -10,59 +10,104 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 
+
+
+/// @title Vault to lock NFTs and fractionalise ERC721 to ERC20s.
+/// @dev This contract is uses Bancor Formula to create a market for fractionalised ERC20s.
+/// @dev This contract creates 2 bonding curves a primary and a secondary.
+/// @dev The primary curve has fixed specifications and fixed reserveRatio.
+/// @dev The secondary curve is dynamic and ahas variable reserveRatio, depends on initial conditions given by curator and the fee accumulated for curve.
 contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
-    uint256 private constant SCALE = 1_000_000; // scale = 10^6
+    /// @notice Scale for calculations to avoid rounding errors
+    uint256 private constant SCALE = 1_000_000; 
 
-    uint32 private constant primaryReserveRatio = 500_000; // primary reserve ratio = 50%
+    /// @notice Reserve ratio of primary curve 
+    /// @dev primaryReserveRatio has been multiplied with SCALE
+    /// @dev primaryReserveRatio lies between 0 and 1, i.e. 0.5 means 50%
+    uint32 private constant primaryReserveRatio = 500_000;
     
-    uint256 private constant REJECTION_PREMIUM = 100_000; // premium for rejecting the buyout if premium = 10 %, buyoutRejectionValuation = 110% of buyout Bid
+    /// @notice The premium percentage above the buyoutBid at which the buyout is rejected
+    /// @dev REJECTION_PREMIUM has been multiplied with SCALE
+    /// @dev REJECTION_PREMIUM lies between 0 and 1, i.e. 0.5 means 50%
+    /// @dev if REJECTION_PREMIUM is 10% and the buyoutBid is 100, the buyout is rejected when the valuation is 110
+    uint256 private constant REJECTION_PREMIUM = 100_000; 
 
-    uint256 private constant BUYOUT_DURATION = 3 days; // time till buyout rejection can happen, otherwise buyout succeeds
+    /// @notice The days for the buyout goes on. If it isn't rejected in 3 days its automatically considered boughtOut
+    uint256 private constant BUYOUT_DURATION = 3 days; 
 
-    uint256 private constant CURVE_FEE_AMT = 4_000; // fee for the curve
+    /// @notice The percentage of fee that goes for liquidity in lower curve until its reserve ration becomes equal to primaryReserveRatio
+    uint256 private constant CURVE_FEE_AMT = 4_000; 
 
-    uint32 public secondaryReserveRatio; //secondary reserve ratio is dynamic and can maxiumum be <= primaryReserveRatio
+    /// @notice The reserve ratio of the secondary curve.
+    /// @dev secondaryReserveRatio has been multiplied with SCALE
+    /// @dev secondaryReserveRatio lies between 0 and 1, i.e. 0.5 means 50%
+    /// @dev secondary reserve ratio is dynamic and can maxiumum be <= primaryReserveRatio
+    uint32 public secondaryReserveRatio;
 
-    address payable public factory; // address of the Nibbl factory contract
+    /// @notice address of factory contract
+    address payable public factory;
 
-    address public curator; // address of the original NFT owner
+    /// @notice address of the original NFT owner
+    address public curator; 
 
-    address public assetAddress; // token address of the NFT being deposited in the vault
+    /// @notice token address of the NFT being deposited in the vault
+    address public assetAddress;
 
-    uint256 public assetID; // token ID of the NFT being deposited in the vault  
+    /// @notice token ID of the NFT being deposited in the vault  
+    uint256 public assetID;
 
-    address public bidder; // address which triggered the buyout
+    /// @notice address which triggered the buyout
+    address public bidder; 
 
-    uint256 public initialTokenPrice; // initial price of the fractional ERC20 Token set by the curator
+    /// @notice initial price of the fractional ERC20 Token set by the curator
+    uint256 public initialTokenPrice;
 
-    uint256 private fictitiousPrimaryReserveBalance; // fictitious primary reserve balance 
+    /// @notice fictitious primary reserve balance. Used for calculation.
+    /// @dev This variable denotes pseudo liquidity.
+    /// @dev This variable defines the amount of reserve token required initialTokenSupply at primaryReserveRatio.
+    uint256 private fictitiousPrimaryReserveBalance;
 
-    uint256 public buyoutRejectionValuation; // the valuation at which the buyout is rejected
+    /// @notice the valuation at which the buyout is rejected.
+    /// @dev buyoutRejectionValuation = buyoutBid + (buyoutBid * REJECTION_PREMIUM) = buyoutBid * (1 + REJECTION_PREMIUM)
+    uint256 public buyoutRejectionValuation; 
     
-    uint256 public buyoutValuationDeposit; // deposit made by bidder to initiate buyout
+    /// @notice deposit made by bidder to initiate buyout 
+    /// @dev buyoutValuationDeposit = currentValuation - ((reserveTokens in primary curve) - (reserveTokens in secondary curve))
+    uint256 public buyoutValuationDeposit; 
     
-    uint256 public initialTokenSupply; // initial token supply
+    /// @notice initial token supply minted by curator
+    uint256 public initialTokenSupply; 
     
-    uint256 public primaryReserveBalance; // reserve balance of the primary/upper curve
+    /// @notice reserve balance of the primary curve
+    uint256 public primaryReserveBalance;
     
-    uint256 public secondaryReserveBalance; // reserve balance of the secondary/lower curve
+    /// @notice reserve balance of the secondary curve
+    uint256 public secondaryReserveBalance;
     
-    uint256 public feeAccruedCurator; // total fee accrued by the curator
+    /// @notice total fee accrued by each trade to the curator
+    uint256 public feeAccruedCurator; 
     
-    uint256 public buyoutEndTime; // the time at which the buyout ends
+    /// @notice the time at which the buyout ends
+    uint256 public buyoutEndTime; 
     
-    uint256 public buyoutBid; // valuation at which buyout was triggered
+    /// @notice valuation at which buyout was triggered
+    uint256 public buyoutBid;
 
-    uint256 public curatorFee; // percentage of transaction fee that goes to the curator
+    /// @notice percentage of transaction fee that goes to the curator
+    uint256 public curatorFee;
 
-    uint256 public totalUnsettledBids; // total bids that have not been claimed back after the buyout
+    /// @notice total amount of bids that have not been claimed back.
+    /// @dev This variable defines the reserveTokens deposited by bidder to be claimed by back after the buyout was rejected.
+    uint256 public totalUnsettledBids; 
 
-    mapping(address => uint256) public unsettledBids; // mapping to unsettled bids
+    /// @notice mapping of bidders to unsettled bids
+    mapping(address => uint256) public unsettledBids; 
 
 
     enum Status {initialised, buyout}
 
+    ///@notice current status of vault
     Status public status;
 
     event BuyoutInitiated(address indexed bidder, uint256 indexed bid);
@@ -79,40 +124,47 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     }
 
 
+    /// @notice To check if buyout hasn't succeed
+    /// @dev  For the case when buyoutTime has not ended or buyout has been rejected
     modifier notBoughtOut() {
-        // For the case when buyoutTime has not ended and buyout has been rejected
         require(buyoutEndTime > block.timestamp || buyoutEndTime == 0,'NibblVault: Bought Out');
         _;
     }
 
+    /// @notice To check if buyout has succeed
+    /// @dev For the case when buyoutTime has succeeded and buyout has not been rejected
     modifier boughtOut() {
-        // For the case when buyoutTime has ended and buyout has not been rejected
         require(status == Status.buyout, "NibblVault: status != buyout");
         require(buyoutEndTime <= block.timestamp, "NibblVault: buyoutEndTime <= now");
         _;
     }
 
+    /// @notice To check if system isn't paused
+    /// @dev pausablity has been implemented in factory
     modifier whenNotPaused() {
         require(!NibblVaultFactory(factory).paused(), 'NibblVault: Paused');
         _;
     }
 
+    /// @notice To check if system is paused
+    /// @dev pausablity has been implemented in factory
     modifier whenPaused() {
         require(NibblVaultFactory(factory).paused(), 'NibblVault: Not Paused');
         _;
     }
 
-    /// @notice the function to initialise vault parameters
-    /// @param _tokenName name of the fractional ERC20 token to be created
-    /// @param _tokenSymbol symbol fo the fractional ERC20 token
-    /// @param _assetAddress address of the NFT contract which is being fractionalised
-    /// @param _assetID tokenId of the NFT being fractionalised
-    /// @param _initialTokenSupply desired initial supply
-    /// @param _initialTokenPrice desired initial token price
+    /// @notice the function to initialise proxy vault parameters
+    /// @param _tokenName name of the fractionalised ERC20 token to be created
+    /// @param _tokenSymbol symbol fo the fractionalised ERC20 token
+    /// @param _assetAddress address of the ERC721 being fractionalised
+    /// @param _assetID tokenId of the ERC721 being fractionalised
+    /// @param _initialTokenSupply desired initial supply to be minted to curator
+    /// @param _initialTokenPrice desired initial token price set by curator 
     /// @param _curatorFee fee percentage for curator
     /// @param _curator owner of NFT
-    /// @dev reserveBalance = valuation * reserveRatio
     /// @dev valuation = price * supply
+    /// @dev reserveBalance = valuation * reserveRatio
+    /// @dev Reserve Ratio = Reserve Token Balance / (Continuous Token Supply x Continuous Token Price)
     function initialise(
         string memory _tokenName, 
         string memory _tokenSymbol, 
@@ -132,11 +184,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         assetID = _assetID;
         curator = _curator;
         initialTokenSupply = _initialTokenSupply;
-        uint _primaryReserveBalance = (primaryReserveRatio * initialTokenSupply * initialTokenPrice) / (SCALE * 1e18);
+        uint _primaryReserveBalance = (primaryReserveRatio * _initialTokenSupply * _initialTokenPrice) / (SCALE * 1e18);
         primaryReserveBalance = _primaryReserveBalance;
         fictitiousPrimaryReserveBalance = _primaryReserveBalance;
         secondaryReserveBalance = msg.value;
-        uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * initialTokenPrice));
+        uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * _initialTokenPrice));
         secondaryReserveRatio = _secondaryReserveRatio;
         require(_curatorFee <= MAX_CURATOR_FEE(), "NibblVault: Invalid fee");
         require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
@@ -144,12 +196,13 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         _mint(_curator, _initialTokenSupply);
     }
 
-    /// @notice Function which charges fees on buying and selling
-    /// @dev There are 3 types of fee charged - admin, curator and curve
-    ///      Admin fee amount is fetched from the factory contract and the fee charged is transferred to admin address
-    ///      Curator fee is fetched from vault contract and is stored in feeAccruedCurator 
-    ///      Curve fee is also fetched from the vault contract and is added to the secondary reserve balance
-    /// @param _amount buy/sell trade amount in wei
+    /// @notice Function used to charge fee on trades
+    /// @dev There are 3 different fees charged - admin, curator and curve
+    /// @dev Admin fee percentage is fetched from the factory contract and the fee charged is transferred to factory contract
+    /// @dev Curator fee is fetched from curatorFee variable and total fee accrued is stored in feeAccruedCurator variable
+    /// @dev Curve fee fetched from the CURVE_FEE_AMT variable and is added to the secondaryReserveBalance variable
+    /// @param _amount amount to charge fee on. buy/sell amount in reserve tokens.
+    /// @return the amount after fee is deducted
     function _chargeFee(uint256 _amount) private returns(uint256){
         address payable _factory = factory;
         uint256 _adminFeeAmt = NibblVaultFactory(_factory).feeAdmin();
@@ -157,30 +210,41 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         uint256 _feeAdmin = (_amount * _adminFeeAmt) / SCALE ;
         uint256 _feeCurator = (_amount * _curatorFeeAmt) / SCALE ;
         uint256 _feeCurve = (_amount * CURVE_FEE_AMT) / SCALE ;
-        if(_adminFeeAmt > 0) {
-            safeTransferETH(_factory, _feeAdmin);
-        }
         feeAccruedCurator += _feeCurator;
         uint256 _maxSecondaryBalanceIncrease = fictitiousPrimaryReserveBalance - secondaryReserveBalance;
-        secondaryReserveBalance += _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease;
-        secondaryReserveRatio = uint32((secondaryReserveBalance * SCALE * 1e18) / (initialTokenSupply * initialTokenPrice));
+        _feeCurve = _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease; // the curve fee is capped at the maximum increase in secondary reserve balance
+        secondaryReserveBalance += _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease; // the secondaryReserveBalance can maximum be fictitiousReserveBalance
+        secondaryReserveRatio = uint32((secondaryReserveBalance * SCALE * 1e18) / (initialTokenSupply * initialTokenPrice)); //secondaryReserveRatio is updated on every trade 
+        if(_adminFeeAmt > 0) {
+            safeTransferETH(_factory, _feeAdmin); //Transfers admin fee to factory contract
+        }
         return _amount - (_feeAdmin + _feeCurator + _feeCurve);
     }
 
-    /// @dev Amount of reserve balance in secondary curve if curve went from origin to initial fractionalization point
+    /// @notice Maximum number of reserve tokens that can be held on SecondaryCurve at current reserve ratio
+    /// @dev The max continous tokens on SecondaryCurve is equal to initialTokenSupply
+    /// @dev As the reserve ratio is dynamic, the max reserve tokens on SecondaryCurve is dynamic
+    /// @dev Reserve Token Balance = Reserve Ratio * (Continuous Token Supply x Continuous Token Price)
     function getMaxSecondaryCurveBalance() private view returns(uint256){
             return ((secondaryReserveRatio * initialTokenSupply * initialTokenPrice) / (1e18 * SCALE));
     }
 
-    /// @dev Sums valuation on secondary curve and primary curve
-    ///      Real reserve balance in primary curve = primaryReserveBalance - fictitiousPrimaryReserveBalance
-    /// @return Current valuation in bonding curve
+    /// @notice gives current valuation of the system
+    /// @dev valuation = price * supply
+    /// @dev fictitiousPrimaryReserveBalance doesn't denote any actual reserve balance its just for calculation purpose
+    /// @dev Actual reserve balance in primary curve = primaryReserveBalance - fictitiousPrimaryReserveBalance
+    /// @dev Total reserve balance = Actual reserve balance in primary curve + secondaryReserveBalance
+    /// @dev Total reserve balance = (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance
+    /// @dev Valuation = (Continuous Token Supply x Continuous Token Price) = Reserve Token Balance / Reserve Ratio
+    /// @return Current valuation os the system
     function getCurrentValuation() private view returns(uint256){
             return totalSupply() < initialTokenSupply ? (secondaryReserveBalance * SCALE /secondaryReserveRatio) : ((primaryReserveBalance) * SCALE  / primaryReserveRatio);
     }
 
-    /// @dev Possible maximum curator fee is less till the point secondary reserve ratio has not become equal to primary reserve ratio
-    /// @return Maximum curator fee possible
+    /// @notice Maximum curator fee curator can levied by curator 
+    /// @dev Maximum curator fee is increases once secondaryReserveRatio = primaryReserveRatio
+    /// @dev Maximum curator fee is multiplied with SCALE, i.e. 5000 = (5000 / SCALE) * 100 = 0.5% 
+    /// @return Maximum curator fee
     function MAX_CURATOR_FEE() view private returns (uint256) {
         if (secondaryReserveRatio < primaryReserveRatio) {
             return 5_000;
@@ -189,9 +253,12 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         }            
     }
 
-    /// @dev This is executed when current supply>=initial supply
+    /// @notice function to buy tokens on primary curve
     /// @param _to Address to send the bought tokens to
-    /// @param _amount Amount in wei deposited for buying
+    /// @param _amount amount of reserve tokens to buy continous tokens
+    /// @dev This is executed when current supply >= initial supply
+    /// @dev _amount is charged with fee
+    /// @dev _purchaseReturn is minted to _to
     /// @return _purchaseReturn Purchase return
     function _buyPrimaryCurve(address _to, uint256 _amount) private returns (uint256 _purchaseReturn) {
         uint256 _amountIn = _chargeFee(_amount);
@@ -199,10 +266,12 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         primaryReserveBalance += _amountIn;
         _mint(_to, _purchaseReturn);
     }
-
-    /// @dev This is executed when current supply<initial supply
+    /// @notice function to buy tokens on secondary curve
     /// @param _to Address to send the bought tokens to
-    /// @param _amount Amount in wei deposited for buying
+    /// @param _amount amount of reserve tokens to buy continous  tokens
+    /// @dev This is executed when current supply < initial supply
+    /// @dev fee isn't levied on secondary curve
+    /// @dev _purchaseReturn is minted to _to
     /// @return _purchaseReturn Purchase return
     function _buySecondaryCurve(address _to, uint256 _amount) private returns (uint256 _purchaseReturn) {
         _purchaseReturn = _calculatePurchaseReturn(totalSupply(), secondaryReserveBalance, secondaryReserveRatio, _amount);
@@ -210,14 +279,12 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         _mint(_to, _purchaseReturn);
     }
 
-    /// @notice The function to buy fractional tokens by deposting wei
-    /// @dev We only update TWAV if it's the first transaction in a block and a buyout is active.
-    ///      if current supply<initial supply,
-    ///      then we first check if the order is only on secondary curve or if it extends till primary curve
-    ///      if it extends, then we buy from current point to initial fractionalization point
-    ///      and with the amount left, we buy by calling _buyPrimaryCurve
-    /// @param _minAmtOut Amount in wei deposited for buying
-    /// @param _to Address to send the bought tokens to
+    /// @notice The function to buy fractional tokens for reserveTokens
+    /// @dev TWAV is updated only if buyout is active and only on first buy or sell txs of block.
+    /// @dev It internally calls _buyPrimaryCurve or _buySecondaryCurve or both depending on the buyAmount and current supply
+    /// @dev if current totalSupply < initialTokenSupply AND _amount to buy tokens for is greater than (maxSecondaryCurveBalance - currentSecondaryCurveBalance) then buy happens on secondary curve and primary curve both
+    /// @param _minAmtOut Amount of reserveTokens to buy continous tokens for
+    /// @param _to Address to mint the purchase return to
     function buy(uint256 _minAmtOut, address _to) external payable notBoughtOut lock whenNotPaused {
         //Make update on the first tx of the block
         if (status == Status.buyout) {
@@ -246,7 +313,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         require(_minAmtOut <= _purchaseReturn, "NibblVault: Return too low");
     }
 
-    /// @dev This is executed when currentSupply > initialSupply
+    /// @notice The function to sell fractional tokens on primary curve
+    /// @dev Executed when currentSupply > initialSupply
+    /// @dev _amount is charged with fee
     /// @param _amount Amount of tokens to be sold on primary curve
     /// @return _saleReturn Sale Return
     function _sellPrimaryCurve(uint256 _amount) private returns(uint256 _saleReturn) {
@@ -256,7 +325,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         _saleReturn = _chargeFee(_saleReturn);
     }
 
-    /// @dev This is executed when current supply <= initial supply
+    /// @notice The function to sell fractional tokens on secondary curve
+    /// @dev Executed when current supply <= initial supply
+    /// @dev fee ins't levied on secondary curve
     /// @param _amount Amount of tokens to be sold on SecondaryCurve
     ///  @return _saleReturn Sale Return
     function _sellSecondaryCurve(uint256 _amount) private returns(uint256 _saleReturn){
@@ -266,14 +337,12 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     }
 
     /// @notice The function to sell fractional tokens for reserve token
-    /// @dev We only update TWAV if it's the first transaction in a block and a buyout is active.
-    ///      if current supply>initial supply,
-    ///      then we first check if the order is only on primary curve or if it extends till secondary curve.
-    ///      if it extends, then we sell from current point to initial fractionalization point
-    ///      and with the tokens left, we sell by calling _sellSecondaryCurve
-    /// @param _amtIn Number of tokens to be sold
-    /// @param _minAmtOut Amount in wei to be sent after a successful sell
-    /// @param _to Address to send the reserve token to
+    /// @dev TWAV is updated only if buyout is active and only on first buy or sell txs of block.
+    /// @dev internally calls _sellPrimaryCurve or _sellSecondaryCurve or both depending on the sellAmount and current supply
+    /// @dev if totalSupply > initialTokenSupply AND _amount to sell is greater than (_amtIn > totalSupply - initialTokenSupply) then sell happens on primary curve and secondary curve both
+    /// @param _amtIn Continous Tokens to be sold
+    /// @param _minAmtOut Reserve Tokens to be sent after a successful sell
+    /// @param _to Address to recieve the reserve token to
     function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external notBoughtOut lock whenNotPaused{
         //Make update on the first tx of the block
         if (status == Status.buyout) {
@@ -300,17 +369,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
                 _saleReturn = _sellSecondaryCurve(_amtIn);
         }
         require(_saleReturn >= _minAmtOut, "NibblVault: Return too low");
-        safeTransferETH(_to, _saleReturn);
-
-        // (bool _success, ) = _to.call{value: _saleReturn}("");
-        // require(_success, "NibblVault: Failed to send funds");
+        safeTransferETH(_to, _saleReturn); //send _saleReturn to _to
     }
 
-    /// @notice Function to initiate buyout of a vault
-    /// @dev Total bid amount is calculated as sum of primary and secondary reserve balances and the amount of money by user
+    /// @notice Function to initiate buyout of ERC721
+    /// @dev buyoutBid is set to current valuation
+    /// @dev bidder needs to send funds equal to current valuation - ((primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance) to initiate buyout
     /// This ensures that the original bidder doesn't need to support the whole valuation and liquidity in reserve can be used as well.
-    /// Buyout is initiated only when total bid amount is more than current curve valuation
-    /// Buyout is triggered at current valuation and any extra amount deposited by bidder is refunded
+    /// Buyout is initiated only when total bid amount >= currentValuation but extra funds over currentValuation are sent back to user
     function initiateBuyout() external payable whenNotPaused {
         require(status == Status.initialised, "NibblVault: Status!=Initialised");
         require(unsettledBids[msg.sender] == 0, "NibblVault: Unsettled Bids");
@@ -333,9 +399,10 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         emit BuyoutInitiated(msg.sender, _buyoutBid);
     }
 
+    /// @notice Function to reject buyout
     /// @dev Triggered when someone buys tokens and curve valuation increases
-    /// @dev Checks if TWAV >= Buyout rejection valuation and rejects current buyout
-    /// @dev Called only in first tx of the block
+    /// @dev If TWAV >= Buyout rejection valuation then the buyout is rejected
+    /// @dev Called only when TWAV is updated
     function _rejectBuyout() private notBoughtOut {
         uint256 _twav = _getTwav();
         if (_twav >= buyoutRejectionValuation) {
@@ -352,7 +419,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         }
     }
 
-    /// @notice Function to allow withdrawal of unsuccessful buyout bids
+    /// @notice Function to allow withdrawal of unsettledBids after buyout has been rejected
+    /// @param _to Address to recieve the funds
     function withdrawUnsettledBids(address payable _to) external {
         uint _amount = unsettledBids[msg.sender];
         delete unsettledBids[msg.sender];
@@ -360,9 +428,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         safeTransferETH(_to, _amount);
     }
 
-    /// @notice Function for tokenholders to redeem their tokens for reserve token in case of buyout
+    /// @notice Function for tokenholders to redeem their tokens for reserve token in case of buyout success
     /// @dev The redeemed reserve token are in proportion to the token supply someone owns
-    ///      The amount available for redemption is contract balance - (value of total unsettled bid and curator fees accrued in contract)
+    /// @dev The amount available for redemption is contract balance - (total unsettled bid and curator fees accrued)
     function redeem(address payable _to) external boughtOut returns(uint256 _amtOut){
         uint256 _balance = balanceOf(msg.sender);
         _amtOut = ((address(this).balance - feeAccruedCurator - totalUnsettledBids) * _balance) / totalSupply();
@@ -370,10 +438,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         safeTransferETH(_to, _amtOut);
     }
 
-    /// @notice Function for tokenholders to redeem their tokens for reserve token when paused
+    /// @notice Function for tokenholders to redeem their tokens for reserve token when system is paused
     /// @dev The redeemed reserve token are in proportion to the token supply someone owns
-    ///      The amount available for redemption is contract balance - (value of total unsettled bid and curator fees accrued in contract)
-    
+    /// @dev The amount available for redemption is contract balance - (value of total unsettled bid and curator fees accrued in contract)
     function unlockFundsWhenPaused(address payable _to) external whenPaused returns(uint256 _amtOut){
         uint256 _balance = balanceOf(msg.sender);
         _amtOut = ((address(this).balance - feeAccruedCurator - totalUnsettledBids) * _balance) / totalSupply();
@@ -383,16 +450,16 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     /// @notice Function to allow curator to redeem accumulated curator fee.
     /// @param _to the address where curator fee will be sent
+    /// @dev can only be called by curator
     function redeemCuratorFee(address payable _to) external lock {
         require(msg.sender==curator,"NibblVault: Only Curator");
-        // (bool _success,) = _to.call{value: feeAccruedCurator}("");
-        // require(_success);
         safeTransferETH(_to, feeAccruedCurator);
         feeAccruedCurator = 0;
     }
 
-    /// @notice Function to update curator fee
+    /// @notice Function to update curator fee percentage
     /// @param _newFee New curator fee 
+    /// @dev can only be called by curator
     function updateCuratorFee(uint256 _newFee) external {
         require(msg.sender == curator,"NibblVault: Only Curator");
         require(_newFee <= MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
@@ -400,13 +467,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         emit CuratorFeeUpdated(_newFee);
     }
 
-    /// @notice Function for allowing bidder to unlock his NFT in case of buyout success
+    /// @notice Function for allowing bidder to unlock his ERC721 in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external boughtOut {
         require(msg.sender == bidder,"NibblVault: Only winner");
         IERC721(_assetAddress).safeTransferFrom(address(this), _to, _assetID);
     }
 
+    ///@notice withdraw multiple ERC721s
     function withdrawMultipleERC721(address[] memory _assetAddresses, uint256[] memory _assetIDs, address _to) external boughtOut {
         require(msg.sender == bidder,"NibblVault: Only winner");
         for (uint256 i = 0; i < _assetAddresses.length; i++) {
@@ -414,14 +482,16 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         }
     }
 
-    /// @notice withdraw ERC20 in the case a held NFT earned ERC20
+    /// @notice Function for allowing bidder to unlock his ERC20s in case of buyout success
+    /// @notice ERC20s can be accumulated as royalty
+    /// @param _to the address where unlocked NFT will be sent
     function withdrawERC20(address _asset, address _to) external boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         IERC20(_asset).transfer(_to, IERC20(_asset).balanceOf(address(this)));
     }
 
-        /// @notice withdraw ERC20 in the case a held NFT earned ERC20
 
+    /// @notice withdraw multiple ERC20s
     function withdrawMultipleERC20(address[] memory _assets, address _to) external boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         for (uint256 i = 0; i < _assets.length; i++) {
@@ -429,13 +499,16 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         }
     }
 
-    /// @notice withdraw ERC1155 in the case a held NFT earned ERC1155
+    /// @notice Function for allowing bidder to unlock his ERC1155s in case of buyout success
+    /// @notice ERC1155s can be accumulated as royalty
+    /// @param _to the address where unlocked NFT will be sent
     function withdrawERC1155(address _asset, uint256 _assetID, address _to) external boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         uint256 balance = IERC1155(_asset).balanceOf(address(this),  _assetID);
         IERC1155(_asset).safeTransferFrom(address(this), _to, _assetID, balance, "0");
     }
 
+    /// @notice withdraw multiple ERC1155s
     function withdrawMultipleERC1155(address[] memory _assets, uint256[] memory _assetIDs, address _to) external boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         for (uint256 i = 0; i < _assets.length; i++) {
@@ -444,7 +517,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         }
     }
 
-    /// @notice Function to unlock NFTs when paused
+    /// @notice Function to unlock ERC721 when paused
     /// @notice this can only be called by a user with pauser role
     function withdrawERC721WhenPaused(address _assetAddress, uint256 _assetID, address _to) external whenPaused {
         require(NibblVaultFactory(factory).hasRole(NibblVaultFactory(factory).PAUSER_ROLE(), msg.sender),"NibblVault: Only PauserRole");
