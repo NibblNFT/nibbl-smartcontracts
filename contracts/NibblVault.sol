@@ -354,6 +354,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         }
         uint256 _saleReturn;
         if(totalSupply() > initialTokenSupply) {
+            //TODO: Fix multiple reads in this function for initialTokenSupply, totalSupply();
             if ((initialTokenSupply + _amtIn) <= totalSupply()) {
                 _saleReturn = _sellPrimaryCurve(_amtIn);
             } else {
@@ -361,6 +362,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
                 uint256 _tokensPrimaryCurve = totalSupply() - initialTokenSupply;
                 _saleReturn = primaryReserveBalance - fictitiousPrimaryReserveBalance;
                 primaryReserveBalance -= _saleReturn;
+                //TODO: Dont burn twice. Instead pass in subtracted supply as param and burn once.
                 _burn(msg.sender, _tokensPrimaryCurve);
                 _saleReturn = _chargeFee(_saleReturn);
                 // _saleReturn = _sellPrimaryCurve(_tokensPrimaryCurve);
@@ -379,6 +381,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// Buyout is initiated only when total bid amount >= currentValuation but extra funds over currentValuation are sent back to user
     function initiateBuyout() external payable whenNotPaused {
         require(status == Status.initialised, "NibblVault: Status!=Initialised");
+        //TODO: remove below statement
         require(unsettledBids[msg.sender] == 0, "NibblVault: Unsettled Bids");
         uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         //_buyoutBid: Bid User has made
@@ -407,7 +410,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         uint256 _twav = _getTwav();
         if (_twav >= buyoutRejectionValuation) {
             uint256 _buyoutValuationDeposit = buyoutValuationDeposit;
-            unsettledBids[bidder] = _buyoutValuationDeposit;
+            unsettledBids[bidder] += _buyoutValuationDeposit;
             totalUnsettledBids += _buyoutValuationDeposit;
             delete buyoutRejectionValuation;
             delete buyoutEndTime;

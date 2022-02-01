@@ -308,7 +308,7 @@ describe("Buyout", function () {
       }
     }
     // --------------------- Buyout Rejected--------------------------//
-    await expect(this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit })).to.be.revertedWith("NibblVault: Unsettled Bids");
+    await expect(this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(10)) })).to.be.revertedWith("NibblVault: Unsettled Bids");
   });
 
 
