@@ -211,7 +211,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         feeAccruedCurator += _feeCurator;
         uint256 _maxSecondaryBalanceIncrease = fictitiousPrimaryReserveBalance - secondaryReserveBalance;
         _feeCurve = _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease; // the curve fee is capped so that secondaryReserveBalance <= fictitiousPrimaryReserveBalance
-        secondaryReserveBalance += _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease;
+        secondaryReserveBalance += _feeCurve;
         secondaryReserveRatio = uint32((secondaryReserveBalance * SCALE * 1e18) / (initialTokenSupply * initialTokenPrice)); //secondaryReserveRatio is updated on every trade 
         if(_adminFeeAmt > 0) {
             safeTransferETH(_factory, _feeAdmin); //Transfers admin fee to the factory contract
@@ -336,7 +336,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @param _amtIn Continous Tokens to be sold
     /// @param _minAmtOut Reserve Tokens to be sent after a successful sell
     /// @param _to Address to recieve the reserve token to
-    function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external notBoughtOut lock whenNotPaused{
+    function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external notBoughtOut whenNotPaused{
         //Make update on the first tx of the block
         if (status == Status.buyout) {
             uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
@@ -374,8 +374,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// Buyout is initiated only when total bid amount >= currentValuation but extra funds over currentValuation are sent back to user
     function initiateBuyout() external payable whenNotPaused {
         require(status == Status.initialised, "NibblVault: Status!=Initialised");
-        //TODO: remove below statement
-        require(unsettledBids[msg.sender] == 0, "NibblVault: Unsettled Bids");
         uint256 _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         //_buyoutBid: Bid User has made
         uint256 _currentValuation = getCurrentValuation();
@@ -410,6 +408,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
             delete bidder;
             delete twavObservations;
             delete twavObservationsIndex;
+            delete lastBlockTimeStamp;
             status = Status.initialised;
             emit BuyoutRejected();
         }
@@ -447,10 +446,11 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @notice Function to allow curator to redeem accumulated curator fee.
     /// @param _to the address where curator fee will be sent
     /// @dev can only be called by curator
-    function redeemCuratorFee(address payable _to) external lock {
-        require(msg.sender==curator,"NibblVault: Only Curator");
-        safeTransferETH(_to, feeAccruedCurator);
+    function redeemCuratorFee(address payable _to) external {
+        require(msg.sender == curator,"NibblVault: Only Curator");
+        uint256 _feeAccruedCurator = feeAccruedCurator;
         feeAccruedCurator = 0;
+        safeTransferETH(_to, _feeAccruedCurator);
     }
 
     /// @notice Function to update curator fee percentage
