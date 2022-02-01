@@ -251,29 +251,25 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     }
 
     /// @notice function to buy tokens on primary curve
-    /// @param _to Address to send the bought tokens to
     /// @param _amount amount of reserve tokens to buy continous tokens
     /// @dev This is executed when current supply >= initial supply
     /// @dev _amount is charged with fee
     /// @dev _purchaseReturn is minted to _to
     /// @return _purchaseReturn Purchase return
-    function _buyPrimaryCurve(address _to, uint256 _amount) private returns (uint256 _purchaseReturn) {
+    function _buyPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns (uint256 _purchaseReturn) {
         uint256 _amountIn = _chargeFee(_amount);
-        _purchaseReturn = _calculatePurchaseReturn(totalSupply(), primaryReserveBalance, primaryReserveRatio, _amountIn);
+        _purchaseReturn = _calculatePurchaseReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amountIn);
         primaryReserveBalance += _amountIn;
-        _mint(_to, _purchaseReturn);
     }
     /// @notice function to buy tokens on secondary curve
-    /// @param _to Address to send the bought tokens to
     /// @param _amount amount of reserve tokens to buy continous  tokens
     /// @dev This is executed when current supply < initial supply
     /// @dev fee isn't levied on secondary curve
     /// @dev _purchaseReturn is minted to _to
     /// @return _purchaseReturn Purchase return
-    function _buySecondaryCurve(address _to, uint256 _amount) private returns (uint256 _purchaseReturn) {
-        _purchaseReturn = _calculatePurchaseReturn(totalSupply(), secondaryReserveBalance, secondaryReserveRatio, _amount);
+    function _buySecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns (uint256 _purchaseReturn) {
+        _purchaseReturn = _calculatePurchaseReturn(_totalSupply, secondaryReserveBalance, secondaryReserveRatio, _amount);
         secondaryReserveBalance += _amount;
-        _mint(_to, _purchaseReturn);
     }
 
     /// @notice The function to buy fractional tokens for reserveTokens
@@ -292,22 +288,24 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
             }
         }
         uint256 _purchaseReturn;
-        if (totalSupply() >= initialTokenSupply) { 
-            _purchaseReturn = _buyPrimaryCurve(_to, msg.value);
+        uint256 _initialTokenSupply = initialTokenSupply;
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply >= _initialTokenSupply) {
+            _purchaseReturn = _buyPrimaryCurve(msg.value, _totalSupply);
         } else {
             uint256 _lowerCurveDiff = getMaxSecondaryCurveBalance() - secondaryReserveBalance;
             if (_lowerCurveDiff >= msg.value) {
-                _purchaseReturn = _buySecondaryCurve(_to, msg.value);
+                _purchaseReturn = _buySecondaryCurve(msg.value, _totalSupply);
             } else {
                 //Gas Optimization
-                _purchaseReturn = initialTokenSupply - totalSupply();
+                _purchaseReturn = _initialTokenSupply - _totalSupply;
                 secondaryReserveBalance += _lowerCurveDiff;
-                _mint(_to, _purchaseReturn);
                 // _purchaseReturn = _buySecondaryCurve(_to, _lowerCurveDiff);
-                _purchaseReturn += _buyPrimaryCurve(_to, msg.value - _lowerCurveDiff);
+                _purchaseReturn += _buyPrimaryCurve(msg.value - _lowerCurveDiff, _totalSupply + _purchaseReturn);
             } 
         }
         require(_minAmtOut <= _purchaseReturn, "NibblVault: Return too low");
+        _mint(_to, _purchaseReturn);
     }
 
     /// @notice The function to sell fractional tokens on primary curve
@@ -315,10 +313,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @dev _amount is charged with fee
     /// @param _amount Amount of tokens to be sold on primary curve
     /// @return _saleReturn Sale Return
-    function _sellPrimaryCurve(uint256 _amount) private returns(uint256 _saleReturn) {
-        _saleReturn = _calculateSaleReturn(totalSupply(), primaryReserveBalance, primaryReserveRatio, _amount);
+    function _sellPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn) {
+        _saleReturn = _calculateSaleReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amount);
         primaryReserveBalance -= _saleReturn;
-        _burn(msg.sender, _amount);
         _saleReturn = _chargeFee(_saleReturn);
     }
 
@@ -327,10 +324,9 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @dev fee ins't levied on secondary curve
     /// @param _amount Amount of tokens to be sold on SecondaryCurve
     ///  @return _saleReturn Sale Return
-    function _sellSecondaryCurve(uint256 _amount) private returns(uint256 _saleReturn){
-        _saleReturn = _calculateSaleReturn(totalSupply(), secondaryReserveBalance, secondaryReserveRatio, _amount);
+    function _sellSecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn){
+        _saleReturn = _calculateSaleReturn(_totalSupply, secondaryReserveBalance, secondaryReserveRatio, _amount);
         secondaryReserveBalance -= _saleReturn;
-        _burn(msg.sender, _amount);
     }
 
     /// @notice The function to sell fractional tokens for reserve token
@@ -350,24 +346,24 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
             }
         }
         uint256 _saleReturn;
-        if(totalSupply() > initialTokenSupply) {
-            //TODO: Fix multiple reads in this function for initialTokenSupply, totalSupply();
-            if ((initialTokenSupply + _amtIn) <= totalSupply()) {
-                _saleReturn = _sellPrimaryCurve(_amtIn);
+        uint256 _initialTokenSupply = initialTokenSupply;
+        uint256 _totalSupply = totalSupply();
+        if(_totalSupply > _initialTokenSupply) {
+            if ((_initialTokenSupply + _amtIn) <= _totalSupply) {
+                _saleReturn = _sellPrimaryCurve(_amtIn, _totalSupply);
             } else {
                 //Gas Optimization
-                uint256 _tokensPrimaryCurve = totalSupply() - initialTokenSupply;
+                uint256 _tokensPrimaryCurve = _totalSupply - _initialTokenSupply;
                 _saleReturn = primaryReserveBalance - fictitiousPrimaryReserveBalance;
                 primaryReserveBalance -= _saleReturn;
-                //TODO: Dont burn twice. Instead pass in subtracted supply as param and burn once.
-                _burn(msg.sender, _tokensPrimaryCurve);
                 _saleReturn = _chargeFee(_saleReturn);
                 // _saleReturn = _sellPrimaryCurve(_tokensPrimaryCurve);
-                _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve);
+                _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve, _totalSupply - _tokensPrimaryCurve);
             } } else {
-                _saleReturn = _sellSecondaryCurve(_amtIn);
+                _saleReturn = _sellSecondaryCurve(_amtIn,_totalSupply);
         }
         require(_saleReturn >= _minAmtOut, "NibblVault: Return too low");
+        _burn(msg.sender, _amtIn);
         safeTransferETH(_to, _saleReturn); //send _saleReturn to _to
     }
 
