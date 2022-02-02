@@ -17,7 +17,7 @@ import "hardhat/console.sol";
 /// @dev This contract creates 2 bonding curves, referred to as primary curve and secondary curve.
 /// @dev The primary curve has fixed specifications and fixed reserveRatio.
 /// @dev The secondary curve is dynamic and has a variable reserveRatio, which depends on initial conditions given by the curator and the fee accumulated by the curve.
-contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
+contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, EIP712Base {
 
     /// @notice Scale for calculations to avoid rounding errors
     uint256 private constant SCALE = 1_000_000; 
@@ -38,6 +38,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     /// @notice The percentage of fee that goes for liquidity in lower curve until its reserve ratio becomes equal to primaryReserveRatio
     uint256 private constant CURVE_FEE_AMT = 4_000;
+    bytes32 private constant _PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
 
     /// @notice The reserve ratio of the secondary curve.
@@ -173,6 +174,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         uint256 _initialTokenSupply,
         uint256 _initialTokenPrice
     ) external initializer payable {
+        INIT_EIP712("NibblVault", "1");
         __ERC20_init(_tokenName, _tokenSymbol);
         unlocked = 1;
         initialTokenPrice=_initialTokenPrice;
@@ -514,6 +516,25 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         require(NibblVaultFactory(factory).hasRole(NibblVaultFactory(factory).PAUSER_ROLE(), msg.sender),"NibblVault: Only PauserRole");
         uint256 balance = IERC1155(_asset).balanceOf(address(this),  _assetID);
         IERC1155(_asset).safeTransferFrom(address(this), _to, _assetID, balance, "0");
+    }
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public {
+        require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
+
+        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _nonces[owner], deadline));
+
+        address signer = ecrecover(toTypedMessageHash(structHash), v, r, s);
+
+        require(signer == owner, "ERC20Permit: invalid signature");
+        _approve(owner, spender, value);
     }
     
     function safeTransferETH(address payable _to, uint256 _amount) private {

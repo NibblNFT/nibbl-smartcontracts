@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts v4.4.1 (access/AccessControl.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 contract EIP712Base {
     struct EIP712Domain {
@@ -19,7 +18,7 @@ contract EIP712Base {
 
     bytes32 internal domainSeperator;
 
-    constructor(string memory name, string memory version) {
+    function INIT_EIP712(string memory name, string memory version) internal {
         domainSeperator = keccak256(
             abi.encode(
                 EIP712_DOMAIN_TYPEHASH,

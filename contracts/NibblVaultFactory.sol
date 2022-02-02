@@ -104,7 +104,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     function updateNewAdminFeeAddress() external {
         require(feeToUpdateTime != 0 && block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeTo = pendingFeeTo;
-        feeToUpdateTime = 0;
+        delete feeToUpdateTime;
     }
 
     /// @notice proposes new admin fee
@@ -121,7 +121,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     function updateNewAdminFee() external {
         require(feeAdminUpdateTime != 0 && block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeAdmin = pendingFeeAdmin;
-        feeAdminUpdateTime = 0;
+        delete feeAdminUpdateTime;
     }
 
     /// @notice proposes new vault implementation
@@ -137,7 +137,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     function updateVaultImplementation() external {
         require(vaultUpdateTime != 0 && block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         vaultImplementation = pendingVaultImplementation;
-        vaultUpdateTime = 0;
+        delete vaultUpdateTime;
     }
     
     /// @notice proposes new basket implementation
@@ -153,7 +153,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     function updateBasketImplementation() external {
         require(basketUpdateTime != 0 && block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         basketImplementation = pendingBasketImplementation;
-        basketUpdateTime = 0;
+        delete basketUpdateTime;
     }
 
     /// @notice pauses the system
