@@ -10,9 +10,6 @@ describe('MultiVault', function () {
 
     const SCALE: BigNumber = BigNumber.from(1e6);
     const decimal = BigNumber.from((1e18).toString());    
-    const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
-    const FEE_CURATOR: BigNumber = BigNumber.from(4_000);
-    const FEE_CURVE: BigNumber = BigNumber.from(4_000);
     
     const MAX_FEE_ADMIN: BigNumber = BigNumber.from(2_000);
     const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000);
@@ -28,7 +25,10 @@ describe('MultiVault', function () {
     const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
     const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);    
     const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
-
+    const FEE_CURVE: BigNumber = BigNumber.from(4_000);
+    const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.lt(BigNumber.from(100_000)) ? initialSecondaryReserveRatio.div(BigNumber.from(10)) : BigNumber.from(10_000);
+    const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
+    
     beforeEach(async function () {        
         const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
         this.curator = curator;
@@ -73,7 +73,7 @@ describe('MultiVault', function () {
         this.TestBancorBondingCurve = await ethers.getContractFactory("TestBancorBondingCurve");
         this.testBancorBondingCurve = await this.TestBancorBondingCurve.deploy();
         await this.testBancorBondingCurve.deployed();
-        await this.tokenVaultFactory.createMultiVaultERC721(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply, 10**14, MAX_FEE_CURATOR, {value: initialSecondaryReserveBalance});
+        await this.tokenVaultFactory.createMultiVaultERC721(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply, 10**14, {value: initialSecondaryReserveBalance});
         const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
         this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     })
@@ -98,7 +98,7 @@ describe('MultiVault', function () {
         const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
         const _purchaseReturn = await mintTokens(this.testBancorBondingCurve, initialTokenSupply, primaryReserveBalance, primaryReserveRatio, _buyAmountWithFee);
         const _initialBalanceFactory = await this.admin.provider.getBalance(this.tokenVaultFactory.address);
-        const _newSecBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
+        const _newSecBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURVE)).div(SCALE));
         await this.tokenVault.connect(this.buyer1).buy(_purchaseReturn, this.buyer1.address, { value: _buyAmount });
         expect(await this.tokenVault.balanceOf(this.buyer1.address)).to.equal(_purchaseReturn);
         expect(await this.tokenVault.secondaryReserveBalance()).to.equal(_newSecBalance);

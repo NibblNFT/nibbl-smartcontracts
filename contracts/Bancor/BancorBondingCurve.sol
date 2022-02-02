@@ -13,8 +13,6 @@ import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract BancorBondingCurve {
     using SafeMath for uint256;
     
-    string public version = '0.3';
-
     uint256 private constant ONE = 1;
     uint32 private constant MAX_WEIGHT = 1_000_000;
     uint8 private constant MIN_PRECISION = 32;

@@ -11,7 +11,6 @@ describe("Buyout", function () {
   const SCALE: BigNumber = BigNumber.from(1e6);
   const decimal = BigNumber.from((1e18).toString());
   const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
-  const FEE_CURATOR: BigNumber = BigNumber.from(4_000);
   const FEE_CURVE: BigNumber = BigNumber.from(4_000);
   const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000);
   const rejectionPremium: BigNumber = BigNumber.from(100_000);
@@ -26,6 +25,7 @@ describe("Buyout", function () {
   const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
   const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
+  const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.lt(BigNumber.from(100_000)) ? initialSecondaryReserveRatio.div(BigNumber.from(10)) : BigNumber.from(10_000);
 
   beforeEach(async function () {
     const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
@@ -67,7 +67,7 @@ describe("Buyout", function () {
     await this.testTWAV.deployed();
     await this.testBancorBondingCurve.deployed();
 
-    await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR, { value: initialSecondaryReserveBalance });
+    await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply,10**14, {value: initialSecondaryReserveBalance});
     const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
     this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     this.twav = new TWAV();
@@ -279,40 +279,7 @@ describe("Buyout", function () {
     await expect(this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit })).to.be.revertedWith("NibblVault: Status!=Initialised");
   });
 
-  it("User shouldn't be able to initiate buyout with unsettled bids.", async function () {
-    blockTime = await this.testTWAV.getCurrentBlockTime();
-    blockTime = blockTime.add(THREE_MINS);
-    await setTime(blockTime.toNumber());
-    let currentValuation: BigNumber = initialValuation;
-    const buyoutBidDeposit: BigNumber = currentValuation.sub(primaryReserveBalance.sub(fictitiousPrimaryReserveBalance)).sub(initialSecondaryReserveBalance);
-    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
-    // ---------------------Buyout Initiated--------------------------//
-    
-    for (let index = 0; true; index++) {
-      blockTime = blockTime.add(THREE_MINS);      
-      await setTime(blockTime.toNumber());        
-      const _buyAmount = ethers.utils.parseEther("2");      
-      const _feeTotal = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
-      const _initialSecondaryBalance = await this.tokenVault.secondaryReserveBalance();
-      const _initialPrimaryBalance = await this.tokenVault.primaryReserveBalance();
-      const buyoutRejectionValuation: BigNumber = currentValuation.mul(SCALE.add(rejectionPremium)).div(SCALE);
-      const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(SCALE));
-      const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
-      const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
-      const _newSecondaryResRatio = _newSecondaryBalance.mul(SCALE).div(initialValuation);
-      this.twav.addObservation(currentValuation, blockTime);
-      await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount });
-      currentValuation = (_newSecondaryBalance.mul(SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(fictitiousPrimaryReserveBalance)).mul(SCALE).div(primaryReserveRatio));
-      if (this.twav.getTwav() >= buyoutRejectionValuation) {
-        break;
-      }
-    }
-    // --------------------- Buyout Rejected--------------------------//
-    await expect(this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(10)) })).to.be.revertedWith("NibblVault: Unsettled Bids");
-  });
-
-
-  it("User should be able to withdraw unsettled bids", async function () {
+  it("Should be able to withdraw unsettled bids", async function () {
     blockTime = await this.testTWAV.getCurrentBlockTime();
     blockTime = blockTime.add(THREE_MINS);
     await setTime(blockTime.toNumber());
@@ -394,39 +361,24 @@ describe("Buyout", function () {
     let balanceContract = initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
     blockTime = await this.testTWAV.getCurrentBlockTime();
     let _primaryReserveBalance = primaryReserveBalance;
+    let _secondaryReserveBalance = initialSecondaryReserveBalance;
     const FEE_TOTAL = FEE_ADMIN.add(FEE_CURATOR).add(FEE_CURVE);
+
+    const e18 = (BigNumber.from(10)).pow(18);
 
     let _buyAmount = ethers.utils.parseEther("20");      
     balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
     curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
     _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
-    await this.tokenVault.connect(this.buyer1).buy(0, this.buyer1.address, { value: _buyAmount }); 
-        
-    _buyAmount = ethers.utils.parseEther("20");      
-    balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
-    curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
-    _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
-    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount }); 
+    _secondaryReserveBalance = _secondaryReserveBalance.add((_buyAmount.mul(FEE_CURVE)).div(SCALE));
+    let _secondaryReserveRatio = (_secondaryReserveBalance.mul(SCALE).mul(e18)).div(initialTokenSupply.mul(initialTokenPrice));
+    await this.tokenVault.connect(this.addr1).buy(0, this.buyer1.address, { value: _buyAmount }); 
+
+    const _buyoutDeposit = BigNumber.from("109600000000000000000");
     
-    _buyAmount = ethers.utils.parseEther("20");      
-    balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
-    curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
-    _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
-    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount }); 
-    
-    _buyAmount = ethers.utils.parseEther("20");      
-    balanceContract = balanceContract.add(_buyAmount.sub(_buyAmount.mul(FEE_ADMIN).div(SCALE)));
-    curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(FEE_CURATOR)).div(SCALE));
-    _primaryReserveBalance = _primaryReserveBalance.add(_buyAmount.sub(_buyAmount.mul(FEE_TOTAL).div(SCALE)));
-    await this.tokenVault.connect(this.buyer1).buy(0, this.addr1.address, { value: _buyAmount });
-    blockTime = blockTime.add(THREE_MINS);
-    await setTime(blockTime.toNumber());
-    const buyoutBidDeposit = BigNumber.from("168880000000000000000");
-    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: buyoutBidDeposit });
-    
+    await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: _buyoutDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    _buyAmount = ethers.utils.parseEther("2");      
-    balanceContract = balanceContract.add(buyoutBidDeposit);
+    balanceContract = balanceContract.add(_buyoutDeposit);
     increaseTime(3, "days");
     const balanceBuyer = await this.tokenVault.balanceOf(this.buyer1.address);
     const totalSupply = await this.tokenVault.totalSupply();

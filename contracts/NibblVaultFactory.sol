@@ -36,20 +36,18 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     /// @param _symbol symbol of the fractional token
     /// @param _initialSupply desired initial token supply
     /// @param _initialTokenPrice desired initial token price
-    /// @param _curatorFee fee percentage for curator
     function createVault(
         address _assetAddress,
         uint256 _assetTokenID,
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply,
-        uint256 _initialTokenPrice,
-        uint256 _curatorFee
-    ) external payable whenNotPaused returns(Proxy _proxyVault) {
+        uint256 _initialTokenPrice
+        ) external payable whenNotPaused returns(Proxy _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(payable(_proxyVault));
-        _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
+        _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice);
         IERC721(_assetAddress).safeTransferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(_proxyVault);
         emit Fractionalise(_assetAddress, _assetTokenID, address(_proxyVault));
@@ -62,7 +60,6 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
     /// @param _symbol symbol of the fractional token
     /// @param _initialSupply desired initial token supply
     /// @param _initialTokenPrice desired initial token price
-    /// @param _curatorFee fee percentage for curator
     /// @dev this function should be called from a contract which performs important safety checks
     function createMultiVaultERC721(
         address[] memory _assetAddressesERC721,
@@ -70,8 +67,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply,
-        uint256 _initialTokenPrice,
-        uint256 _curatorFee
+        uint256 _initialTokenPrice
     ) external payable whenNotPaused returns(Proxy _proxyVault, Proxy _proxyBasket ) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         _proxyBasket = new Proxy(basketImplementation);
@@ -82,7 +78,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         }
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(payable(_proxyVault));
-        _vault.initialise{value: msg.value}(_name, _symbol, address(_proxyBasket), 0, msg.sender, _initialSupply,_initialTokenPrice,_curatorFee);
+        _vault.initialise{value: msg.value}(_name, _symbol, address(_proxyBasket), 0, msg.sender, _initialSupply,_initialTokenPrice);
         IERC721(address(_proxyBasket)).safeTransferFrom(address(this), address(_vault), 0);
         nibbledTokens.push(_proxyVault);
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));

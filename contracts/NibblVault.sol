@@ -9,8 +9,8 @@ import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
-
-
+import { EIP712Base } from "./Utilities/EIP712Base.sol";
+import "hardhat/console.sol";
 
 /// @title Vault to lock NFTs and fractionalise ERC721 to ERC20s.
 /// @dev This contract uses Bancor Formula to create a market for fractionalised ERC20s.
@@ -37,7 +37,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     uint256 private constant BUYOUT_DURATION = 3 days; 
 
     /// @notice The percentage of fee that goes for liquidity in lower curve until its reserve ratio becomes equal to primaryReserveRatio
-    uint256 private constant CURVE_FEE_AMT = 4_000; 
+    uint256 private constant CURVE_FEE_AMT = 4_000;
+
 
     /// @notice The reserve ratio of the secondary curve.
     /// @dev secondaryReserveRatio has been multiplied with SCALE
@@ -101,7 +102,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
 
     /// @notice mapping of buyout bidders and their respective unsettled bids
     mapping(address => uint256) public unsettledBids; 
-
+    mapping(address => uint256) private _nonces; 
+    
 
     enum Status {initialised, buyout}
 
@@ -158,7 +160,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @param _assetID tokenId of the ERC721 being fractionalised
     /// @param _initialTokenSupply desired initial supply to be minted to curator
     /// @param _initialTokenPrice desired initial token price set by curator 
-    /// @param _curatorFee fee percentage for curator
     /// @param _curator owner of the asset being fractionalized
     /// @dev valuation = price * supply
     /// @dev reserveBalance = valuation * reserveRatio
@@ -170,12 +171,10 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         uint256 _assetID,
         address _curator,
         uint256 _initialTokenSupply,
-        uint256 _initialTokenPrice,
-        uint256 _curatorFee
+        uint256 _initialTokenPrice
     ) external initializer payable {
         __ERC20_init(_tokenName, _tokenSymbol);
         unlocked = 1;
-        curatorFee = _curatorFee;
         initialTokenPrice=_initialTokenPrice;
         factory = payable(msg.sender);
         assetAddress = _assetAddress;
@@ -188,10 +187,14 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         secondaryReserveBalance = msg.value;
         uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * _initialTokenPrice));
         secondaryReserveRatio = _secondaryReserveRatio;
-        require(_curatorFee <= MAX_CURATOR_FEE(), "NibblVault: Invalid fee");
+        curatorFee = _secondaryReserveRatio  < 100_000 ? _secondaryReserveRatio / 10 : 10_000;
         require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
         require(_secondaryReserveRatio >= 1_000, "NibblVault: secResRatio too low");
         _mint(_curator, _initialTokenSupply);
+    }
+
+    function getNonce(address _user) public view returns (uint256) {
+        return _nonces[_user];
     }
 
     /// @notice Function used to charge fee on trades
@@ -204,9 +207,8 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     function _chargeFee(uint256 _amount) private returns(uint256){
         address payable _factory = factory;
         uint256 _adminFeeAmt = NibblVaultFactory(_factory).feeAdmin();
-        uint256 _curatorFeeAmt = curatorFee;
         uint256 _feeAdmin = (_amount * _adminFeeAmt) / SCALE ;
-        uint256 _feeCurator = (_amount * _curatorFeeAmt) / SCALE ;
+        uint256 _feeCurator = (_amount * curatorFee) / SCALE ;
         uint256 _feeCurve = (_amount * CURVE_FEE_AMT) / SCALE ;
         feeAccruedCurator += _feeCurator;
         uint256 _maxSecondaryBalanceIncrease = fictitiousPrimaryReserveBalance - secondaryReserveBalance;
@@ -236,18 +238,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
     /// @return Current valuation of the system
     function getCurrentValuation() private view returns(uint256){
             return totalSupply() < initialTokenSupply ? (secondaryReserveBalance * SCALE /secondaryReserveRatio) : ((primaryReserveBalance) * SCALE  / primaryReserveRatio);
-    }
-
-    /// @notice Maximum curator fee curator can levied by curator 
-    /// @dev Maximum curator fee is increases once secondaryReserveRatio = primaryReserveRatio
-    /// @dev Maximum curator fee is multiplied with SCALE, i.e. 5000 = (5000 / SCALE) * 100 = 0.5% 
-    /// @return Maximum curator fee
-    function MAX_CURATOR_FEE() view private returns (uint256) {
-        if (secondaryReserveRatio < primaryReserveRatio) {
-            return 5_000;
-        } else {
-            return 10_000;
-        }            
     }
 
     /// @notice function to buy tokens on primary curve
@@ -453,16 +443,6 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         safeTransferETH(_to, _feeAccruedCurator);
     }
 
-    /// @notice Function to update curator fee percentage
-    /// @param _newFee New curator fee 
-    /// @dev can only be called by curator
-    function updateCuratorFee(uint256 _newFee) external {
-        require(msg.sender == curator,"NibblVault: Only Curator");
-        require(_newFee <= MAX_CURATOR_FEE(),"NibblVault: Invalid fee");
-        curatorFee = _newFee;
-        emit CuratorFeeUpdated(_newFee);
-    }
-
     /// @notice Function for allowing bidder to unlock his ERC721 in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external boughtOut {
@@ -535,7 +515,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav {
         uint256 balance = IERC1155(_asset).balanceOf(address(this),  _assetID);
         IERC1155(_asset).safeTransferFrom(address(this), _to, _assetID, balance, "0");
     }
-
+    
     function safeTransferETH(address payable _to, uint256 _amount) private {
         (bool success, ) = _to.call{value: _amount}("");
         require(success, "NibblVault: ETH transfer failed");

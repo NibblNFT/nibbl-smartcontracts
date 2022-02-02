@@ -10,9 +10,6 @@ describe("Access control & Pause", function () {
   const tokenSymbol = "NIBBL";
   const SCALE: BigNumber = BigNumber.from(1e6);
   const decimal = BigNumber.from((1e18).toString());
-  const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
-  const FEE_CURATOR: BigNumber = BigNumber.from(4_000);
-  const FEE_CURVE: BigNumber = BigNumber.from(4_000);
   const MAX_FEE_CURATOR: BigNumber = BigNumber.from(4_000);
   const rejectionPremium: BigNumber = BigNumber.from(100_000);
   const primaryReserveRatio: BigNumber = BigNumber.from(500_000);
@@ -26,6 +23,9 @@ describe("Access control & Pause", function () {
   const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
   const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
+  const FEE_CURVE: BigNumber = BigNumber.from(4_000);
+  const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.lt(BigNumber.from(100_000)) ? initialSecondaryReserveRatio.div(BigNumber.from(10)) : BigNumber.from(10_000);
+  const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
 
   beforeEach(async function () {
     const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
@@ -68,7 +68,7 @@ describe("Access control & Pause", function () {
     await this.testTWAV.deployed();
     await this.testBancorBondingCurve.deployed();
 
-    await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, MAX_FEE_CURATOR, { value: initialSecondaryReserveBalance });
+    await this.tokenVaultFactory.createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply,10**14, {value: initialSecondaryReserveBalance});
     const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
     this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
     this.twav = new TWAV();
