@@ -25,7 +25,9 @@ describe("Buyout", function () {
   const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation);
   const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
-  const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.lt(BigNumber.from(100_000)) ? initialSecondaryReserveRatio.div(BigNumber.from(10)) : BigNumber.from(10_000);
+  const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
+  //   const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
+
 
   beforeEach(async function () {
     const [curator, admin, buyer1, buyer2, addr1, implementerRole, feeRole, pauserRole] = await ethers.getSigners();
@@ -374,8 +376,9 @@ describe("Buyout", function () {
     let _secondaryReserveRatio = (_secondaryReserveBalance.mul(SCALE).mul(e18)).div(initialTokenSupply.mul(initialTokenPrice));
     await this.tokenVault.connect(this.addr1).buy(0, this.buyer1.address, { value: _buyAmount }); 
 
-    const _buyoutDeposit = BigNumber.from("109600000000000000000");
-    
+    const _buyoutDeposit = BigNumber.from("109760000000000000000");
+                                          //  109760000000000000000
+                                           
     await this.tokenVault.connect(this.buyer1).initiateBuyout({ value: _buyoutDeposit });
     // ---------------------Buyout Initiated--------------------------//
     balanceContract = balanceContract.add(_buyoutDeposit);

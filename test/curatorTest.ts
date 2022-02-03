@@ -27,7 +27,8 @@ describe("Curator Fees", function () {
   const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const FEE_CURVE: BigNumber = BigNumber.from(4_000);
-  const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.lt(BigNumber.from(100_000)) ? initialSecondaryReserveRatio.div(BigNumber.from(10)) : BigNumber.from(10_000);
+    const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
+
   const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
   // (primaryReserveRatio * initialTokenSupply * INITIAL_TOKEN_PRICE) / (SCALE * 1e18);
 

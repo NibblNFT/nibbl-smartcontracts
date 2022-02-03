@@ -45,6 +45,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         uint256 _initialTokenPrice
         ) external payable whenNotPaused returns(Proxy _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
+        require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "NibblVaultFactory: Invalid sender");
         _proxyVault = new Proxy(vaultImplementation);
         NibblVault _vault = NibblVault(payable(_proxyVault));
         _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice);
@@ -69,6 +70,7 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         uint256 _initialSupply,
         uint256 _initialTokenPrice
     ) external payable whenNotPaused returns(Proxy _proxyVault, Proxy _proxyBasket ) {
+
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         _proxyBasket = new Proxy(basketImplementation);
         Basket _basket = Basket(payable(_proxyBasket));

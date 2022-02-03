@@ -29,7 +29,8 @@ describe("NibblVaultFactory", function () {
   const primaryReserveBalance: BigNumber = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const fictitiousPrimaryReserveBalance = primaryReserveRatio.mul(initialValuation).div(SCALE);
   const FEE_CURVE: BigNumber = BigNumber.from(4_000);
-  const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.lt(BigNumber.from(100_000)) ? initialSecondaryReserveRatio.div(BigNumber.from(10)) : BigNumber.from(10_000);
+    const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
+
   const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
   let blockTime: BigNumber = BigNumber.from(Math.ceil((Date.now() / 1e3)));
   const THREE_MINS: BigNumber = BigNumber.from(180);
@@ -267,6 +268,10 @@ describe("NibblVaultFactory", function () {
         await this.nft.approve(this.tokenVaultFactory.address, index);
     }
     await expect(this.tokenVaultFactory.createMultiVaultERC721(_erc721ArrayAddress, _erc721ArrayTokenIDs, tokenName, tokenSymbol, initialTokenSupply, 10**14, {value: 0})).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");
+  });
+
+    it("should fail if curator isn't sender", async function () {
+    await expect(this.tokenVaultFactory.connect(this.addr1).createVault(this.nft.address, 0, tokenName, tokenSymbol, initialTokenSupply, 10 ** 14, { value: initialSecondaryReserveBalance })).to.be.revertedWith("NibblVaultFactory: Invalid sender");
   });
 
   it("should allow default admin to be able to change RoleAdmin", async function () {

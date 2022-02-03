@@ -10,7 +10,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
-import "hardhat/console.sol";
 
 /// @title Vault to lock NFTs and fractionalise ERC721 to ERC20s.
 /// @dev This contract uses Bancor Formula to create a market for fractionalised ERC20s.
