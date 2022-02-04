@@ -124,5 +124,6 @@ describe("Buyout", function () {
         // function allowance(address owner, address spender) public view virtual override returns (uint256) {
 
       expect(await this.tokenVault.allowance(permit.owner, permit.spender)).to.be.equal(permit.value);
+      expect(await this.tokenVault.getNonce(permit.owner)).to.be.equal(1);
     })
 });

@@ -528,7 +528,7 @@ contract NibblVault is BancorBondingCurve, ERC20Upgradeable, Twav, EIP712Base {
     ) public {
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
-        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _nonces[owner], deadline));
+        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _nonces[owner]++, deadline));
 
         address signer = ecrecover(toTypedMessageHash(structHash), v, r, s);
 
