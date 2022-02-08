@@ -45,17 +45,29 @@ describe("Basket", function () {
         this.nft = await this.NFT.deploy();
         await this.nft.deployed();
 
-        this.ERC1155Token = await ethers.getContractFactory("ERC1155Token");
-        this.erc1155Token = await this.ERC1155Token.deploy();
-        await this.erc1155Token.deployed();
+        this.NibblVault = await ethers.getContractFactory("NibblVault");
+        this.nibblVaultImplementation = await this.NibblVault.deploy();
+        await this.nibblVaultImplementation.deployed();
 
         this.Basket = await ethers.getContractFactory("Basket");
         this.basketImplementation = await this.Basket.deploy();
         await this.basketImplementation.deployed();
 
+
+        this.NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
+        this.tokenVaultFactory = await this.NibblVaultFactory.connect(this.curator).deploy(this.nibblVaultImplementation.address, this.basketImplementation.address, this.admin.address, this.admin.address); 
+        await this.tokenVaultFactory.deployed();
+        
+        this.ERC1155Token = await ethers.getContractFactory("ERC1155Token");
+        this.erc1155Token = await this.ERC1155Token.deploy();
+        await this.erc1155Token.deployed();
+
+
+
         this.Proxy = await ethers.getContractFactory("Proxy");
         this.basket = await this.Proxy.deploy(this.basketImplementation.address);
         await this.basket.deployed();
+
         this.basket = await ethers.getContractAt("Basket", this.basket.address);
         await this.basket.connect(this.curator).initialise();
 
@@ -68,9 +80,28 @@ describe("Basket", function () {
             await this.erc1155Token.mint(this.curator.address, i, 500);
             await this.erc1155Token.connect(this.curator).safeTransferFrom(this.curator.address, this.basket.address, i, 500, "0x00");
         }
-
+        await this.basket.approve(this.tokenVaultFactory.address, 0)
+        console.log(await this.basket.getApproved(0));
+    
     });
 
+    it("Should create a new vault", async function() {
+        await this.tokenVaultFactory.createVault(this.basket.address, 0, tokenName, tokenSymbol, initialTokenSupply,10**14, {value: initialSecondaryReserveBalance});
+        const proxyAddress = await this.tokenVaultFactory.nibbledTokens(0);
+        this.tokenVault = new ethers.Contract(proxyAddress.toString(), this.NibblVault.interface, this.curator);
+        expect(await this.tokenVault.name()).to.equal(tokenName);
+        expect(await this.tokenVault.symbol()).to.equal(tokenSymbol);
+        expect(await this.tokenVault.curator()).to.equal(this.curator.address);
+        expect(await this.tokenVault.status()).to.equal(0);        
+        expect(await this.tokenVault.assetAddress()).to.equal(this.basket.address);
+        expect(await this.tokenVault.assetID()).to.equal(0);
+        expect(await this.tokenVault.initialTokenSupply()).to.equal(initialTokenSupply);
+        expect(await this.tokenVault.secondaryReserveBalance()).to.equal(initialSecondaryReserveBalance);
+        expect(await this.tokenVault.secondaryReserveRatio()).to.equal(initialSecondaryReserveRatio);
+        expect(await this.tokenVault.primaryReserveBalance()).to.equal(primaryReserveBalance);
+        expect(await this.basket.ownerOf(0)).to.equal(this.tokenVault.address);
+    })
+    
     it("Owner of the basket should be able to withdraw single NFT from basket", async function () {
             // function withdrawERC721(address _token, uint256 _tokenId, address _to) external {
         await this.basket.connect(this.curator).withdrawERC721(this.nft.address, 0, this.buyer1.address);
@@ -111,5 +142,6 @@ describe("Basket", function () {
             expect(await this.erc1155Token.balanceOf(this.curator.address, i)).to.equal(500);
         }
     });
+
 
 });
