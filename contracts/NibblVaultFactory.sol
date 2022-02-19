@@ -12,6 +12,7 @@ import { Proxy } from "./Proxy/Proxy.sol";
 import { Basket } from "./Basket.sol";
 import { NibblVaultFactoryData } from "./Utilities/NibblVaultFactoryData.sol";
 import { AccessControlMechanism } from "./Utilities/AccessControlMechanism.sol";
+import "hardhat/console.sol";
 
 contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactoryData {
     /// @notice Minimum initial reserve balance a user has to deposit to create a new vault
@@ -84,6 +85,20 @@ contract NibblVaultFactory is AccessControlMechanism, Pausable, NibblVaultFactor
         IERC721(address(_proxyBasket)).safeTransferFrom(address(this), address(_vault), 0);
         nibbledTokens.push(_proxyVault);
         emit FractionaliseBasket(address(_proxyBasket), address(_proxyVault));
+    }
+
+
+    function createBasket(address _curator) public returns(address) {
+        address payable _basket = payable(new Proxy{salt: keccak256(abi.encodePacked(_curator))}(basketImplementation));
+        Basket(_basket).initialise();
+        return _basket;
+    }
+
+    function getBasketAddress(address _curator) public view returns(address _basket) {
+        bytes32 newsalt = keccak256(abi.encodePacked(_curator));
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(uint160(basketImplementation)));
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
+        _basket = address(uint160(uint256(hash)));     
     }
 
     function withdrawAdminFee() external {

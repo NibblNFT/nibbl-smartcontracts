@@ -61,9 +61,7 @@ describe("Basket", function () {
         this.ERC1155Token = await ethers.getContractFactory("ERC1155Token");
         this.erc1155Token = await this.ERC1155Token.deploy();
         await this.erc1155Token.deployed();
-
-
-
+        
         this.Proxy = await ethers.getContractFactory("Proxy");
         this.basket = await this.Proxy.deploy(this.basketImplementation.address);
         await this.basket.deployed();
@@ -81,7 +79,6 @@ describe("Basket", function () {
             await this.erc1155Token.connect(this.curator).safeTransferFrom(this.curator.address, this.basket.address, i, 500, "0x00");
         }
         await this.basket.approve(this.tokenVaultFactory.address, 0)
-        console.log(await this.basket.getApproved(0));
     
     });
 
