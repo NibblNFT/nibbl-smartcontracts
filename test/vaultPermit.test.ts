@@ -81,7 +81,7 @@ describe("NibblTokenVault: Permit ", function () {
 
     it("Should approve spender via permit", async function () {
 
-        const nonce = await vaultContract.getNonce(await user.getAddress());
+        const nonce = await vaultContract.nonces(await user.getAddress());
         const permit = {
             owner: await user.getAddress(),
             spender: await spender.getAddress(),
@@ -102,7 +102,7 @@ describe("NibblTokenVault: Permit ", function () {
             s);
 
         expect(await vaultContract.allowance(permit.owner, permit.spender)).to.be.equal(permit.value);
-        expect(await vaultContract.getNonce(permit.owner)).to.be.equal(nonce.add(ONE));
+        expect(await vaultContract.nonces(permit.owner)).to.be.equal(nonce.add(ONE));
     })
 
 

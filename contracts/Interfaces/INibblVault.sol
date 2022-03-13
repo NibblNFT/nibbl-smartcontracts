@@ -13,7 +13,6 @@ interface INibblVault is IERC20Upgradeable {
     event Sell(address indexed seller, uint256 indexed continousTokenAmount, uint256 indexed reserveTokenAmt);
 
     function initialise(string memory _tokenName, string memory _tokenSymbol, address _assetAddress, uint256 _assetID, address _curator, uint256 _initialTokenSupply, uint256 _initialTokenPrice) external payable;
-    function getNonce(address _user) external view returns(uint256);
     function buy(uint256 _minAmtOut, address _to) external payable returns(uint256 _purchaseReturn);
     function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external returns(uint256 _saleReturn);
     function initiateBuyout() external payable returns(uint256 _buyoutBid);

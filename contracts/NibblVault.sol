@@ -109,7 +109,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
 
     /// @notice mapping of buyout bidders and their respective unsettled bids
     mapping(address => uint256) public unsettledBids; 
-    mapping(address => uint256) private _nonces; 
+    mapping(address => uint256) public nonces; 
     
     enum Status {initialised, buyout}
 
@@ -183,7 +183,6 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         secondaryReserveBalance = msg.value;
         uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * _initialTokenPrice));
         secondaryReserveRatio = _secondaryReserveRatio;
-        console.log(_secondaryReserveRatio, 10_000, primaryReserveRatio);
         curatorFee = _secondaryReserveRatio * 10_000 / primaryReserveRatio; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
 
         require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
@@ -191,9 +190,6 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         _mint(_curator, _initialTokenSupply);
     }
 
-    function getNonce(address _user) external view override returns (uint256) {
-        return _nonces[_user];
-    }
 
     /// @notice Function used to charge fee on trades
     /// @dev There are 3 different fees charged - admin, curator and curve
@@ -490,7 +486,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         bytes32 s
     ) external override {
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
-        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _nonces[owner]++, deadline));
+        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline));
         address signer = ecrecover(toTypedMessageHash(structHash), v, r, s);
         require(signer == owner, "ERC20Permit: invalid signature");
         _approve(owner, spender, value);
