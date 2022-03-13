@@ -27,6 +27,6 @@
     "@openzeppelin/contracts": "^4.4.0",
     "@openzeppelin/contracts-upgradeable": "^4.4.0",
     "dotenv": "^10.0.0",
-    "hardhat-contract-sizer": "^2.1.1"
+    "hardhat-contract-sizer": "^2.5.0"
   }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.4;
-
+import "hardhat/console.sol";
 contract Twav {
     struct TwavObservation {
         uint32 timestamp;
@@ -10,7 +10,7 @@ contract Twav {
 
     /// @notice current index of twavObservations index
     uint8 public twavObservationsIndex;
-    uint8 private constant TWAV_BLOCK_NUMBERS = 6; //TWAV of last 6 Blocks 
+    uint8 private constant TWAV_BLOCK_NUMBERS = 4; //TWAV of last 4 Blocks 
     uint32 public lastBlockTimeStamp;
 
     /// @notice record of TWAV 
@@ -21,7 +21,6 @@ contract Twav {
     /// @param _valuation current valuation
     function _updateTWAV(uint256 _valuation, uint32 _blockTimestamp) internal {
         uint32 _timeElapsed; 
-
         unchecked {
             _timeElapsed = _blockTimestamp - lastBlockTimeStamp;
         }

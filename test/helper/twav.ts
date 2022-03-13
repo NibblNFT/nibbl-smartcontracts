@@ -1,15 +1,15 @@
 import { BigNumber } from "ethers";
-
+import * as constants from "../constants";
 type TwavObservations = {
         timestamp: BigNumber;
         cumulativeValuation: BigNumber;
 }
 export class TWAV {
     
-    public twavObservations = new Array<TwavObservations>(6);
+    public twavObservations = new Array<TwavObservations>(constants.TWAV_ARRAY_SIZE);
     public twavObservationIndex: number;
     public lastBlockTimeStamp: BigNumber;
-    TWAV_BLOCK_NUMBERS: number = 6;
+    TWAV_BLOCK_NUMBERS: number = constants.TWAV_ARRAY_SIZE;
 
     constructor() {
         this.twavObservationIndex = 0;
@@ -19,7 +19,7 @@ export class TWAV {
         }
     }
 
-    addObservation(_valuation: BigNumber, _blockTimestamp: BigNumber) { 
+    addObservation(_valuation: BigNumber, _blockTimestamp: BigNumber) {         
         const _timeElapsed: BigNumber =_blockTimestamp.sub(this.lastBlockTimeStamp);
         const _prevCumulativeValuation: BigNumber = this.twavObservations[((this.twavObservationIndex + this.TWAV_BLOCK_NUMBERS) - 1) % this.TWAV_BLOCK_NUMBERS].cumulativeValuation;        
         this.twavObservations[this.twavObservationIndex] = { timestamp: _blockTimestamp, cumulativeValuation: _prevCumulativeValuation.add(_valuation.mul(_timeElapsed)) };

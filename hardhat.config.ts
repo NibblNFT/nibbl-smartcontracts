@@ -26,7 +26,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 100,
       }
     }
   },
@@ -36,6 +36,10 @@ const config: HardhatUserConfig = {
       accounts: {
         accountsBalance: "10000000000000000000000000000"
       },
+    },
+    mumbai: {
+      url: `${process.env.MUMBAI_URL}`,
+      accounts: [`${process.env.PRIVATE_KEY}`],
     }
   },
   gasReporter: {

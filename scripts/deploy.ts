@@ -14,12 +14,16 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const Greeter = await ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  const NibblVault = await ethers.getContractFactory("NibblVault");
+  const nibblVault = await NibblVault.deploy();
+  await nibblVault.deployed();
+  console.log("NibblVault Implementation deployed to:", nibblVault.address);
 
-  await greeter.deployed();
-
-  console.log("Greeter deployed to:", greeter.address);
+  const NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
+  const nibblVaultFactory = await NibblVaultFactory.deploy(nibblVault.address, "0x70129EA2f8c3e4CA8C45621A5eC73a5A93a466D3", "0x70129EA2f8c3e4CA8C45621A5eC73a5A93a466D3");
+  await nibblVaultFactory.deployed();
+  console.log("NibblVaultFactory deployed to:", nibblVaultFactory.address);
+  
 }
 
 // We recommend this pattern to be able to use async/await everywhere

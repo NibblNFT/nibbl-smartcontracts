@@ -10,9 +10,12 @@ import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements;
 * and to You under the Apache License, Version 2.0. "
 */
-contract BancorBondingCurve {
+contract TestBancorFormula {
     using SafeMath for uint256;
-    
+
+
+    string public version = '0.3';
+
     uint256 private constant ONE = 1;
     uint32 private constant MAX_WEIGHT = 1_000_000;
     uint8 private constant MIN_PRECISION = 32;
@@ -183,7 +186,7 @@ contract BancorBondingCurve {
         @param _depositAmount       deposit amount, in connector token
         @return purchase return amount
     */
-    function _calculatePurchaseReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _depositAmount) public view returns (uint256) {
+    function calculatePurchaseReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _depositAmount) public view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT);
 
@@ -214,7 +217,7 @@ contract BancorBondingCurve {
         @param _sellAmount          sell amount, in the token itself
         @return sale return amount
     */
-    function _calculateSaleReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _sellAmount) public view returns (uint256) {
+    function calculateSaleReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _sellAmount) public view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT && _sellAmount <= _supply);
 

@@ -1,6 +1,9 @@
 {
     "cSpell.words": [
+        "Initialisation",
+        "Initialised",
         "Nibbl"
     ],
-    "solidity.compileUsingRemoteVersion": "v0.8.4+commit.c7e474f2"
+    "solidity.compileUsingRemoteVersion": "v0.8.4+commit.c7e474f2",
+    "solidity-va.hover": false
 }

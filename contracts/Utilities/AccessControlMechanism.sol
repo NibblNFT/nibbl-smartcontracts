@@ -2,9 +2,10 @@
 // OpenZeppelin Contracts v4.4.1 (access/AccessControl.sol)
 
 pragma solidity ^0.8.0;
+import { IAccessControlMechanism } from "../Interfaces/IAccessControlMechanism.sol";
 
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-contract AccessControlMechanism is AccessControl {
+contract AccessControlMechanism is IAccessControlMechanism, AccessControl{
     // Mechanism to implement propose and claim Access control Roles 
     // grantRole, revokeRole can be used to grant and revoke roles directly
     
@@ -28,7 +29,7 @@ contract AccessControlMechanism is AccessControl {
     /// @dev can only be called adminRole of _role
     /// @param _role roles whose admin needs to be updated
     /// @param _adminRole new admin role
-    function setRoleAdmin(bytes32 _role, bytes32 _adminRole) external onlyRole(getRoleAdmin(_role)) {
+    function setRoleAdmin(bytes32 _role, bytes32 _adminRole) external override onlyRole(getRoleAdmin(_role)) {
         _setRoleAdmin(_role, _adminRole);
     }
 
@@ -36,14 +37,14 @@ contract AccessControlMechanism is AccessControl {
     /// @dev can only be called by admin of that role
     /// @param _role _role to which the user is proposed
     /// @param _to user proposed
-    function proposeGrantRole(bytes32 _role, address _to) external onlyRole(getRoleAdmin(_role)) {
+    function proposeGrantRole(bytes32 _role, address _to) external override onlyRole(getRoleAdmin(_role)) {
         pendingRoles[_role][_to] = true;
     }
 
     /// @notice proposed user needs to claim the role
     /// @dev can only be called by the proposed user
     /// @param _role role to be claimed
-    function claimRole(bytes32 _role) external {
+    function claimRole(bytes32 _role) external override {
         require(pendingRoles[_role][msg.sender], "AccessControl: Role not pending");
         _grantRole(_role, msg.sender);
         delete pendingRoles[_role][msg.sender];

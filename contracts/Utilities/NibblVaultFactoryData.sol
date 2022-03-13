@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity 0.8.4;
 
 contract NibblVaultFactoryData {
@@ -8,10 +10,6 @@ contract NibblVaultFactoryData {
     address public pendingVaultImplementation;
     uint public vaultUpdateTime; //Cooldown period
 
-    address public basketImplementation;
-    address public pendingBasketImplementation;
-    uint public basketUpdateTime; //Cooldown period
-    
     address public feeTo;
     address public pendingFeeTo;
     uint public feeToUpdateTime; //Cooldown period  
