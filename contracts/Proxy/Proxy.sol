@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.4;
-
+import { NibblVaultFactory } from "../NibblVaultFactory.sol";
 
 /**
  * @dev This abstract contract provides a fallback function that delegates all calls to another contract using the EVM
@@ -14,10 +14,10 @@ pragma solidity 0.8.4;
  * The success and return data of the delegated call will be returned back to the caller of the proxy.
  */
 contract Proxy {
-    address immutable public implementation;
+    address payable immutable public factory;
 
-    constructor(address _implementation) {
-        implementation = _implementation;
+    constructor(address _factory) {
+        factory = payable(_factory);
     }
 
     /**
@@ -27,7 +27,7 @@ contract Proxy {
      */
     //solhint-disable-next-line no-complex-fallback
     fallback() external payable virtual {
-        address _implementation = implementation;
+        address _implementation = NibblVaultFactory(factory).vaultImplementation();
         //solhint-disable-next-line no-inline-assembly
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly

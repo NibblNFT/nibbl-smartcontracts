@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity 0.8.4;
-import { Proxy } from "../Proxy/Proxy.sol";
 interface INibblVaultFactory {
     event Fractionalise(address assetAddress, uint256 assetTokenID, address proxyVault);
 
-    function createVault(address _assetAddress, uint256 _assetTokenID, string memory _name, string memory _symbol, uint256 _initialSupply, uint256 _initialTokenPrice) external payable returns(Proxy _proxyVault);
+    function createVault(address _assetAddress, uint256 _assetTokenID, string memory _name, string memory _symbol, uint256 _initialSupply, uint256 _initialTokenPrice) external payable returns(address _proxyVault);
     function withdrawAdminFee() external;
     function proposeNewAdminFeeAddress(address _newFeeAddress) external;
     function updateNewAdminFeeAddress() external;
