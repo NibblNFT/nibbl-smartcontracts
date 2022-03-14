@@ -66,7 +66,7 @@ describe("NibblTokenVault: Initialisation ", function () {
                                                 constants.initialTokenPrice,
                                                 { value: constants.initialSecondaryReserveBalance });
 
-        const proxyAddress = await vaultFactoryContract.nibbledTokens(0);
+        const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, buyer1);
 
     });
@@ -97,6 +97,8 @@ describe("NibblTokenVault: Initialisation ", function () {
     it("should not initialize the vault if secondaryReserveRatio > primaryReserveRatio.", async function () {
         await erc721.mint(await curator.getAddress(), 1);
         await erc721.approve(vaultFactoryContract.address, 1);
+
+        
 
         await expect(vaultFactoryContract.connect(curator).createVault(erc721.address,
                                                 1,

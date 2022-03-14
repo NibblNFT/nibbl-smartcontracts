@@ -184,7 +184,6 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * _initialTokenPrice));
         secondaryReserveRatio = _secondaryReserveRatio;
         curatorFee = _secondaryReserveRatio * 10_000 / primaryReserveRatio; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
-
         require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
         require(_secondaryReserveRatio >= MIN_SECONDARY_RESERVE_RATIO, "NibblVault: secResRatio too low");
         _mint(_curator, _initialTokenSupply);

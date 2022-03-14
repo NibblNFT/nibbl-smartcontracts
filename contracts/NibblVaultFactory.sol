@@ -10,8 +10,9 @@ import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Proxy } from "./Proxy/Proxy.sol";
 import { NibblVaultFactoryData } from "./Utilities/NibblVaultFactoryData.sol";
 import { AccessControlMechanism } from "./Utilities/AccessControlMechanism.sol";
-import { INibblVaultFactory } from "./Interfaces/INibblVaultfactory.sol";
+import { INibblVaultFactory } from "./Interfaces/INibblVaultFactory.sol";
 
+import "hardhat/console.sol";
 contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausable, NibblVaultFactoryData {
     /// @notice Minimum initial reserve balance a user has to deposit to create a new vault/ Defines minimum valuation
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9;
@@ -37,17 +38,30 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         string memory _symbol,
         uint256 _initialSupply,
         uint256 _initialTokenPrice
-        ) external payable override whenNotPaused returns(address _proxyVaultAddress) {
+        ) external payable override whenNotPaused returns(address payable _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "NibblVaultFactory: Invalid sender");
-        Proxy _proxyVault = new Proxy(payable(address(this)));
+        _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(msg.sender, _assetAddress, _assetTokenID, _name, _symbol))}(payable(address(this))));
         NibblVault _vault = NibblVault(payable(_proxyVault));
         _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice);
         IERC721(_assetAddress).safeTransferFrom(msg.sender, address(_vault), _assetTokenID);
-        nibbledTokens.push(_proxyVault);
-        emit Fractionalise(_assetAddress, _assetTokenID, address(_proxyVault));
-        return address(_proxyVault);
+        nibbledTokens.push(Proxy(_proxyVault));
+        emit Fractionalise(_assetAddress, _assetTokenID, _proxyVault);
     }
+
+    function getVaultAddress(
+        address _curator,
+        address _assetAddress,
+        uint256 _assetTokenID,
+        string memory _name,
+        string memory _symbol) public view returns(address _vault) {
+        bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _name, _symbol));
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(uint160(address(this))));
+        bytes32 _hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
+        _vault = address(uint160(uint256(_hash)));     
+    }
+
+
 
     function withdrawAdminFee() external override {
         (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");

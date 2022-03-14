@@ -87,7 +87,7 @@ describe("Buyout", function () {
                                             constants.initialTokenPrice,
                                             { value: constants.initialSecondaryReserveBalance });
 
-        const proxyAddress = await vaultFactoryContract.nibbledTokens(0);
+        const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
         
     });
