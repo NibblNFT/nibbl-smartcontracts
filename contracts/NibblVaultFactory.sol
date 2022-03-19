@@ -61,7 +61,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         _vault = address(uint160(uint256(_hash)));     
     }
 
-
+    function getVaults() public view returns(Proxy[] memory ) {
+        return nibbledTokens;
+    }
 
     function withdrawAdminFee() external override {
         (bool _success, ) = payable(feeTo).call{value: address(this).balance}("");

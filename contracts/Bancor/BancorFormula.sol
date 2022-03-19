@@ -183,7 +183,7 @@ contract BancorFormula {
         @param _depositAmount       deposit amount, in connector token
         @return purchase return amount
     */
-    function _calculatePurchaseReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _depositAmount) public view returns (uint256) {
+    function _calculatePurchaseReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _depositAmount) internal view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT);
 
@@ -214,7 +214,7 @@ contract BancorFormula {
         @param _sellAmount          sell amount, in the token itself
         @return sale return amount
     */
-    function _calculateSaleReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _sellAmount) public view returns (uint256) {
+    function _calculateSaleReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _sellAmount) internal view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT && _sellAmount <= _supply);
 
@@ -255,7 +255,7 @@ contract BancorFormula {
             This allows us to compute "base ^ exp" with maximum accuracy and without exceeding 256 bits in any of the intermediate computations.
             This functions assumes that "_expN < 2 ^ 256 / log(MAX_NUM - 1)", otherwise the multiplication should be replaced with a "safeMul".
     */
-    function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal view returns (uint256, uint8) {
+    function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) private view returns (uint256, uint8) {
         require(_baseN < MAX_NUM);
 
         uint256 baseLog;
@@ -281,7 +281,7 @@ contract BancorFormula {
         Compute log(x / FIXED_1) * FIXED_1.
         This functions assumes that "x >= FIXED_1", because the output would be negative otherwise.
     */
-    function generalLog(uint256 x) internal pure returns (uint256) {
+    function generalLog(uint256 x) private pure returns (uint256) {
         uint256 res = 0;
 
         // If x >= 2, then we compute the integer part of log2(x), which is larger than 0.
@@ -308,7 +308,7 @@ contract BancorFormula {
     /**
         Compute the largest integer smaller than or equal to the binary logarithm of the input.
     */
-    function floorLog2(uint256 _n) internal pure returns (uint8) {
+    function floorLog2(uint256 _n) private pure returns (uint8) {
         uint8 res = 0;
 
         if (_n < 256) {
@@ -336,7 +336,7 @@ contract BancorFormula {
         - This function finds the position of [the smallest value in "maxExpArray" larger than or equal to "x"]
         - This function finds the highest position of [a value in "maxExpArray" larger than or equal to "x"]
     */
-    function findPositionInMaxExpArray(uint256 _x) internal view returns (uint8) {
+    function findPositionInMaxExpArray(uint256 _x) private view returns (uint8) {
         uint8 lo = MIN_PRECISION;
         uint8 hi = MAX_PRECISION;
 
@@ -364,7 +364,7 @@ contract BancorFormula {
         The global "maxExpArray" maps each "precision" to "((maximumExponent + 1) << (MAX_PRECISION - precision)) - 1".
         The maximum permitted value for "x" is therefore given by "maxExpArray[precision] >> (MAX_PRECISION - precision)".
     */
-    function generalExp(uint256 _x, uint8 _precision) internal pure returns (uint256) {
+    function generalExp(uint256 _x, uint8 _precision) private pure returns (uint256) {
         uint256 xi = _x;
         uint256 res = 0;
 
@@ -415,7 +415,7 @@ contract BancorFormula {
         - The natural logarithm of the input is calculated by summing up the intermediate results above
         - For example: log(250) = log(e^4 * e^1 * e^0.5 * 1.021692859) = 4 + 1 + 0.5 + log(1 + 0.021692859)
     */
-    function optimalLog(uint256 x) internal pure returns (uint256) {
+    function optimalLog(uint256 x) private pure returns (uint256) {
         uint256 res = 0;
 
         uint256 y;
@@ -456,7 +456,7 @@ contract BancorFormula {
         - The exponentiation of the input is calculated by multiplying the intermediate results above
         - For example: e^5.521692859 = e^(4 + 1 + 0.5 + 0.021692859) = e^4 * e^1 * e^0.5 * e^0.021692859
     */
-    function optimalExp(uint256 x) internal pure returns (uint256) {
+    function optimalExp(uint256 x) private pure returns (uint256) {
         uint256 res = 0;
 
         uint256 y;

@@ -198,6 +198,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amount amount to charge fee on either a buy or sell order, fee is charged in reserve token
     /// @return the amount after fee is deducted
     function _chargeFee(uint256 _amount) private returns(uint256) {
+
         address payable _factory = factory;
         uint256 _adminFeeAmt = NibblVaultFactory(_factory).feeAdmin();
         uint256 _feeAdmin = (_amount * _adminFeeAmt) / SCALE ;
@@ -298,8 +299,8 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @return _saleReturn Sale Return
     function _sellPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn) {
         _saleReturn = _calculateSaleReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amount);
-        primaryReserveBalance -= _saleReturn;
         _saleReturn = _chargeFee(_saleReturn);
+        primaryReserveBalance -= _saleReturn;
     }
 
     /// @notice The function to sell fractional tokens on secondary curve
@@ -340,7 +341,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
                 primaryReserveBalance -= _saleReturn;
                 _saleReturn = _chargeFee(_saleReturn);
                 // _saleReturn = _sellPrimaryCurve(_tokensPrimaryCurve);
-                _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve, _totalSupply - _tokensPrimaryCurve);
+                _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve, _initialTokenSupply);
             } } else {
                 _saleReturn = _sellSecondaryCurve(_amtIn,_totalSupply);
         }
@@ -448,7 +449,6 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         require(msg.sender == bidder, "NibblVault: Only winner");
         IERC20(_asset).transfer(_to, IERC20(_asset).balanceOf(address(this)));
     }
-
 
     /// @notice withdraw multiple ERC20s
     function withdrawMultipleERC20(address[] memory _assets, address _to) external override boughtOut {
