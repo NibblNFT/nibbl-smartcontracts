@@ -338,8 +338,8 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
                 //Gas Optimization
                 uint256 _tokensPrimaryCurve = _totalSupply - _initialTokenSupply;
                 _saleReturn = primaryReserveBalance - fictitiousPrimaryReserveBalance;
-                primaryReserveBalance -= _saleReturn;
                 _saleReturn = _chargeFee(_saleReturn);
+                primaryReserveBalance -= _saleReturn;
                 // _saleReturn = _sellPrimaryCurve(_tokensPrimaryCurve);
                 _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve, _initialTokenSupply);
             } } else {

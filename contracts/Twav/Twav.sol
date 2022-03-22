@@ -41,4 +41,8 @@ contract Twav {
             _twav = (_twavObservationCurrent.cumulativeValuation - _twavObservationPrev.cumulativeValuation) / (_twavObservationCurrent.timestamp - _twavObservationPrev.timestamp);
         }
     }
+
+    function getTwavObservations() public view returns(TwavObservation[TWAV_BLOCK_NUMBERS] memory) {
+        return twavObservations;
+    }
 }
