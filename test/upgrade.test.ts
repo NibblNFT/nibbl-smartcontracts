@@ -89,7 +89,7 @@ describe("Upgradablity", function () {
                                             constants.initialTokenPrice,
                                             { value: constants.initialSecondaryReserveBalance });
 
-        const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol);
+        const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
 
         const UpgradedNibblVault = await ethers.getContractFactory("UpgradedNibblVault");

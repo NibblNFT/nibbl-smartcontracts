@@ -63,7 +63,7 @@ describe("Curator", function () {
                                             constants.initialTokenPrice,
                                             { value: constants.initialSecondaryReserveBalance });
 
-        const proxyAddress = await vaultFactoryContract.getVaultAddress(await curator.getAddress(), erc721.address, 0, constants.tokenName, constants.tokenSymbol);
+        const proxyAddress = await vaultFactoryContract.getVaultAddress(await curator.getAddress(), erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
 
     });

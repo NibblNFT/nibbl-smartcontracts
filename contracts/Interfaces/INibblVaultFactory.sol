@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity 0.8.4;
+pragma solidity 0.8.10;
 interface INibblVaultFactory {
     event Fractionalise(address assetAddress, uint256 assetTokenID, address proxyVault);
 

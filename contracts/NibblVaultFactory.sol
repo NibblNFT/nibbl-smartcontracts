@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity 0.8.4;
+pragma solidity 0.8.10;
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -41,7 +41,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         ) external payable override whenNotPaused returns(address payable _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "NibblVaultFactory: Invalid sender");
-        _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(msg.sender, _assetAddress, _assetTokenID, _name, _symbol))}(payable(address(this))));
+        _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(msg.sender, _assetAddress, _assetTokenID, _name, _symbol, _initialSupply))}(payable(address(this))));
         NibblVault _vault = NibblVault(payable(_proxyVault));
         _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice);
         IERC721(_assetAddress).safeTransferFrom(msg.sender, address(_vault), _assetTokenID);
@@ -54,8 +54,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         address _assetAddress,
         uint256 _assetTokenID,
         string memory _name,
-        string memory _symbol) public view returns(address _vault) {
-        bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _name, _symbol));
+        string memory _symbol,
+        uint256 _initialSupply) public view returns(address _vault) {
+        bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _name, _symbol, _initialSupply));
         bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(uint160(address(this))));
         bytes32 _hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _vault = address(uint160(uint256(_hash)));     
