@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import { BigNumber, Contract, Signer } from 'ethers';
-import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ONE } from "./helper";
+import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ONE, latest } from "./helper";
 import * as constants from "./constants";
 
 
@@ -64,7 +64,8 @@ describe("NibblTokenVault: Trading ", function () {
                                                 constants.tokenSymbol,
                                                 constants.initialTokenSupply,
                                                 constants.initialTokenPrice,
-            { value: constants.initialSecondaryReserveBalance });
+                                                await latest(),
+              { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, buyer1);

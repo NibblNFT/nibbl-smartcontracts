@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import { BigNumber, Contract, Signer } from 'ethers';
 import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ZERO, latest, advanceTimeAndBlock, duration, ADDRESS_ZERO, E18 } from "./helper";
 import * as constants from "./constants";
@@ -85,6 +85,7 @@ describe("Buyout", function () {
                                             constants.tokenSymbol,
                                             constants.initialTokenSupply,
                                             constants.initialTokenPrice,
+                                            (await latest()).add(duration.days(1)),
                                             { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
@@ -101,7 +102,8 @@ describe("Buyout", function () {
         await restore(snapshotId);
     });
 
-    it("Should initiate buyout when bid == currentValuation", async function () {
+  it("Should initiate buyout when bid == currentValuation", async function () {
+        await advanceTimeAndBlock(duration.days(1));
         const currentValuation: BigNumber = constants.initialValuation;
         const buyoutRejectionValuation: BigNumber = currentValuation.mul((constants.SCALE).add(constants.rejectionPremium)).div(constants.SCALE);
         const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
@@ -119,7 +121,7 @@ describe("Buyout", function () {
     });
 
     it("Should initiate buyout when bid >= currentValuation", async function () {
-
+        await advanceTimeAndBlock(duration.days(1));
         const currentValuation: BigNumber = constants.initialValuation;
         const initialTokenVaultBalance: BigNumber = await buyer1.provider.getBalance(vaultContract.address);
         const buyoutRejectionValuation: BigNumber = currentValuation.mul(constants.SCALE.add(constants.rejectionPremium)).div(constants.SCALE);
@@ -140,8 +142,15 @@ describe("Buyout", function () {
         expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
     });
 
-
-    it("Should update twav on buy when in buyout", async function () {
+  it("Should not initiate buyout if minBuyoutTime < now", async function () {
+        const currentValuation: BigNumber = constants.initialValuation;
+        const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+        await expect(vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit })).to.be.revertedWith("NibblVault: minBuyoutTime < now");
+    });
+  
+  
+  it("Should update twav on buy when in buyout", async function () {
+        await advanceTimeAndBlock(duration.days(1));
         let currentValuation: BigNumber = constants.initialValuation;
         const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
         await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
@@ -182,6 +191,7 @@ describe("Buyout", function () {
     });
 
   it("Should update twav on sell when in buyout", async function () {
+    await advanceTimeAndBlock(duration.days(1));
     let currentValuation: BigNumber = constants.initialValuation;
     const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
@@ -224,7 +234,7 @@ describe("Buyout", function () {
 
 
   it("Should reject buyout", async function () {
-
+    await advanceTimeAndBlock(duration.days(1));
     let currentValuation: BigNumber = constants.initialValuation;
     const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     const buyoutRejectionValuation: BigNumber = currentValuation.mul(constants.SCALE.add(constants.rejectionPremium)).div(constants.SCALE);
@@ -267,6 +277,7 @@ describe("Buyout", function () {
 
 
   it("Shouldn't be able to buy after buyout has been completed.", async function () {
+    await advanceTimeAndBlock(duration.days(1));
     await advanceTimeAndBlock(duration.minutes(3));
     let currentValuation: BigNumber = constants.initialValuation;
     const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
@@ -279,6 +290,7 @@ describe("Buyout", function () {
 
 
   it("Shouldn't be able to sell after buyout has been completed.", async function () {
+    await advanceTimeAndBlock(duration.days(1));
     let currentValuation: BigNumber = constants.initialValuation;
     const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
@@ -290,6 +302,7 @@ describe("Buyout", function () {
   });
 
   it("Shouldn't be able to initiate buyout with buyout already going on", async function () {
+    await advanceTimeAndBlock(duration.days(1));
 
     let currentValuation: BigNumber = constants.initialValuation;
     const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
@@ -300,6 +313,8 @@ describe("Buyout", function () {
 
 
   it("Should be able to withdraw unsettled bids", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     let currentValuation: BigNumber = constants.initialValuation;
     const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
@@ -332,7 +347,9 @@ describe("Buyout", function () {
   });
 
 
- it("User should be able to initiate buyout after rejection of a bid", async function () {
+  it("User should be able to initiate buyout after rejection of a bid", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+   
     let currentValuation: BigNumber = constants.initialValuation;
     let buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     let buyoutRejectionValuation: BigNumber = currentValuation.mul(constants.SCALE.add(constants.rejectionPremium)).div(constants.SCALE);
@@ -389,6 +406,8 @@ describe("Buyout", function () {
   
   
   it("Users should be able redeem funds after buyout", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     let balanceContract = constants.initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
 
     let _buyAmount = ethers.utils.parseEther("20");      
@@ -411,6 +430,8 @@ describe("Buyout", function () {
   });
 
   it("Users should not be able redeem funds before buyout", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     let balanceContract = constants.initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
 
     let _buyAmount = ethers.utils.parseEther("20");      
@@ -422,6 +443,8 @@ describe("Buyout", function () {
   });
 
   it("Users should not be able redeem funds before buyout", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     let balanceContract = constants.initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
 
     let _buyAmount = ethers.utils.parseEther("20");      
@@ -437,6 +460,7 @@ describe("Buyout", function () {
 
   
   it("Winner should be able to withdraw the locked NFT", async function () {
+    await advanceTimeAndBlock(duration.days(1));
     
     const FEE_TOTAL = constants.FEE_ADMIN.add(constants.FEE_CURATOR).add(constants.FEE_CURVE);
 
@@ -452,6 +476,8 @@ describe("Buyout", function () {
   });
 
   it("Winner should be able to withdraw multiple the locked NFT", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
@@ -471,6 +497,8 @@ describe("Buyout", function () {
   });
 
   it("Winner should be able to withdraw locked ERC20s", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
@@ -490,6 +518,8 @@ describe("Buyout", function () {
 
   
   it("Winner should be able to withdraw locked ERC20s", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
@@ -514,6 +544,8 @@ describe("Buyout", function () {
 
 
   it("Winner should be able to withdraw locked ERC1155s", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
@@ -530,6 +562,8 @@ describe("Buyout", function () {
   });
 
   it("Winner should be able to withdraw multiple locked ERC1155s", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
@@ -550,4 +584,43 @@ describe("Buyout", function () {
     expect(await erc1155.balanceOf(buyer1Address, 0)).to.be.equal(amount);
     expect(await erc1155.balanceOf(buyer1Address, 1)).to.be.equal(amount);
   });
+  
+  it("Should update twav only once on buy in a block when in buyout", async function () {
+        await network.provider.send("evm_setAutomine", [false]);
+
+        await advanceTimeAndBlock(duration.days(1));
+        let currentValuation: BigNumber = constants.initialValuation;
+        const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+        await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+        await network.provider.send("evm_mine");
+        let blockTime = await latest();
+        twav.addObservation(currentValuation, blockTime);
+        const twavObs = await vaultContract.twavObservations(0);
+        expect(twavObs.timestamp).to.equal(twav.twavObservations[0].timestamp);
+        expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
+
+        // -------------------------Buyout Initiated--------------------------
+        // ----------------------------1st Buy Operation Initiated-----------------------------------  
+        await advanceTimeAndBlock(duration.minutes(3));
+        const _buyAmount = ethers.utils.parseEther("1");
+        const _feeTotal = (constants.FEE_ADMIN).add(constants.FEE_CURATOR).add(constants.FEE_CURVE);
+        const _initialSecondaryBalance = await vaultContract.secondaryReserveBalance();
+        const _initialPrimaryBalance = await vaultContract.primaryReserveBalance();
+        const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(constants.SCALE));
+        const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
+        const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
+        const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);
+        await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
+        twav.addObservation(currentValuation, blockTime);
+        // ----------------------------1st Buy Operation-----------------------------------  
+        // ----------------------------2nd Buy Operation Initiated-----------------------------------  
+        currentValuation = (_newSecondaryBalance.mul(constants.SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(constants.fictitiousPrimaryReserveBalance)).mul(constants.SCALE).div(constants.primaryReserveRatio));
+        await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
+        await network.provider.send("evm_mine");
+        const twavObservations = await vaultContract.getTwavObservations()
+        expect(twavObservations[3][0]).to.equal(0);
+        expect(twavObservations[3][1]).to.equal(0);     
+        await network.provider.send("evm_setAutomine", [true]);
+
+    });
 });

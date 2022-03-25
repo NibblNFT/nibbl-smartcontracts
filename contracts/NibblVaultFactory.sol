@@ -37,13 +37,14 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply,
-        uint256 _initialTokenPrice
+        uint256 _initialTokenPrice,
+        uint256 _minBuyoutTime
         ) external payable override whenNotPaused returns(address payable _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "NibblVaultFactory: Invalid sender");
         _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(msg.sender, _assetAddress, _assetTokenID, _name, _symbol, _initialSupply))}(payable(address(this))));
         NibblVault _vault = NibblVault(payable(_proxyVault));
-        _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice);
+        _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, msg.sender, _initialSupply,_initialTokenPrice, _minBuyoutTime);
         IERC721(_assetAddress).safeTransferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(Proxy(_proxyVault));
         emit Fractionalise(_assetAddress, _assetTokenID, _proxyVault);

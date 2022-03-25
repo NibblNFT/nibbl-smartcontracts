@@ -107,6 +107,8 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice total value of unclaimed buyout bids
     uint256 public totalUnsettledBids; 
 
+    uint256 public minBuyoutTime;
+
     /// @notice mapping of buyout bidders and their respective unsettled bids
     mapping(address => uint256) public unsettledBids; 
     mapping(address => uint256) public nonces; 
@@ -166,8 +168,12 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         uint256 _assetID,
         address _curator,
         uint256 _initialTokenSupply,
-        uint256 _initialTokenPrice
+        uint256 _initialTokenPrice,
+        uint256 _minBuyoutTime
     ) external override initializer payable {
+        uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * _initialTokenPrice));
+        require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
+        require(_secondaryReserveRatio >= MIN_SECONDARY_RESERVE_RATIO, "NibblVault: secResRatio too low");
         INIT_EIP712("NibblVault", "1");
         __ERC20_init(_tokenName, _tokenSymbol);
         unlocked = 1;
@@ -181,14 +187,11 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         primaryReserveBalance = _primaryReserveBalance;
         fictitiousPrimaryReserveBalance = _primaryReserveBalance;
         secondaryReserveBalance = msg.value;
-        uint32 _secondaryReserveRatio = uint32((msg.value * SCALE * 1e18) / (_initialTokenSupply * _initialTokenPrice));
         secondaryReserveRatio = _secondaryReserveRatio;
         curatorFee = _secondaryReserveRatio * 10_000 / primaryReserveRatio; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
-        require(_secondaryReserveRatio <= primaryReserveRatio, "NibblVault: Excess initial funds");
-        require(_secondaryReserveRatio >= MIN_SECONDARY_RESERVE_RATIO, "NibblVault: secResRatio too low");
+        minBuyoutTime = _minBuyoutTime;
         _mint(_curator, _initialTokenSupply);
     }
-
 
     /// @notice Function used to charge fee on trades
     /// @dev There are 3 different fees charged - admin, curator and curve
@@ -357,6 +360,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// This ensures that the original bidder doesn't need to support the whole valuation and liquidity in reserve can be used as well.
     /// Buyout is initiated only when total bid amount >= currentValuation but extra funds over currentValuation are sent back to user
     function initiateBuyout() external override payable whenNotPaused returns(uint256 _buyoutBid) {
+        require(block.timestamp >= minBuyoutTime, "NibblVault: minBuyoutTime < now");
         require(status == Status.initialised, "NibblVault: Status!=Initialised");
         _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         //_buyoutBid: Bid User has made
@@ -394,7 +398,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
             delete twavObservationsIndex;
             delete lastBlockTimeStamp;
             status = Status.initialised;
-            emit BuyoutRejected();
+            emit BuyoutRejected(_twav);
         }
     }
 

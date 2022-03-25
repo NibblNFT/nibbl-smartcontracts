@@ -5,7 +5,7 @@ import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ZERO, lat
 import * as constants from "./constants";
 
 
-describe("Curator", function () {
+describe("Factory", function () {
     let accounts: Signer[];
     let snapshotId: Number;
     let admin: Signer;
@@ -77,6 +77,7 @@ describe("Curator", function () {
                                             constants.tokenSymbol,
                                             constants.initialTokenSupply,
                                             constants.initialTokenPrice,
+                                            await latest(),
                                             { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
@@ -210,12 +211,23 @@ describe("Curator", function () {
     });
 
     it("should fail to create a vault if initial balance is too low", async function () {
+
+        // await vaultFactoryContract.connect(curator).createVault(erc721.address,
+        //                                     0,
+        //                                     constants.tokenName,
+        //                                     constants.tokenSymbol,
+        //                                     constants.initialTokenSupply,
+        //                                     constants.initialTokenPrice,
+        //                                     await latest(),
+        //                                     { value: constants.initialSecondaryReserveBalance });
+        
       await expect(vaultFactoryContract.connect(curator).createVault(erc721.address,
                                                                         0,
                                                                         constants.tokenName,
                                                                         constants.tokenSymbol,
                                                                         constants.initialTokenSupply,
-                                                                        10 ** 14, {
+                                                                        10 ** 14,
+                                                                        await latest(), {
                                                                         value: 0
                                                                     })).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");
     });
@@ -225,6 +237,7 @@ describe("Curator", function () {
                                                                             constants.tokenSymbol,
                                                                             constants.initialTokenSupply,
                                                                             10 ** 14,
+                                                                            await latest(),
                                                                             { value: constants.initialSecondaryReserveBalance })).to.be.revertedWith("NibblVaultFactory: Invalid sender");
     });
 

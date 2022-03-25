@@ -4,7 +4,7 @@ pragma solidity 0.8.10;
 interface INibblVaultFactory {
     event Fractionalise(address assetAddress, uint256 assetTokenID, address proxyVault);
 
-    function createVault(address _assetAddress, uint256 _assetTokenID, string memory _name, string memory _symbol, uint256 _initialSupply, uint256 _initialTokenPrice) external payable returns(address payable _proxyVault);
+    function createVault(address _assetAddress, uint256 _assetTokenID, string memory _name, string memory _symbol, uint256 _initialSupply, uint256 _initialTokenPrice, uint256 _minBuyoutTime) external payable returns(address payable _proxyVault);
     function withdrawAdminFee() external;
     function proposeNewAdminFeeAddress(address _newFeeAddress) external;
     function updateNewAdminFeeAddress() external;

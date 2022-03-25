@@ -19,7 +19,6 @@ export const initialPrimaryReserveBalance: BigNumber = fictitiousPrimaryReserveB
 export const UPDATE_TIME_FACTORY = BigNumber.from(2 * 24 * 60 * 60);
 export const TWAV_ARRAY_SIZE: number = 4;
 
-
 export const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
 export const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
 export const FEE_CURVE: BigNumber = BigNumber.from(4_000);

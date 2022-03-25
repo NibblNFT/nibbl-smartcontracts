@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { BigNumber, Contract, Signer } from 'ethers';
-import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ZERO } from "./helper";
+import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ZERO, latest } from "./helper";
 import * as constants from "./constants";
 
 
@@ -61,6 +61,7 @@ describe("Curator", function () {
                                             constants.tokenSymbol,
                                             constants.initialTokenSupply,
                                             constants.initialTokenPrice,
+                                            await latest(),
                                             { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(await curator.getAddress(), erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);

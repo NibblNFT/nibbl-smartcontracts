@@ -87,6 +87,7 @@ describe("Upgradablity", function () {
                                             constants.tokenSymbol,
                                             constants.initialTokenSupply,
                                             constants.initialTokenPrice,
+                                            await latest(),
                                             { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);

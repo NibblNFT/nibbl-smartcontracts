@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { BigNumber, Contract, Signer } from 'ethers';
-import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO } from "./helper";
+import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, latest } from "./helper";
 import * as constants from "./constants";
 
 
@@ -64,6 +64,7 @@ describe("NibblTokenVault: Initialisation ", function () {
                                                 constants.tokenSymbol,
                                                 constants.initialTokenSupply,
                                                 constants.initialTokenPrice,
+                                                await latest(),
                                                 { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
@@ -106,6 +107,7 @@ describe("NibblTokenVault: Initialisation ", function () {
                                                 constants.tokenSymbol,
                                                 constants.initialTokenSupply,
                                                 constants.initialTokenPrice,
+                                                await latest(),
                                                 { value: (constants.primaryReserveRatio.mul(constants.initialValuation).div(constants.SCALE)).add(getBigNumber(1)) })).to.be.revertedWith("NibblVault: Excess initial funds");
     });
 
@@ -119,6 +121,7 @@ describe("NibblTokenVault: Initialisation ", function () {
                                                 constants.tokenSymbol,
                                                 constants.initialTokenSupply,
                                                 constants.initialTokenPrice,
+                                                await latest(),
                                                 { value: (constants.initialSecondaryReserveBalance.div(getBigNumber(3, 3))) })).to.be.revertedWith("NibblVault: secResRatio too low");
     });
 

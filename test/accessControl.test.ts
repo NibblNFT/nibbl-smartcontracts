@@ -1,12 +1,12 @@
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import { BigNumber, Contract, Signer } from 'ethers';
 import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ZERO, latest, advanceTimeAndBlock, duration, ADDRESS_ZERO, E18 } from "./helper";
 import * as constants from "./constants";
 import { TWAV } from './helper/twav';
 
 
-describe("Buyout", function () {
+describe("Access Control", function () {
     let accounts: Signer[];
     let snapshotId: Number;
     let admin: Signer;
@@ -85,6 +85,7 @@ describe("Buyout", function () {
                                             constants.tokenSymbol,
                                             constants.initialTokenSupply,
                                             constants.initialTokenPrice,
+                                            await latest(),
                                             { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
