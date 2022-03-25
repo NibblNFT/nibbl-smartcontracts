@@ -334,4 +334,13 @@ describe("NibblTokenVault: Trading ", function () {
         await expect(vaultContract.connect(buyer1).sell(_sellAmount, (_expectedSaleReturnPrimaryWithFee.add(_expectedSaleReturnSecondary)).mul(TWO), await addr1.getAddress())).to.be.revertedWith("NibblVault: Return too low");
     });
 
+    it("should not sell all the tokens successfully", async function () {
+        const _sellAmount = constants.initialTokenSupply;
+        const _expectedSaleReturn = (await burnTokens(testBancorFormula, constants.initialTokenSupply, constants.initialSecondaryReserveBalance, constants.initialSecondaryReserveRatio, _sellAmount));
+        console.log(_expectedSaleReturn);
+        await expect(vaultContract.connect(curator).sell(_sellAmount, _expectedSaleReturn, await addr1.getAddress())).to.be.revertedWith("NibblVault: Excess sell");
+        
+    })
+
+
 });

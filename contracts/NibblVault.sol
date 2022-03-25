@@ -43,6 +43,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
 
     uint256 private constant MIN_SECONDARY_RESERVE_RATIO = 50_000;
 
+    uint256 private constant MIN_SECONDARY_RESERVE_BALANCE = 1e9;
 
     bytes32 private constant _PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
@@ -245,8 +246,9 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @return _purchaseReturn Purchase return
     function _buyPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns (uint256 _purchaseReturn) {
         uint256 _amountIn = _chargeFee(_amount);
-        _purchaseReturn = _calculatePurchaseReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amountIn);
-        primaryReserveBalance += _amountIn;
+        uint256 _primaryReserveBalance = primaryReserveBalance;
+        _purchaseReturn = _calculatePurchaseReturn(_totalSupply, _primaryReserveBalance, primaryReserveRatio, _amountIn);
+        primaryReserveBalance = _primaryReserveBalance + _amountIn;
     }
     /// @notice function to buy tokens on secondary curve
     /// @param _amount amount of reserve tokens to buy continous  tokens
@@ -255,8 +257,9 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev _purchaseReturn is minted to _to
     /// @return _purchaseReturn Purchase return
     function _buySecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns (uint256 _purchaseReturn) {
-        _purchaseReturn = _calculatePurchaseReturn(_totalSupply, secondaryReserveBalance, secondaryReserveRatio, _amount);
-        secondaryReserveBalance += _amount;
+        uint _secondaryReserveBalance = secondaryReserveBalance;
+        _purchaseReturn = _calculatePurchaseReturn(_totalSupply, _secondaryReserveBalance, secondaryReserveRatio, _amount);
+        secondaryReserveBalance = _secondaryReserveBalance + _amount;
     }
 
     /// @notice The function to buy fractional tokens for reserveTokens
@@ -301,9 +304,10 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amount Amount of tokens to be sold on primary curve
     /// @return _saleReturn Sale Return
     function _sellPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn) {
-        _saleReturn = _calculateSaleReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amount);
+        uint _primaryReserveBalance = primaryReserveBalance;
+        _saleReturn = _calculateSaleReturn(_totalSupply, _primaryReserveBalance, primaryReserveRatio, _amount);
         _saleReturn = _chargeFee(_saleReturn);
-        primaryReserveBalance -= _saleReturn;
+        primaryReserveBalance = _primaryReserveBalance - _saleReturn;
     }
 
     /// @notice The function to sell fractional tokens on secondary curve
@@ -312,8 +316,10 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amount Amount of tokens to be sold on SecondaryCurve
     ///  @return _saleReturn Sale Return
     function _sellSecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn){
-        _saleReturn = _calculateSaleReturn(_totalSupply, secondaryReserveBalance, secondaryReserveRatio, _amount);
-        secondaryReserveBalance -= _saleReturn;
+        uint _secondaryReserveBalance = secondaryReserveBalance;
+        _saleReturn = _calculateSaleReturn(_totalSupply, _secondaryReserveBalance, secondaryReserveRatio, _amount);
+        secondaryReserveBalance = _secondaryReserveBalance - _saleReturn;
+        require(_secondaryReserveBalance - _saleReturn >= MIN_SECONDARY_RESERVE_BALANCE, "NibblVault: Excess sell");
     }
 
     /// @notice The function to sell fractional tokens for reserve token
