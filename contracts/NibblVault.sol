@@ -408,6 +408,15 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         }
     }
 
+    function updateTWAV() external {
+        require(status == Status.buyout, "NibblVault: Status!=Buyout");
+        uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
+        if (_blockTimestamp != lastBlockTimeStamp) {
+            _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+            _rejectBuyout(); //For tge case when TWAV goes up when updated on sell
+        }
+    }
+
     /// @notice Function to allow withdrawal of unsettledBids after buyout has been rejected
     /// @param _to Address to recieve the funds
     function withdrawUnsettledBids(address payable _to) external override {

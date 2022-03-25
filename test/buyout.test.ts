@@ -621,6 +621,48 @@ describe("Buyout", function () {
         expect(twavObservations[3][0]).to.equal(0);
         expect(twavObservations[3][1]).to.equal(0);     
         await network.provider.send("evm_setAutomine", [true]);
-
     });
+
+
+    it("Should update twav externally without a tx", async function () {
+      await advanceTimeAndBlock(duration.days(1));
+      let currentValuation: BigNumber = constants.initialValuation;
+      const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+      await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+      let blockTime = await latest();
+      twav.addObservation(currentValuation, blockTime);
+      const twavObs = await vaultContract.twavObservations(0);
+      expect(twavObs.timestamp).to.equal(twav.twavObservations[0].timestamp);
+      expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
+
+      // -------------------------Buyout Initiated--------------------------
+      // ----------------------------1st Buy Operation Initiated-----------------------------------  
+      await advanceTimeAndBlock(duration.minutes(3));
+      const _buyAmount = ethers.utils.parseEther("1");
+      const _feeTotal = (constants.FEE_ADMIN).add(constants.FEE_CURATOR).add(constants.FEE_CURVE);
+      const _initialSecondaryBalance = await vaultContract.secondaryReserveBalance();
+      const _initialPrimaryBalance = await vaultContract.primaryReserveBalance();
+      const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(constants.SCALE));
+      const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
+      const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
+      const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);
+      await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
+      twav.addObservation(currentValuation, blockTime);
+      // ----------------------------1st Buy Operation-----------------------------------  
+      await advanceTimeAndBlock(duration.minutes(3));
+      await vaultContract.connect(buyer1).updateTWAV();
+      const twavObservations = await vaultContract.getTwavObservations()      
+      expect(twavObservations[2][0]).to.not.equal(0);
+      expect(twavObservations[2][1]).to.not.equal(0);     
+    });
+
+
+    it("Should not update twav externally without buyout", async function () {
+     
+      await expect(vaultContract.connect(buyer1).updateTWAV()).to.be.revertedWith("NibblVault: Status!=Buyout");
+  
+    });
+
+
+  
 });
