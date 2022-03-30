@@ -80,9 +80,10 @@ describe("Buyout", function () {
         await vaultFactoryContract.connect(admin).grantRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress());
         
         await vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                            0,
+                                            curatorAddress,
                                             constants.tokenName,
                                             constants.tokenSymbol,
+                                            0,
                                             constants.initialTokenSupply,
                                             constants.initialTokenPrice,
                                             (await latest()).add(duration.days(1)),
@@ -467,7 +468,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.hours(36));
     // ---------------------Buyout Finished--------------------------//
     //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
 
@@ -481,9 +482,9 @@ describe("Buyout", function () {
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    erc721.mint(vaultContract.address, 1);
-    erc721.mint(vaultContract.address, 2);
-    advanceTimeAndBlock(duration.hours(36));
+    await erc721.mint(vaultContract.address, 1);
+    await erc721.mint(vaultContract.address, 2);
+    await advanceTimeAndBlock(duration.hours(36));
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [], _assetIDs = [];
     for (let i = 0; i < 3; i++) {
@@ -509,7 +510,7 @@ describe("Buyout", function () {
     await erc20.deployed();
     await erc20.mint(vaultContract.address, amount);
 
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.hours(36));
     // ---------------------Buyout Finished--------------------------//
 
     await vaultContract.connect(buyer1).withdrawERC20(erc20.address, buyer1Address);

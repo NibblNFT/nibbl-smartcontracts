@@ -15,7 +15,14 @@ describe("Pausablity", function () {
     let curator: Signer;
     let buyer1: Signer;
     let buyer2: Signer;
-    
+
+    let adminAddress: string;
+    let implementorRoleAddress: string;
+    let pauserRoleAddress: string;
+    let feeRoleAddress: string;
+    let curatorAddress: string;
+    let buyer1Address: string;
+    let buyer2Address: string;
 
     let erc721: Contract;
     let vaultContract: Contract;
@@ -32,6 +39,14 @@ describe("Pausablity", function () {
         curator = accounts[4];
         buyer1 = accounts[5];
         buyer2 = accounts[6];
+
+        adminAddress = await admin.getAddress();
+        implementorRoleAddress = await implementorRole.getAddress();
+        pauserRoleAddress = await pauserRole.getAddress();
+        feeRoleAddress = await feeRole.getAddress();
+        curatorAddress = await curator.getAddress();
+        buyer1Address = await buyer1.getAddress();
+        buyer2Address = await buyer2.getAddress();
 
         const Erc721 = await ethers.getContractFactory("ERC721Token");
         erc721 = await Erc721.deploy();
@@ -55,15 +70,17 @@ describe("Pausablity", function () {
         await vaultFactoryContract.connect(admin).grantRole(await vaultFactoryContract.PAUSER_ROLE(), await pauserRole.getAddress());
         await vaultFactoryContract.connect(admin).grantRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress());
         
-        await vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                            0,
-                                            constants.tokenName,
-                                            constants.tokenSymbol,
-                                            constants.initialTokenSupply,
-                                            constants.initialTokenPrice,
-                                            await latest(),
-                                            { value: constants.initialSecondaryReserveBalance });
-
+        await vaultFactoryContract.connect(curator).createVault(
+            erc721.address,
+            curatorAddress,
+            constants.tokenName,
+            constants.tokenSymbol,
+            0,
+            constants.initialTokenSupply,
+            constants.initialTokenPrice,
+            await latest(),
+            { value: constants.initialSecondaryReserveBalance });
+            
         const proxyAddress = await vaultFactoryContract.getVaultAddress(await curator.getAddress(), erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
 

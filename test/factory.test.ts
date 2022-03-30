@@ -72,13 +72,14 @@ describe("Factory", function () {
         await vaultFactoryContract.connect(admin).grantRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), implementorRoleAddress);
         
         await vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                            0,
-                                            constants.tokenName,
-                                            constants.tokenSymbol,
-                                            constants.initialTokenSupply,
-                                            constants.initialTokenPrice,
-                                            await latest(),
-                                            { value: constants.initialSecondaryReserveBalance });
+            curatorAddress,
+            constants.tokenName,
+            constants.tokenSymbol,
+            0,
+            constants.initialTokenSupply,
+            constants.initialTokenPrice,
+            await latest(),
+            { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
@@ -212,33 +213,31 @@ describe("Factory", function () {
 
     it("should fail to create a vault if initial balance is too low", async function () {
 
-        // await vaultFactoryContract.connect(curator).createVault(erc721.address,
-        //                                     0,
-        //                                     constants.tokenName,
-        //                                     constants.tokenSymbol,
-        //                                     constants.initialTokenSupply,
-        //                                     constants.initialTokenPrice,
-        //                                     await latest(),
-        //                                     { value: constants.initialSecondaryReserveBalance });
         
-      await expect(vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                                                        0,
-                                                                        constants.tokenName,
-                                                                        constants.tokenSymbol,
-                                                                        constants.initialTokenSupply,
-                                                                        10 ** 14,
-                                                                        await latest(), {
-                                                                        value: 0
-                                                                    })).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");
+        await expect(vaultFactoryContract.connect(curator).createVault(
+            erc721.address,
+            curatorAddress,
+            constants.tokenName,
+            constants.tokenSymbol,
+            0,
+            constants.initialTokenSupply,
+            10 ** 14,
+            await latest(), {
+                value: 0
+            })).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");
     });
 
     it("should fail if curator isn't sender", async function () {
-        await expect(vaultFactoryContract.connect(user1).createVault(erc721.address, 0,                                                                         constants.tokenName,
-                                                                            constants.tokenSymbol,
-                                                                            constants.initialTokenSupply,
-                                                                            10 ** 14,
-                                                                            await latest(),
-                                                                            { value: constants.initialSecondaryReserveBalance })).to.be.revertedWith("NibblVaultFactory: Invalid sender");
+        await expect(vaultFactoryContract.connect(user1).createVault(
+            erc721.address,
+            user1Address,
+            constants.tokenName,
+            constants.tokenSymbol,
+            0,
+            constants.initialTokenSupply,
+            10 ** 14,
+            await latest(),
+            { value: constants.initialSecondaryReserveBalance })).to.be.revertedWith("NibblVaultFactory: Invalid sender");
     });
 
     it("should allow default admin to be able to change RoleAdmin", async function () {

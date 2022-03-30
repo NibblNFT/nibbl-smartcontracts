@@ -82,14 +82,15 @@ describe("Upgradablity", function () {
         await vaultFactoryContract.connect(admin).grantRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress());
         
         await vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                            0,
-                                            constants.tokenName,
-                                            constants.tokenSymbol,
-                                            constants.initialTokenSupply,
-                                            constants.initialTokenPrice,
-                                            await latest(),
-                                            { value: constants.initialSecondaryReserveBalance });
-
+          curatorAddress,
+          constants.tokenName,
+          constants.tokenSymbol,
+          0,
+          constants.initialTokenSupply,
+          constants.initialTokenPrice,
+          await latest(),
+          { value: constants.initialSecondaryReserveBalance });
+          
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
 
@@ -454,7 +455,7 @@ describe("Upgradablity", function () {
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.hours(36));
     // ---------------------Buyout Finished--------------------------//
     //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
 
@@ -466,9 +467,9 @@ describe("Upgradablity", function () {
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    erc721.mint(vaultContract.address, 1);
-    erc721.mint(vaultContract.address, 2);
-    advanceTimeAndBlock(duration.hours(36));
+    await erc721.mint(vaultContract.address, 1);
+    await erc721.mint(vaultContract.address, 2);
+    await advanceTimeAndBlock(duration.hours(36));
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [], _assetIDs = [];
     for (let i = 0; i < 3; i++) {

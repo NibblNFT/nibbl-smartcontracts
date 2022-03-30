@@ -31,7 +31,6 @@ const config: HardhatUserConfig = {
     }
   },
   networks: {
-
     hardhat: {
       accounts: {
         accountsBalance: "10000000000000000000000000000"
@@ -45,9 +44,8 @@ const config: HardhatUserConfig = {
       url: `${process.env.RINKEBY_URL}`,
       accounts: [`${process.env.PRIVATE_KEY}`],
     }
-
-
   },
+
   gasReporter: {
     currency: 'USD',
     gasPrice: 100,

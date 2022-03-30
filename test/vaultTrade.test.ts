@@ -59,13 +59,14 @@ describe("NibblTokenVault: Trading ", function () {
         testBancorFormula = await TestBancorBondingCurve.deploy();
         await testBancorFormula.deployed();
         await vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                                0,
-                                                constants.tokenName,
-                                                constants.tokenSymbol,
-                                                constants.initialTokenSupply,
-                                                constants.initialTokenPrice,
-                                                await latest(),
-              { value: constants.initialSecondaryReserveBalance });
+            curatorAddress,
+            constants.tokenName,
+            constants.tokenSymbol,
+            0,
+            constants.initialTokenSupply,
+            constants.initialTokenPrice,
+            await latest(),
+            { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, buyer1);
@@ -337,7 +338,6 @@ describe("NibblTokenVault: Trading ", function () {
     it("should not sell all the tokens successfully", async function () {
         const _sellAmount = constants.initialTokenSupply;
         const _expectedSaleReturn = (await burnTokens(testBancorFormula, constants.initialTokenSupply, constants.initialSecondaryReserveBalance, constants.initialSecondaryReserveRatio, _sellAmount));
-        console.log(_expectedSaleReturn);
         await expect(vaultContract.connect(curator).sell(_sellAmount, _expectedSaleReturn, await addr1.getAddress())).to.be.revertedWith("NibblVault: Excess sell");
         
     })

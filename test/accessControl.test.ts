@@ -80,9 +80,10 @@ describe("Access Control", function () {
         await vaultFactoryContract.connect(admin).grantRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress());
         
         await vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                            0,
+                                            curatorAddress,
                                             constants.tokenName,
                                             constants.tokenSymbol,
+                                            0,
                                             constants.initialTokenSupply,
                                             constants.initialTokenPrice,
                                             await latest(),

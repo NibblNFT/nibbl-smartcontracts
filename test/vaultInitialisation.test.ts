@@ -59,13 +59,14 @@ describe("NibblTokenVault: Initialisation ", function () {
         testBancorFormula = await TestBancorBondingCurve.deploy();
         await testBancorFormula.deployed();
         await vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                                0,
-                                                constants.tokenName,
-                                                constants.tokenSymbol,
-                                                constants.initialTokenSupply,
-                                                constants.initialTokenPrice,
-                                                await latest(),
-                                                { value: constants.initialSecondaryReserveBalance });
+            curatorAddress,
+            constants.tokenName,
+            constants.tokenSymbol,
+            0,
+            constants.initialTokenSupply,
+            constants.initialTokenPrice,
+            await latest(),
+            { value: constants.initialSecondaryReserveBalance });
 
         const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.tokenName, constants.tokenSymbol, constants.initialTokenSupply);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, buyer1);
@@ -101,28 +102,32 @@ describe("NibblTokenVault: Initialisation ", function () {
 
         
 
-        await expect(vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                                1,
-                                                constants.tokenName,
-                                                constants.tokenSymbol,
-                                                constants.initialTokenSupply,
-                                                constants.initialTokenPrice,
-                                                await latest(),
-                                                { value: (constants.primaryReserveRatio.mul(constants.initialValuation).div(constants.SCALE)).add(getBigNumber(1)) })).to.be.revertedWith("NibblVault: Excess initial funds");
-    });
-
+        await expect(vaultFactoryContract.connect(curator).createVault(
+            erc721.address,
+            curatorAddress,
+            constants.tokenName,
+            constants.tokenSymbol,
+            1,
+            constants.initialTokenSupply,
+            constants.initialTokenPrice,
+            await latest(),
+            { value: (constants.primaryReserveRatio.mul(constants.initialValuation).div(constants.SCALE)).add(getBigNumber(1)) })).to.be.revertedWith("NibblVault: Excess initial funds");
+        });
+                                            
     it("should not initialize the vault if secondaryReserveRatio too low.", async function () {
         await erc721.mint(await curator.getAddress(), 1);
         await erc721.approve(vaultFactoryContract.address, 1);
 
-        await expect(vaultFactoryContract.connect(curator).createVault(erc721.address,
-                                                1,
-                                                constants.tokenName,
-                                                constants.tokenSymbol,
-                                                constants.initialTokenSupply,
-                                                constants.initialTokenPrice,
-                                                await latest(),
-                                                { value: (constants.initialSecondaryReserveBalance.div(getBigNumber(3, 3))) })).to.be.revertedWith("NibblVault: secResRatio too low");
+        await expect(vaultFactoryContract.connect(curator).createVault(
+            erc721.address,
+            curatorAddress,
+            constants.tokenName,
+            constants.tokenSymbol,
+            1,
+            constants.initialTokenSupply,
+            constants.initialTokenPrice,
+            await latest(),
+            { value: (constants.initialSecondaryReserveBalance.div(getBigNumber(3, 3))) })).to.be.revertedWith("NibblVault: secResRatio too low");
     });
 
 
