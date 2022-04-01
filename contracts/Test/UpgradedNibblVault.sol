@@ -489,6 +489,15 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
         upgradedNewVariable++;
     }
 
+    function updateTWAV() external override {
+        require(status == Status.buyout, "NibblVault: Status!=Buyout");
+        uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
+        if (_blockTimestamp != lastBlockTimeStamp) {
+            _updateTWAV(getCurrentValuation(), _blockTimestamp);   
+            _rejectBuyout(); //For the case when TWAV goes up when updated externally
+        }
+    }
+
     function permit(
         address owner,
         address spender,

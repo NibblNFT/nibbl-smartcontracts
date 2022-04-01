@@ -45,7 +45,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
 
     uint256 private constant MIN_SECONDARY_RESERVE_BALANCE = 1e9;
 
-    bytes32 private constant _PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+    bytes32 private constant PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
 
     /// @notice The reserve ratio of the secondary curve.
@@ -408,12 +408,12 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         }
     }
 
-    function updateTWAV() external {
+    function updateTWAV() external override {
         require(status == Status.buyout, "NibblVault: Status!=Buyout");
         uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
         if (_blockTimestamp != lastBlockTimeStamp) {
             _updateTWAV(getCurrentValuation(), _blockTimestamp);   
-            _rejectBuyout(); //For tge case when TWAV goes up when updated on sell
+            _rejectBuyout(); //For the case when TWAV goes up when updated externally
         }
     }
 
@@ -504,7 +504,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         bytes32 s
     ) external override {
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
-        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline));
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline));
         address signer = ecrecover(toTypedMessageHash(structHash), v, r, s);
         require(signer == owner, "ERC20Permit: invalid signature");
         _approve(owner, spender, value);

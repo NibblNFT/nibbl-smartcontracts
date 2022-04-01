@@ -41,24 +41,24 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         uint256 _initialTokenPrice,
         uint256 _minBuyoutTime
         ) external payable override whenNotPaused returns(address payable _proxyVault) {
+        // console.logBytes32(keccak256(type(Proxy).creationCode));
+        // console.logBytes(type(Proxy).creationCode);
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "NibblVaultFactory: Invalid sender");
-        _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _name, _symbol, _initialSupply))}(payable(address(this))));
+        _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _initialSupply))}(payable(address(this))));
         NibblVault _vault = NibblVault(payable(_proxyVault));
         _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, _curator, _initialSupply,_initialTokenPrice, _minBuyoutTime);
         IERC721(_assetAddress).safeTransferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(Proxy(_proxyVault));
         emit Fractionalise(_assetAddress, _assetTokenID, _proxyVault);
     }
-
+// 0xe84f04e273b640649ae5a79efe24240ada51a4854057f5968a870094eb7eb994
     function getVaultAddress(
         address _curator,
         address _assetAddress,
         uint256 _assetTokenID,
-        string memory _name,
-        string memory _symbol,
         uint256 _initialSupply) public view returns(address _vault) {
-        bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _name, _symbol, _initialSupply));
+        bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID,  _initialSupply));
         bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(uint160(address(this))));
         bytes32 _hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _vault = address(uint160(uint256(_hash)));     
