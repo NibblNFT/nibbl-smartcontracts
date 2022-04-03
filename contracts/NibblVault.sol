@@ -75,7 +75,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice fictitious primary reserve balance, this is used for calculation for trading along primary bonding curve.
     /// @dev This variable defines the amount of reserve token that should in the primary curve if 
     /// @dev the primary curve started from 0 and went till initialTokenSupply 
-    uint256 private fictitiousPrimaryReserveBalance;
+    uint256 public fictitiousPrimaryReserveBalance;
 
     /// @notice the valuation at which the buyout is rejected.
     uint256 public buyoutRejectionValuation; 
