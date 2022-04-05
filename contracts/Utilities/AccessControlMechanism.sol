@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import { IAccessControlMechanism } from "../Interfaces/IAccessControlMechanism.sol";
 
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-contract AccessControlMechanism is IAccessControlMechanism, AccessControl{
+contract AccessControlMechanism is IAccessControlMechanism, AccessControl {
     // Mechanism to implement propose and claim Access control Roles 
     // grantRole, revokeRole can be used to grant and revoke roles directly
     

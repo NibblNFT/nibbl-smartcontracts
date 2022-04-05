@@ -3,12 +3,6 @@
 pragma solidity 0.8.10;
 
 contract EIP712Base {
-    struct EIP712Domain {
-        string name;
-        string version;
-        uint256 chainId;
-        address verifyingContract;
-    }
 
     bytes32 internal constant EIP712_DOMAIN_TYPEHASH = keccak256(
         bytes(
@@ -36,10 +30,6 @@ contract EIP712Base {
         }
     }
 
-    function getDomainSeperator() private view returns (bytes32) {
-        return domainSeperator;
-    }
-
     /**
      * Accept message hash and returns hash message in EIP712 compatible form
      * So that it can be used to recover signer from signature signed using EIP712 formatted data
@@ -54,7 +44,7 @@ contract EIP712Base {
     {
         return
             keccak256(
-                abi.encodePacked("\x19\x01", getDomainSeperator(), messageHash)
+                abi.encodePacked("\x19\x01", domainSeperator, messageHash)
             );
     }
 }

@@ -53,9 +53,7 @@ contract Proxy {
         }    
     }
 
-    receive() external payable {
-        revert("Invalid transaction");
-    }
+    receive() external payable {    }
 
     }
 

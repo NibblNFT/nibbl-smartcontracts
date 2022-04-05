@@ -52,7 +52,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         nibbledTokens.push(Proxy(_proxyVault));
         emit Fractionalise(_assetAddress, _assetTokenID, _proxyVault);
     }
-// 0xe84f04e273b640649ae5a79efe24240ada51a4854057f5968a870094eb7eb994
+
     function getVaultAddress(
         address _curator,
         address _assetAddress,
