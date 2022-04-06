@@ -14,8 +14,8 @@ async function main() {
     const user = accounts[0];
     const erc721 = "0x3A5DCA5C53109715F2E3fE51b10698B62CDf1A0D"; //0xCf2867459A94De0693b207b4F8135cc79F568574
     const userAddress = await user.getAddress();
-    const tokenID = 10000001; // Update token ID on every run
-    const initialTokenPrice: BigNumber = BigNumber.from((1e12).toString()); //10 ^-6 eth
+    const tokenID = "10000000000000000000001"; // Update token ID on every run
+    const initialTokenPrice: BigNumber = BigNumber.from((1e11).toString()); //10 ^-6 eth
     const initialValuation: BigNumber = BigNumber.from((1e15).toString()); //.001 eth
     const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(e18); // 1e4
     const MIN_SECONDARY_RESERVE_RATIO = BigNumber.from((50_000).toString());;
@@ -29,14 +29,12 @@ async function main() {
     // await nibblVault.deployed();
     console.log("NibblVault Implementation deployed to:", nibblVault.address);
 
-    const NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
     const nibblVaultFactory =  await ethers.getContractAt( "NibblVaultFactory", nibblVaultFactoryAddress, user);
 
     // await NibblVaultFactory.deploy(nibblVault.address, userAddress, userAddress);
     // await nibblVaultFactory.deployed();
     console.log("NibblVaultFactory deployed to:", nibblVaultFactory.address);
     
-    const ERC721Token = await ethers.getContractFactory("ERC721Token");
     const erc721Token = await ethers.getContractAt("ERC721Token", erc721, user);
     console.log("ERC721 at:", erc721Token.address);
     
@@ -66,30 +64,29 @@ async function main() {
         erc721Token.address,
         tokenID,
         initialTokenSupply);
-        
-    const _vaultContract = new Contract(_vaultAddress, NibblVault.interface, user);
-    await _vaultContract.buy(0, userAddress, {value: BigNumber.from((1e16).toString())});
-    console.log("Bought");
-    await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.initiateBuyout({ value: BigNumber.from((1e16).toString()) });
+        const _vaultContract = new Contract(_vaultAddress, NibblVault.interface, user);
+    
+    await _vaultContract.initiateBuyout({ value: BigNumber.from((1e17).toString()) });
     console.log("Buyout Initiated");
-    await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e16).toString()) });
+    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e16).toString()), gasLimit: "500000" });
     console.log("Bought");
-    await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.buy(0, userAddress, {value: BigNumber.from((1e16).toString())});
-    console.log("Bought");
-    await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.buy(0, userAddress, {value: BigNumber.from((1e16).toString())});
-    console.log("Bought");
-    await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.sell(1000, 0, userAddress);
-    console.log("Sold");
-    await new Promise(r => setTimeout(r, 10000));
+    await new Promise(r => setTimeout(r, 15000));
     await _vaultContract.updateTWAV();
     console.log("Updated TWAV");
+    await new Promise(r => setTimeout(r, 15000));
+    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e16).toString()), gasLimit: "500000" });
+    console.log("Bought");
+    await new Promise(r => setTimeout(r, 15000));
+    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e16).toString()), gasLimit: "500000" });
+    console.log("Bought");
+    await new Promise(r => setTimeout(r, 15000));
+    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e16).toString()), gasLimit: "500000" });
+    console.log("Bought");
     await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.initiateBuyout({value: BigNumber.from((1e16).toString())});
+    await _vaultContract.sell(BigNumber.from((1e22).toString()), 0, userAddress, { gasLimit: "500000" });
+    console.log("Sold");
+    await new Promise(r => setTimeout(r, 10000));
+    await _vaultContract.initiateBuyout({value: BigNumber.from((1e17).toString())});
     console.log("Buyout Initiated");
     
 }
