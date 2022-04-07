@@ -19,6 +19,7 @@ interface INibblVault is IERC20Upgradeable {
     function withdrawUnsettledBids(address payable _to) external;
     function redeem(address payable _to) external returns(uint256 _amtOut);
     function redeemCuratorFee(address payable _to) external returns(uint256 _feeAccruedCurator);
+    function updateCurator(address _newCurator) external;
     function updateTWAV() external ;
     function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external;
     function withdrawMultipleERC721(address[] memory _assetAddresses, uint256[] memory _assetIDs, address _to) external;

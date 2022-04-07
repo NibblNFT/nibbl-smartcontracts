@@ -5,15 +5,15 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-import { NibblVault } from "./NibblVault.sol";
+import { NibblVault } from "../../NibblVault.sol";
 import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import { Proxy } from "./Proxy/Proxy.sol";
-import { NibblVaultFactoryData } from "./Utilities/NibblVaultFactoryData.sol";
-import { AccessControlMechanism } from "./Utilities/AccessControlMechanism.sol";
-import { INibblVaultFactory } from "./Interfaces/INibblVaultFactory.sol";
+import { Proxy } from "../../Proxy/Proxy.sol";
+import { NibblVaultFactoryData } from "../../Utilities/NibblVaultFactoryData.sol";
+import { AccessControlMechanism } from "../../Utilities/AccessControlMechanism.sol";
+import { INibblVaultFactory } from "../../Interfaces/INibblVaultFactory.sol";
 
 import "hardhat/console.sol";
-contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausable, NibblVaultFactoryData {
+contract MaliciousNibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausable, NibblVaultFactoryData {
     /// @notice Minimum initial reserve balance a user has to deposit to create a new vault/ Defines minimum valuation
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9;
 
@@ -134,6 +134,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         _unpause();
     }
 
-    receive() payable external {    }
-
+    receive() external payable{
+        NibblVault(payable(msg.sender)).buy{value: 0}(0, payable(msg.sender));
+    }
 }

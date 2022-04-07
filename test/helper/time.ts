@@ -12,11 +12,6 @@ export async function advanceBlockTo(blockNumber: number): Promise<void> {
   }
 }
 
-export async function increase(value: BigNumber): Promise<void> {
-  await ethers.provider.send("evm_increaseTime", [value.toNumber()]);
-  await advanceBlock();
-}
-
 export async function latest(): Promise<BigNumber> {
   const block = await ethers.provider.getBlock("latest");
   return BigNumber.from(block.timestamp);

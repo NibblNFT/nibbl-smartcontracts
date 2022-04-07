@@ -116,14 +116,31 @@ describe("Curator", function () {
         expect(await admin.provider.getBalance(await buyer1.getAddress())).to.equal(initialBalanceAddr1.add(_expectedFee));
     });
 
-    it("should withdraw curator fee", async function () {
+    it("only curator should withdraw curator fee", async function () {
         const _buyAmount = ethers.utils.parseEther("100000");
-        const _expectedFee = _buyAmount.mul(constants.FEE_CURATOR).div(constants.SCALE);
-        const initialBalanceAddr1 = await admin.provider.getBalance(await buyer1.getAddress());
         await vaultContract.connect(buyer2).buy(0, await buyer1.getAddress(), { value: _buyAmount });
-        expect(await vaultContract.feeAccruedCurator()).to.be.equal(_expectedFee);
-        await vaultContract.connect(curator).redeemCuratorFee(await buyer1.getAddress());
-        expect(await admin.provider.getBalance(await buyer1.getAddress())).to.equal(initialBalanceAddr1.add(_expectedFee));
+        await expect(vaultContract.connect(buyer2).redeemCuratorFee(await buyer1.getAddress())).to.be.revertedWith("NibblVault: Only Curator");
+    });
+
+    it("should update curator", async function () {
+        await vaultContract.connect(curator).updateCurator(adminAddress);
+        expect(await vaultContract.curator()).to.be.equal(adminAddress);
+    });
+    
+    it("only curator should update curator", async function () {
+        await expect(vaultContract.connect(admin).updateCurator(adminAddress)).to.be.revertedWith("NibblVault: Only Curator");
+    });
+
+    it("new curator should accrue and redeem curator fee correctly", async function () {
+        await vaultContract.connect(curator).updateCurator(adminAddress);
+        expect(await vaultContract.curator()).to.be.equal(adminAddress);
+        const _buyAmount = ethers.utils.parseEther("1");
+        await vaultContract.connect(buyer1).buy(0, await buyer1.getAddress(), { value: _buyAmount });
+        const expectedFee = _buyAmount.mul(constants.FEE_CURATOR).div(constants.SCALE);
+        expect(await vaultContract.feeAccruedCurator()).to.be.equal(expectedFee);
+        await vaultContract.connect(admin).redeemCuratorFee(await curator.getAddress());
+        const accruedFeeAfterRedeem = await vaultContract.feeAccruedCurator();
+        expect(accruedFeeAfterRedeem).to.be.equal(0);
     });
 
 });

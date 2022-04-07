@@ -143,6 +143,15 @@ describe("Buyout", function () {
         expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
     });
 
+
+    it("Should not initiate buyout when bid < currentValuation", async function () {
+      await advanceTimeAndBlock(duration.days(1));
+      const currentValuation: BigNumber = constants.initialValuation;
+      const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+      await expect(vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.div(BigNumber.from(2)) })).to.be.revertedWith("NibblVault: Bid too low");
+
+  });
+
   it("Should not initiate buyout if minBuyoutTime < now", async function () {
         const currentValuation: BigNumber = constants.initialValuation;
         const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
@@ -231,8 +240,6 @@ describe("Buyout", function () {
     expect(twavObs2.cumulativeValuation).to.equal(twav.twavObservations[2].cumulativeValuation);
     // ----------------------------2nd Buy Operation-----------------------------------  
   });
-
-
 
   it("Should reject buyout", async function () {
     await advanceTimeAndBlock(duration.days(1));
@@ -476,6 +483,18 @@ describe("Buyout", function () {
     expect(await erc721.ownerOf(0)).to.be.equal(buyer1Address);
   });
 
+  it("Only winner should be able to withdraw the locked NFT", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    await advanceTimeAndBlock(duration.hours(36));
+    // ---------------------Buyout Finished--------------------------//
+    //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
+
+    await expect(vaultContract.connect(buyer2).withdrawERC721(await vaultContract.assetAddress(), await vaultContract.assetID(), buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
+  });
+
   it("Winner should be able to withdraw multiple the locked NFT", async function () {
     await advanceTimeAndBlock(duration.days(1));
 
@@ -497,7 +516,25 @@ describe("Buyout", function () {
     expect(await erc721.ownerOf(2)).to.be.equal(buyer1Address);
   });
 
-  it("Winner should be able to withdraw locked ERC20s", async function () {
+  it("Only Winner should be able to withdraw multiple the locked NFT", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    await erc721.mint(vaultContract.address, 1);
+    await erc721.mint(vaultContract.address, 2);
+    await advanceTimeAndBlock(duration.hours(36));
+    // ---------------------Buyout Finished--------------------------//
+    let _assetAddresses = [], _assetIDs = [];
+    for (let i = 0; i < 3; i++) {
+      _assetAddresses.push(erc721.address);
+      _assetIDs.push(i);
+    }
+    await expect(vaultContract.connect(buyer2).withdrawMultipleERC721(_assetAddresses, _assetIDs, buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
+  });
+
+  it("Winner should be able to withdraw locked ERC20", async function () {
     await advanceTimeAndBlock(duration.days(1));
 
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
@@ -517,6 +554,26 @@ describe("Buyout", function () {
     expect(await erc20.balanceOf(buyer1Address)).to.be.equal(amount);
    });
 
+  it("Only Winner should be able to withdraw locked ERC20", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+
+    const ERC20Token = await ethers.getContractFactory("ERC20Token");
+    const erc20 = await ERC20Token.deploy();
+    await erc20.deployed();
+    await erc20.mint(vaultContract.address, amount);
+
+    await advanceTimeAndBlock(duration.hours(36));
+    // ---------------------Buyout Finished--------------------------//
+
+    await expect(vaultContract.connect(buyer2).withdrawERC20(erc20.address, buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
+
+  });
+  
   
   it("Winner should be able to withdraw locked ERC20s", async function () {
     await advanceTimeAndBlock(duration.days(1));
@@ -543,6 +600,29 @@ describe("Buyout", function () {
     expect(await erc20b.balanceOf(buyer1Address)).to.be.equal(amount);
   });
 
+  it("Only Winner should be able to withdraw locked ERC20s", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+    const ERC20Token = await ethers.getContractFactory("ERC20Token");
+    const erc20a = await ERC20Token.deploy();
+    await erc20a.deployed();
+    await erc20a.mint(vaultContract.address, amount);
+    const erc20b = await ERC20Token.deploy();
+    await erc20b.deployed();
+    await erc20b.mint(vaultContract.address, amount);
+
+    advanceTimeAndBlock(duration.hours(36));
+    // ---------------------Buyout Finished--------------------------//
+    let _assetAddresses = [];
+    _assetAddresses.push(erc20a.address, erc20b.address);
+
+    await expect(vaultContract.connect(buyer2).withdrawMultipleERC20(_assetAddresses, buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
+  });
+
 
   it("Winner should be able to withdraw locked ERC1155s", async function () {
     await advanceTimeAndBlock(duration.days(1));
@@ -561,6 +641,24 @@ describe("Buyout", function () {
     await vaultContract.connect(buyer1).withdrawERC1155(erc1155.address, 0, buyer1Address);
     expect(await erc1155.balanceOf(buyer1Address, 0)).to.be.equal(amount);
   });
+
+  it("Only Winner should be able to withdraw locked ERC1155s", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+
+    const ERC1155Token = await ethers.getContractFactory("ERC1155Token");
+    const erc1155 = await ERC1155Token.deploy();
+    await erc1155.deployed();
+    await erc1155.mint(vaultContract.address, 0, amount);
+    
+    advanceTimeAndBlock(duration.hours(36));
+    await expect(vaultContract.connect(buyer2).withdrawERC1155(erc1155.address, 0, buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
+  });
+
 
   it("Winner should be able to withdraw multiple locked ERC1155s", async function () {
     await advanceTimeAndBlock(duration.days(1));
@@ -586,9 +684,30 @@ describe("Buyout", function () {
     expect(await erc1155.balanceOf(buyer1Address, 1)).to.be.equal(amount);
   });
   
+  it("Only Winner should be able to withdraw multiple locked ERC1155s", async function () {
+    await advanceTimeAndBlock(duration.days(1));
+
+    const buyoutBidDeposit = ethers.utils.parseEther("1000");
+    await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
+    // ---------------------Buyout Initiated--------------------------//
+    const amount = 1000000;    
+
+    const ERC1155Token = await ethers.getContractFactory("ERC1155Token");
+    const erc1155 = await ERC1155Token.deploy();
+    await erc1155.deployed();
+    await erc1155.mint(vaultContract.address, 0, amount);
+    await erc1155.mint(vaultContract.address, 1, amount);
+    
+    advanceTimeAndBlock(duration.hours(36));
+    // ---------------------Buyout Finished--------------------------//
+    let _assetAddresses = [], _assetIDs = [0, 1];
+    _assetAddresses.push(erc1155.address, erc1155.address);
+    
+    await expect(vaultContract.connect(buyer2).withdrawMultipleERC1155(_assetAddresses, _assetIDs, buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
+  });
+
   it("Should update twav only once on buy in a block when in buyout", async function () {
         await network.provider.send("evm_setAutomine", [false]);
-
         await advanceTimeAndBlock(duration.days(1));
         let currentValuation: BigNumber = constants.initialValuation;
         const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
@@ -622,10 +741,47 @@ describe("Buyout", function () {
         expect(twavObservations[3][0]).to.equal(0);
         expect(twavObservations[3][1]).to.equal(0);     
         await network.provider.send("evm_setAutomine", [true]);
-    });
+  });
+  
+   it("Should update twav only once on sell in a block when in buyout", async function () {
+    await network.provider.send("evm_setAutomine", [false]);
+    await advanceTimeAndBlock(duration.days(1));
+    let currentValuation: BigNumber = constants.initialValuation;
+    const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+    await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+    await network.provider.send("evm_mine");
+    let blockTime = await latest();
+    twav.addObservation(currentValuation, blockTime);
+    const twavObs = await vaultContract.twavObservations(0);
+    expect(twavObs.timestamp).to.equal(twav.twavObservations[0].timestamp);
+    expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
+
+    // -------------------------Buyout Initiated--------------------------
+    
+    const _sellAmount = (constants.initialTokenSupply).div(5);
+    let _balanceAddr1 = await buyer1.provider.getBalance(buyer1Address);
+    const _expectedSaleReturn = await burnTokens(testBancorFormula, constants.initialTokenSupply, constants.initialSecondaryReserveBalance, constants.initialSecondaryReserveRatio, _sellAmount);        
+    await vaultContract.connect(curator).sell(_sellAmount, _expectedSaleReturn, buyer1Address);
+    blockTime = await latest();
+    twav.addObservation(currentValuation, blockTime);
+    const twavObs1 = await vaultContract.twavObservations(1)
+    // ----------------------------1st Sell Operation-----------------------------------  
+    // ----------------------------2nd Sell Operation Initiated-----------------------------------  
+
+    const _newSecondaryBalance = constants.initialSecondaryReserveBalance.sub(_expectedSaleReturn);
+    const _newSecondaryResRatio = constants.initialSecondaryReserveRatio;//SecResRatio doesn't change
+    // expect(await vaultContract.secondaryReserveBalance()).to.equal(_newSecondaryBalance);
+    currentValuation = (_newSecondaryBalance.mul(constants.SCALE).div(_newSecondaryResRatio));
+    await vaultContract.connect(curator).sell(_sellAmount, 0, buyer1Address);
+    await network.provider.send("evm_mine");
+    // ----------------------------2nd Buy Operation-----------------------------------  
+    await network.provider.send("evm_setAutomine", [true]);
+
+  });
 
 
-    it("Should update twav externally without a tx", async function () {
+
+    it("Should update twav externally without a trade", async function () {
       await advanceTimeAndBlock(duration.days(1));
       let currentValuation: BigNumber = constants.initialValuation;
       const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
@@ -658,12 +814,76 @@ describe("Buyout", function () {
     });
 
 
-    it("Should not update twav externally without buyout", async function () {
-     
-      await expect(vaultContract.connect(buyer1).updateTWAV()).to.be.revertedWith("NibblVault: Status!=Buyout");
-  
+  it("Should update twav only once externally without a trade in a block", async function () {
+      await network.provider.send("evm_setAutomine", [false]);
+      await advanceTimeAndBlock(duration.days(1));
+      let currentValuation: BigNumber = constants.initialValuation;
+      const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+      await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+      await network.provider.send("evm_mine");
+
+      let blockTime = await latest();
+      twav.addObservation(currentValuation, blockTime);
+      const twavObs = await vaultContract.twavObservations(0);
+      expect(twavObs.timestamp).to.equal(twav.twavObservations[0].timestamp);
+      expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
+
+      // -------------------------Buyout Initiated--------------------------
+      // ----------------------------1st Buy Operation Initiated-----------------------------------  
+      await advanceTimeAndBlock(duration.minutes(3));
+      const _buyAmount = ethers.utils.parseEther("1");
+      const _feeTotal = (constants.FEE_ADMIN).add(constants.FEE_CURATOR).add(constants.FEE_CURVE);
+      const _initialSecondaryBalance = await vaultContract.secondaryReserveBalance();
+      const _initialPrimaryBalance = await vaultContract.primaryReserveBalance();
+      const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(constants.SCALE));
+      const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
+      const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
+      const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);
+      await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
+      // ----------------------------1st Buy Operation-----------------------------------  
+      await vaultContract.connect(buyer1).updateTWAV();
+      await network.provider.send("evm_mine");
+      const twavObservations = await vaultContract.getTwavObservations()      
+      expect(twavObservations[2][0]).to.equal(0);
+      expect(twavObservations[2][1]).to.equal(0);     
+      await network.provider.send("evm_setAutomine", [true]);
+
     });
 
 
+    it("Should not update twav externally without buyout", async function () {
+      await expect(vaultContract.connect(buyer1).updateTWAV()).to.be.revertedWith("NibblVault: Status!=Buyout");
+    });
+
+    it("Only winner should be able to withdraw the locked NFT", async function () {
+      await advanceTimeAndBlock(duration.days(1));
+      
+
+      const buyoutBidDeposit = ethers.utils.parseEther("1000");
+      await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
+      // ---------------------Buyout Initiated--------------------------//
+      await advanceTimeAndBlock(duration.hours(36));
+      // ---------------------Buyout Finished--------------------------//
+      //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
+      await expect(vaultContract.connect(buyer2).withdrawERC721(await vaultContract.assetAddress(), await vaultContract.assetID(), buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
+    });
+  
+    it("should transfer ERC1155", async function () {
+
+      const amount = 1000000;    
+
+      const ERC1155Token = await ethers.getContractFactory("ERC1155Token");
+      const erc1155 = await ERC1155Token.deploy();
+      await erc1155.deployed();
+    //       function _mintBatch(
+    //     address to,
+    //     uint256[] memory ids,
+    //     uint256[] memory amounts,
+    // ) 
+      const ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      const amounts = [amount, amount, amount, amount, amount, amount, amount, amount, amount, amount];
+      await erc1155.mintBatch(curatorAddress, ids, amounts);
+      await erc1155.connect(curator).safeBatchTransferFrom(curatorAddress, vaultContract.address, ids, amounts, "0x00");
+    });
   
 });

@@ -111,6 +111,53 @@ describe("NibblTokenVault: Permit ", function () {
         expect(await vaultContract.nonces(permit.owner)).to.be.equal(nonce.add(ONE));
     })
 
+    it("Should revert if permit expired", async function () {
+        const nonce = await vaultContract.nonces(await user.getAddress());
+        const permit = {
+            owner: await user.getAddress(),
+            spender: await spender.getAddress(),
+            value: ethers.utils.parseEther("1"),
+            nonce: nonce,
+            deadline: (await latest()).sub(getBigNumber(1000, 1))
+        }
 
+        const signature = await user._signTypedData(domain, types, permit);
+        const {r, s, v} = getSignatureParameters(signature);
+        await expect(vaultContract.permit(
+            permit.owner,
+            permit.spender,
+            permit.value,
+            permit.deadline,
+            v,
+            r,
+            s)).to.be.revertedWith("NibblVault: expired deadline");
+
+    })
+
+
+    it("Should revert if permit expired", async function () {
+        const nonce = await vaultContract.nonces(await user.getAddress());
+        const permit = {
+            owner: await spender.getAddress(),
+            spender: await spender.getAddress(),
+            value: ethers.utils.parseEther("1"),
+            nonce: nonce,
+            deadline: (await latest()).add(getBigNumber(1000, 1))
+        }
+
+        const signature = await user._signTypedData(domain, types, permit);
+        const {r, s, v} = getSignatureParameters(signature);
+        await expect(vaultContract.permit(
+            permit.owner,
+            permit.spender,
+            permit.value,
+            permit.deadline,
+            v,
+            r,
+            s)).to.be.revertedWith("NibblVault: invalid signature");
+
+    })
+
+// 
 
 });

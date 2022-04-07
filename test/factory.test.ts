@@ -158,6 +158,22 @@ describe("Factory", function () {
         expect(await vaultFactoryContract.feeAdmin()).to.equal(_newFee);
     });
   
+    it("should buy when admin fee is 0", async function () {
+        const _newFee = 0;
+        await vaultFactoryContract.connect(feeRole).proposeNewAdminFee(_newFee);
+        const blockTime = await latest();
+        const pendingFeeAdmin = await vaultFactoryContract.pendingFeeAdmin();
+        const feeAdminUpdateTime = await vaultFactoryContract.feeAdminUpdateTime();
+        expect(pendingFeeAdmin).to.be.equal(_newFee);
+        expect(feeAdminUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
+   
+        await advanceTimeAndBlock(constants.UPDATE_TIME_FACTORY);
+        await vaultFactoryContract.updateNewAdminFee();
+        expect(await vaultFactoryContract.feeAdmin()).to.equal(_newFee);
+        vaultContract.buy(0, curatorAddress, {value: getBigNumber(100)});
+    });
+  
+
     it("should fail to update feeTo address if UPDATE_TIME hasn't passed", async function () {
         const _newFee = 1_000;
         await vaultFactoryContract.connect(feeRole).proposeNewAdminFee(_newFee);

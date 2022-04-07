@@ -9,6 +9,14 @@ contract ERC1155Token is ERC1155(""){
         _mint(to, tokenID, amount, "");   
     }
 
+    function mintBatch(
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts
+    ) public {
+        _mintBatch(to, ids, amounts, "");
+    }
+
     // function safeTransferFrom(
     //     address from,
     //     address to,

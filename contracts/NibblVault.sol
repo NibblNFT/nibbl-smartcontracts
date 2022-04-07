@@ -446,6 +446,12 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         safeTransferETH(_to, _feeAccruedCurator);
     }
 
+    function updateCurator(address _newCurator) external override {
+        require(msg.sender == curator,"NibblVault: Only Curator");
+        curator = _newCurator;
+    }
+
+
     /// @notice Function for allowing bidder to unlock his ERC721 in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external override boughtOut {
@@ -503,10 +509,10 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         bytes32 r,
         bytes32 s
     ) external override {
-        require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
+        require(block.timestamp <= deadline, "NibblVault: expired deadline");
         bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline));
         address signer = ecrecover(toTypedMessageHash(structHash), v, r, s);
-        require(signer == owner, "ERC20Permit: invalid signature");
+        require(signer == owner, "NibblVault: invalid signature");
         _approve(owner, spender, value);
     }
     

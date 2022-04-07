@@ -435,6 +435,12 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
         safeTransferETH(_to, _feeAccruedCurator);
     }
 
+    function updateCurator(address _newCurator) external override {
+        require(msg.sender == curator,"NibblVault: Only Curator");
+        curator = _newCurator;
+    }
+
+
     /// @notice Function for allowing bidder to unlock his ERC721 in case of buyout success
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external override boughtOut {
