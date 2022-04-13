@@ -89,8 +89,8 @@ describe("Buyout", function () {
                                             (await latest()).add(duration.days(1)),
                                             { value: constants.initialSecondaryReserveBalance });
 
-        const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.initialTokenSupply);
-        vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
+      const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
+      vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
         
     });
     
@@ -316,7 +316,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    await expect(vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit })).to.be.revertedWith("NibblVault: Status!=Initialised");
+    await expect(vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit })).to.be.revertedWith("NibblVault: Status!=initialized");
   });
 
 

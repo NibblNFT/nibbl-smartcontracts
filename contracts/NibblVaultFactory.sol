@@ -11,7 +11,6 @@ import { Proxy } from "./Proxy/Proxy.sol";
 import { NibblVaultFactoryData } from "./Utilities/NibblVaultFactoryData.sol";
 import { AccessControlMechanism } from "./Utilities/AccessControlMechanism.sol";
 import { INibblVaultFactory } from "./Interfaces/INibblVaultFactory.sol";
-
 import "hardhat/console.sol";
 contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausable, NibblVaultFactoryData {
     /// @notice Minimum initial reserve balance a user has to deposit to create a new vault/ Defines minimum valuation
@@ -43,9 +42,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         ) external payable override whenNotPaused returns(address payable _proxyVault) {
         require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
         require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "NibblVaultFactory: Invalid sender");
-        _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _initialSupply))}(payable(address(this))));
+        _proxyVault = payable(new Proxy{salt: keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _initialSupply, _initialTokenPrice))}(payable(address(this))));
         NibblVault _vault = NibblVault(payable(_proxyVault));
-        _vault.initialise{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, _curator, _initialSupply,_initialTokenPrice, _minBuyoutTime);
+        _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, _curator, _initialSupply,_initialTokenPrice, _minBuyoutTime);
         IERC721(_assetAddress).safeTransferFrom(msg.sender, address(_vault), _assetTokenID);
         nibbledTokens.push(Proxy(_proxyVault));
         emit Fractionalise(_assetAddress, _assetTokenID, _proxyVault);
@@ -55,8 +54,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         address _curator,
         address _assetAddress,
         uint256 _assetTokenID,
-        uint256 _initialSupply) public view returns(address _vault) {
-        bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID,  _initialSupply));
+        uint256 _initialSupply,
+        uint256 _initialTokenPrice) public view returns(address _vault) {
+        bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID,  _initialSupply, _initialTokenPrice));
         bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(uint160(address(this))));
         bytes32 _hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _vault = address(uint160(uint256(_hash)));     

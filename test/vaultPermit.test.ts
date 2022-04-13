@@ -57,7 +57,8 @@ describe("NibblTokenVault: Permit ", function () {
             await latest(),
             { value: constants.initialSecondaryReserveBalance });
 
-        const proxyAddress = await vaultFactoryContract.getVaultAddress(await user.getAddress(), erc721.address, 0, constants.initialTokenSupply);
+        const proxyAddress = await vaultFactoryContract.getVaultAddress(await user.getAddress(), erc721.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
+        
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, user);
         
         domain = {

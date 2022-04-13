@@ -46,14 +46,15 @@ async function main() {
     console.log("Approved token:", tokenID);
     await new Promise(r => setTimeout(r, 10000));
     
-    await nibblVaultFactory.connect(user).createVault(erc721Token.address,
+  await nibblVaultFactory.connect(user).createVault(
+                                        erc721Token.address,
                                         userAddress,
-                                        "tokenName",
-                                        "tokenSymbol",
                                         tokenID,
                                         initialTokenSupply,
                                         initialTokenPrice,
                                         0,
+                                        "tokenName",
+                                        "tokenSymbol",
                                         { value: initialSecondaryReserveBalance });
     console.log("Created Vault");
     await new Promise(r => setTimeout(r, 10000));
@@ -63,7 +64,8 @@ async function main() {
     const _vaultAddress = await nibblVaultFactory.getVaultAddress(userAddress,
         erc721Token.address,
         tokenID,
-        initialTokenSupply);
+        initialTokenSupply,
+        initialTokenPrice);
         const _vaultContract = new Contract(_vaultAddress, NibblVault.interface, user);
     
     await _vaultContract.initiateBuyout({ value: BigNumber.from((1e17).toString()) });

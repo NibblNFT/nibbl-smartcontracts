@@ -5,7 +5,7 @@ import { mintTokens, burnTokens, snapshot, restore, getBigNumber, TWO, ONE, late
 import * as constants from "./constants";
 
 
-describe("NibblTokenVault: Trading ", function () {
+describe("NibblTokenVault: Misc ", function () {
     let accounts: Signer[];
     let snapshotId: Number;
     let curator: Signer;
@@ -68,7 +68,7 @@ describe("NibblTokenVault: Trading ", function () {
             await latest(),
             { value: constants.initialSecondaryReserveBalance });
 
-        const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.initialTokenSupply);
+        const proxyAddress = await vaultFactoryContract.getVaultAddress(curatorAddress, erc721.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, buyer1);
 
     });
@@ -112,7 +112,7 @@ describe("NibblTokenVault: Trading ", function () {
 
         const NibblVault = await ethers.getContractFactory("NibblVault");
 
-        const proxyAddress = await maliciousNibblVaultFactory.getVaultAddress(curatorAddress, erc721.address, 1, constants.initialTokenSupply);
+        const proxyAddress = await maliciousNibblVaultFactory.getVaultAddress(curatorAddress, erc721.address, 1, constants.initialTokenSupply, constants.initialTokenPrice);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, buyer1);
 
         await expect(vaultContract.connect(curator).buy(0, maliciousNibblVaultFactory.address, { value: getBigNumber("10000")})).to.be.revertedWith("NibblVault: ETH transfer failed");

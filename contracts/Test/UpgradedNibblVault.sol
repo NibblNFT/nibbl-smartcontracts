@@ -114,7 +114,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
     mapping(address => uint256) public unsettledBids; 
     mapping(address => uint256) public nonces; 
     
-    enum Status {initialised, buyout}
+    enum Status {initialized, buyout}
 
     ///@notice current status of vault
     Status public status;
@@ -156,7 +156,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
         _;
     }
 
-    /// @notice the function to initialise proxy vault parameters
+    /// @notice the function to initialize proxy vault parameters
     /// @param _tokenName name of the fractionalised ERC20 token to be created
     /// @param _tokenSymbol symbol of the fractionalised ERC20 token
     /// @param _assetAddress address of the ERC721 being fractionalised
@@ -167,7 +167,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
     /// @dev valuation = price * supply
     /// @dev reserveBalance = valuation * reserveRatio
     /// @dev Reserve Ratio = Reserve Token Balance / (Continuous Token Supply x Continuous Token Price)
-   function initialise(
+   function initialize(
         string memory _tokenName, 
         string memory _tokenSymbol, 
         address _assetAddress,
@@ -365,7 +365,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
     /// This ensures that the original bidder doesn't need to support the whole valuation and liquidity in reserve can be used as well.
     /// Buyout is initiated only when total bid amount >= currentValuation but extra funds over currentValuation are sent back to user
     function initiateBuyout() external override payable whenNotPaused returns(uint256 _buyoutBid) {
-        require(status == Status.initialised, "NibblVault: Status!=Initialised");
+        require(status == Status.initialized, "NibblVault: Status!=initialized");
         _buyoutBid = msg.value + (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance;
         //_buyoutBid: Bid User has made
         uint256 _currentValuation = getCurrentValuation();
@@ -401,7 +401,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
             delete twavObservations;
             delete twavObservationsIndex;
             delete lastBlockTimeStamp;
-            status = Status.initialised;
+            status = Status.initialized;
             emit BuyoutRejected(_twav);
         }
     }

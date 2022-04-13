@@ -81,7 +81,7 @@ describe("Pausablity", function () {
             await latest(),
             { value: constants.initialSecondaryReserveBalance });
             
-        const proxyAddress = await vaultFactoryContract.getVaultAddress(await curator.getAddress(), erc721.address, 0, constants.initialTokenSupply);
+        const proxyAddress = await vaultFactoryContract.getVaultAddress(await curator.getAddress(), erc721.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
         vaultContract = new ethers.Contract(proxyAddress.toString(), NibblVault.interface, curator);
 
     });

@@ -1,7 +1,7 @@
 {
     "cSpell.words": [
         "Initialisation",
-        "Initialised",
+        "initialized",
         "Nibbl"
     ],
     "solidity.compileUsingRemoteVersion": "v0.8.10+commit.c7e474f2",
