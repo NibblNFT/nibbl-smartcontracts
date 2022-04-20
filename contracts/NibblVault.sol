@@ -14,10 +14,10 @@ import { INibblVault } from "./Interfaces/INibblVault.sol";
 
 import "hardhat/console.sol";
 
-/// @title Vault to lock NFTs and fractionalise ERC721 to ERC20s.
+/// @title Vault to lock NFTs and fractionalise ERC721 to ERC1155s.
 /// @dev This contract uses Bancor Formula to create a automated market for fractionalised ERC20s.
 /// @dev This contract creates 2 bonding curves, referred to as primary curve and secondary curve.
-/// @dev The primary curve has fixed specifications and fixed reserveRatio.
+/// @dev The primary curve has fixed specifications and reserveRatio.
 /// @dev The secondary curve is dynamic and has a variable reserveRatio, which depends on initial conditions given by the curator and the fee accumulated by the curve.
 contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP712Base {
 
@@ -73,9 +73,9 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice initial price of the fractional ERC20 Token set by the curator
     uint256 public initialTokenPrice;
 
-    /// @notice fictitious primary reserve balance, this is used for calculation for trading along primary bonding curve.
-    /// @dev This variable defines the amount of reserve token that should in the primary curve if 
-    /// @dev the primary curve started from 0 and went till initialTokenSupply 
+    /// @notice fictitious primary reserve balance, this is used for calculation purposes of trading on primary bonding curve.
+    /// @dev This variable defines the amount of reserve token that should be in the secondary curve if secondaryReserveRatio == primaryReserveRatio
+    /// @dev This variable defines the amount of reserve token that should be in the primary curve if the primary curve started from 0 and went till initialTokenSupply 
     uint256 public fictitiousPrimaryReserveBalance;
 
     /// @notice the valuation at which the buyout is rejected.
@@ -120,7 +120,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     ///@notice current status of vault
     Status public status;
 
-    ///@notice reenterancy gaurd
+    ///@notice reenterancy guard
     uint256 private unlocked;
 
     modifier lock() {
@@ -342,7 +342,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
             uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
             if (_blockTimestamp != lastBlockTimeStamp) {
                 _updateTWAV(getCurrentValuation(), _blockTimestamp);   
-                _rejectBuyout(); //For tge case when TWAV goes up when updated on sell
+                _rejectBuyout(); //For the case when TWAV goes up when updated on sell
             }
         }
         uint256 _initialTokenSupply = initialTokenSupply;
