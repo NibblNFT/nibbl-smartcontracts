@@ -25,11 +25,13 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
 
     /// @notice mints a new vault
     /// @param _assetAddress address of the NFT contract which is being fractionalised
-    /// @param _assetTokenID tokenId of the NFT being fractionalised
+    /// @param _curator address of curator
     /// @param _name name of the fractional token to be created
     /// @param _symbol symbol of the fractional token
+    /// @param _assetTokenID tokenId of the NFT being fractionalised
     /// @param _initialSupply desired initial token supply
     /// @param _initialTokenPrice desired initial token price
+    /// @param _minBuyoutTime minimum time after which buyout can be triggered
     function createVault(
         address _assetAddress,
         address _curator,
@@ -50,6 +52,12 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         emit Fractionalise(_assetAddress, _assetTokenID, _proxyVault);
     }
 
+    /// @notice get address of vault to be deployed
+    /// @param _curator address of curator
+    /// @param _assetAddress address of the NFT contract which is being fractionalised
+    /// @param _assetTokenID tokenId of the NFT being fractionalised
+    /// @param _initialSupply desired initial token supply
+    /// @param _initialTokenPrice desired initial token price    
     function getVaultAddress(
         address _curator,
         address _assetAddress,
@@ -83,6 +91,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     }
 
     /// @notice updates new admin fee address
+    /// @dev can only be updated after timelock
     function updateNewAdminFeeAddress() external override {
         require(feeToUpdateTime != 0 && block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeTo = pendingFeeTo;
@@ -100,6 +109,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     }
 
     /// @notice updates new admin fee
+    /// @dev new fee can be updated only after timelock
     function updateNewAdminFee() external override {
         require(feeAdminUpdateTime != 0 && block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         feeAdmin = pendingFeeAdmin;
@@ -116,6 +126,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     }
 
     /// @notice updates new vault implementation
+    /// @dev new vault implementation can be updated only after timelock
     function updateVaultImplementation() external override {
         require(vaultUpdateTime != 0 && block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
         vaultImplementation = pendingVaultImplementation;
