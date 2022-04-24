@@ -46,6 +46,10 @@ contract NibblTestNFT is ERC721, ERC721Enumerable, ERC721URIStorage {
         return super.tokenURI(tokenId);
     }
 
+    function tokenID() public view returns(uint256) {
+        return _tokenIdCounter.current();
+    }
+
     function supportsInterface(bytes4 interfaceId)
         public
         view
