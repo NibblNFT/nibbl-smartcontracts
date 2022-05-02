@@ -7,7 +7,10 @@ import { BigNumber, Contract, Wallet } from "ethers";
 import { getContractAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 //Rinkeby
-
+// NibblVault Implementation deployed to: 0x9853885557cCaFCC0c6184bfaA0Bd2aF5E574976
+// NibblVaultFactory deployed to: 0x2e08eE1679098B154B79ED49367f736bc89F9cF0
+// Basket Implementation deployed to: 0x5ac38f7994Ca24Fa9FB5cD6c1860aC348639d30d
+// NibblUIHelper deployed to: 0xC2Efda38E10D09775b4ca9e393e1EFCb05963743
 async function main() {
   try {
     const e18 = BigNumber.from((1e18).toString());
@@ -20,8 +23,8 @@ async function main() {
     const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(e18); // 1e4
     const MIN_SECONDARY_RESERVE_RATIO = BigNumber.from((50_000).toString());;
     const initialSecondaryReserveBalance: BigNumber = BigNumber.from((1e12).toString());
-    const nibblVaultImplementationAddress = "0x994147949B0Bc6ee56ea5A2b26ed64CF67aa1FCE";
-    const nibblVaultFactoryAddress = "0x80E5cD497FE4C879313415B113973D2b99d985E4";
+    const nibblVaultImplementationAddress = "0x9853885557cCaFCC0c6184bfaA0Bd2aF5E574976";
+    const nibblVaultFactoryAddress = "0x2e08eE1679098B154B79ED49367f736bc89F9cF0";
 
     const NibblVault = await ethers.getContractFactory("NibblVault");
     const nibblVault = new Contract(nibblVaultImplementationAddress, NibblVault.interface, user);
