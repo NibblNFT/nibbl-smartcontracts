@@ -7,24 +7,24 @@ import { BigNumber, Contract, Wallet } from "ethers";
 import { getContractAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 //Rinkeby
-// NibblVault Implementation deployed to: 0x9853885557cCaFCC0c6184bfaA0Bd2aF5E574976
-// NibblVaultFactory deployed to: 0x2e08eE1679098B154B79ED49367f736bc89F9cF0
-// Basket Implementation deployed to: 0x5ac38f7994Ca24Fa9FB5cD6c1860aC348639d30d
-// NibblUIHelper deployed to: 0xC2Efda38E10D09775b4ca9e393e1EFCb05963743
+// NibblVault Implementation deployed to: 0x2B9e3C148855D9bBA9bF7f10452b00f5b6F3bCaF
+// NibblVaultFactory deployed to: 0x6Dd3A7DEf66431f26A62D00a417f25be4c4D5222
+// Basket Implementation deployed to: 0xc7efE4e4A914E47A07Cb6a0224E0A93915937317
+// NibblUIHelper deployed to: 0x4f51B892f7E15cc70Ea9aA4F49dfa8906eD83AAC
 async function main() {
   try {
     const e18 = BigNumber.from((1e18).toString());
     const accounts = await ethers.getSigners();
     const user = accounts[0];
-    const erc721 = "0x3E21C9F4a012001accc80580153B242582fa601A" // with uri storage
+    const erc721 = "0x0bCd3aD3732130747b984d43886B2a543438A96c" // with uri storage
     const userAddress = await user.getAddress();
     const initialTokenPrice: BigNumber = BigNumber.from((1e11).toString()); //10 ^-6 eth
     const initialValuation: BigNumber = BigNumber.from((1e13).toString()); //.001 eth
     const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(e18); // 1e4
     const MIN_SECONDARY_RESERVE_RATIO = BigNumber.from((50_000).toString());;
     const initialSecondaryReserveBalance: BigNumber = BigNumber.from((1e12).toString());
-    const nibblVaultImplementationAddress = "0x9853885557cCaFCC0c6184bfaA0Bd2aF5E574976";
-    const nibblVaultFactoryAddress = "0x2e08eE1679098B154B79ED49367f736bc89F9cF0";
+    const nibblVaultImplementationAddress = "0x2B9e3C148855D9bBA9bF7f10452b00f5b6F3bCaF";
+    const nibblVaultFactoryAddress = "0x6Dd3A7DEf66431f26A62D00a417f25be4c4D5222";
 
     const NibblVault = await ethers.getContractFactory("NibblVault");
     const nibblVault = new Contract(nibblVaultImplementationAddress, NibblVault.interface, user);
