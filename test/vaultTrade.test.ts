@@ -202,8 +202,7 @@ describe("NibblTokenVault: Trading ", function () {
     });
 
     it("should sell tokens successfully from primary curve", async function () {
-        // Buy Tokens 
-        const _buyAmount = ethers.utils.parseEther("1");
+                const _buyAmount = ethers.utils.parseEther("1");
         const _feeTotal = constants.FEE_ADMIN.add(constants.FEE_CURATOR).add(constants.FEE_CURVE);
         const _initialSecondaryBalance = await vaultContract.secondaryReserveBalance();
         const _initialPrimaryBalance = await vaultContract.primaryReserveBalance();
@@ -224,8 +223,7 @@ describe("NibblTokenVault: Trading ", function () {
         const _feeAccruedInitial = await vaultContract.feeAccruedCurator();
         const _sellAmount = _purchaseReturn.div(2); //Only selling half the amount bought
         const _sellReturn = await burnTokens(testBancorFormula, constants.initialTokenSupply.add(_purchaseReturn),  _initialPrimaryBalance.add(_buyAmountWithFee), constants.primaryReserveRatio, _sellAmount);
-        const _fee = _sellReturn.mul(_feeTotal).div(constants.SCALE);
-        const _sellReturnWithFee = _sellReturn.sub(_fee);        
+        const _sellReturnWithFee = _sellReturn.sub(_sellReturn.mul(_feeTotal).div(constants.SCALE));
         _initialBalanceFactory = await admin.provider.getBalance(vaultFactoryContract.address);
         await vaultContract.connect(buyer1).sell(_sellAmount, _sellReturnWithFee, await buyer1.getAddress());
         expect((await admin.provider.getBalance(vaultFactoryContract.address)).sub(_initialBalanceFactory)).to.equal((_sellReturn.mul(constants.FEE_ADMIN)).div(constants.SCALE));        
@@ -234,8 +232,9 @@ describe("NibblTokenVault: Trading ", function () {
         expect((await vaultContract.feeAccruedCurator()).sub(_feeAccruedInitial)).to.equal((_sellReturn.mul(constants.FEE_CURATOR)).div(constants.SCALE));
         expect(await vaultContract.secondaryReserveRatio()).to.equal((_newSecBalance.add(_sellReturn.mul(constants.FEE_CURVE).div(constants.SCALE))).mul(constants.SCALE).div(constants.initialValuation));        
         expect(await vaultContract.secondaryReserveBalance()).to.equal(_newSecBalance.add(_sellReturn.mul(constants.FEE_CURVE).div(constants.SCALE)));        
-        expect(await vaultContract.primaryReserveBalance()).to.equal(_initialPrimaryBalance.add(_buyAmountWithFee).sub(_sellReturnWithFee.add(ONE))); ///added ONE to account for rounding error happening
-    })
+        expect(await vaultContract.primaryReserveBalance()).to.equal(_initialPrimaryBalance.add(_buyAmountWithFee).sub(_sellReturn));        
+   
+   })
 
     it("should sell tokens successfully on secondary curve", async function () {
         const _sellAmount = (constants.initialTokenSupply).div(5);

@@ -252,6 +252,10 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev _purchaseReturn is minted to _to
     /// @return _purchaseReturn Purchase return
     function _buyPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns (uint256 _purchaseReturn) {
+        // uint256 _amountIn = _chargeFee(_amount);
+        // _purchaseReturn = _calculatePurchaseReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amountIn);
+        // primaryReserveBalance += _amountIn;
+        
         uint256 _amountIn = _chargeFee(_amount);
         uint256 _primaryReserveBalance = primaryReserveBalance;
         _purchaseReturn = _calculatePurchaseReturn(_totalSupply, _primaryReserveBalance, primaryReserveRatio, _amountIn);
@@ -311,10 +315,14 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amount Amount of tokens to be sold on primary curve
     /// @return _saleReturn Sale Return
     function _sellPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn) {
+        // _saleReturn = _calculateSaleReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amount);
+        // primaryReserveBalance -= _saleReturn;
+        // _saleReturn = _chargeFee(_saleReturn);
+        
         uint _primaryReserveBalance = primaryReserveBalance;
         _saleReturn = _calculateSaleReturn(_totalSupply, _primaryReserveBalance, primaryReserveRatio, _amount);
-        _saleReturn = _chargeFee(_saleReturn);
         primaryReserveBalance = _primaryReserveBalance - _saleReturn;
+        _saleReturn = _chargeFee(_saleReturn);
     }
 
     /// @notice The function to sell fractional tokens on secondary curve
@@ -354,8 +362,8 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
                 //Gas Optimization
                 uint256 _tokensPrimaryCurve = _totalSupply - _initialTokenSupply;
                 _saleReturn = primaryReserveBalance - fictitiousPrimaryReserveBalance;
-                _saleReturn = _chargeFee(_saleReturn);
                 primaryReserveBalance -= _saleReturn;
+                _saleReturn = _chargeFee(_saleReturn);
                 // _saleReturn = _sellPrimaryCurve(_tokensPrimaryCurve);
                 _saleReturn += _sellSecondaryCurve(_amtIn - _tokensPrimaryCurve, _initialTokenSupply);
             } } else {
