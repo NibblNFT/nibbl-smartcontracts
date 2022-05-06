@@ -368,6 +368,7 @@ describe("Buyout", function () {
     const twavObs = await vaultContract.twavObservations(0);
     expect(twavObs.timestamp).to.equal(twav.twavObservations[0].timestamp);
     expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
+    
     // -------------------------Buyout Initiated-------------------------- //
     for (let index = 0; true; index++) {
         const _buyAmount = ethers.utils.parseEther("10");      
@@ -402,7 +403,7 @@ describe("Buyout", function () {
     currentValuation = _newPrimaryBalance.mul(constants.SCALE).div(constants.primaryReserveRatio);
     buyoutRejectionValuation = currentValuation.mul((constants.SCALE).add(constants.rejectionPremium)).div(constants.SCALE);
     buyoutBidDeposit = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
-    await vaultContract.connect(buyer2).initiateBuyout({ value: buyoutBidDeposit });
+    await vaultContract.connect(buyer2).initiateBuyout({ value: buyoutBidDeposit.mul(getBigNumber(2, 1)) });
     blockTime = await latest();
     twav.addObservation(currentValuation, blockTime);
     expect(await vaultContract.bidder()).to.equal(buyer2Address);

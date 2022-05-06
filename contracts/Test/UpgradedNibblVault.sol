@@ -27,7 +27,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
     /// @notice Reserve ratio of primary curve 
     /// @dev primaryReserveRatio has been multiplied with SCALE
     /// @dev primaryReserveRatio lies between 0 and 1_000_000, 500_000 is equivalent to 50% reserve ratio
-    uint32 private constant primaryReserveRatio = 250_000;
+    uint32 private constant primaryReserveRatio = 200_000;
     
     /// @notice The premium percentage above the buyoutBid at which the buyout is rejected
     /// @dev REJECTION_PREMIUM has been multiplied with SCALE

@@ -12,7 +12,6 @@ import { Twav } from "./Twav/Twav.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault } from "./Interfaces/INibblVault.sol";
 
-import "hardhat/console.sol";
 
 /// @title Vault to lock NFTs and fractionalise ERC721 to ERC1155s.
 /// @dev This contract uses Bancor Formula to create a automated market for fractionalised ERC20s.
@@ -27,7 +26,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice Reserve ratio of primary curve 
     /// @dev primaryReserveRatio has been multiplied with SCALE
     /// @dev primaryReserveRatio lies between 0 and 1_000_000, 500_000 is equivalent to 50% reserve ratio
-    uint32 private constant primaryReserveRatio = 250_000; //25%
+    uint32 private constant primaryReserveRatio = 200_000; //25%
     
     /// @notice The premium percentage above the buyoutBid at which the buyout is rejected
     /// @dev REJECTION_PREMIUM has been multiplied with SCALE

@@ -389,7 +389,7 @@ describe("Upgradablity", function () {
     currentValuation = _newPrimaryBalance.mul(constants.SCALE).div(constants.primaryReserveRatio);
     buyoutRejectionValuation = currentValuation.mul((constants.SCALE).add(constants.rejectionPremium)).div(constants.SCALE);
     buyoutBidDeposit = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
-    await vaultContract.connect(buyer2).initiateBuyout({ value: buyoutBidDeposit });
+    await vaultContract.connect(buyer2).initiateBuyout({ value: buyoutBidDeposit.mul(getBigNumber(2, 1)) });
     blockTime = await latest();
     twav.addObservation(currentValuation, blockTime);
     expect(await vaultContract.bidder()).to.equal(buyer2Address);
