@@ -11,7 +11,7 @@ import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault } from "./Interfaces/INibblVault.sol";
-
+import "hardhat/console.sol";
 
 /// @title Vault to lock NFTs and fractionalise ERC721 to ERC1155s.
 /// @dev This contract uses Bancor Formula to create a automated market for fractionalised ERC20s.
@@ -38,10 +38,13 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     uint256 private constant BUYOUT_DURATION = 36 hours; 
 
     /// @notice The percentage of fee that goes for liquidity in lower curve until its reserve ratio becomes equal to primaryReserveRatio
-    uint256 private constant CURVE_FEE_AMT = 4_000;
+    uint256 private constant CURVE_FEE = 4_000;
 
     /// @notice minimum reserve ratio that the secondary curve can have initially 
     uint256 private constant MIN_SECONDARY_RESERVE_RATIO = 50_000;
+
+    uint256 private constant MAX_CURATOR_FEE = 10_000;
+    uint256 private constant MIN_CURATOR_FEE = 5_000;
 
     /// @notice minimum reserve balance that the secondary curve can have initially 
     uint256 private constant MIN_SECONDARY_RESERVE_BALANCE = 1e9;
@@ -195,7 +198,8 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         fictitiousPrimaryReserveBalance = _primaryReserveBalance;
         secondaryReserveBalance = msg.value;
         secondaryReserveRatio = _secondaryReserveRatio;
-        curatorFee = _secondaryReserveRatio * 10_000 / primaryReserveRatio; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
+        curatorFee = (((_secondaryReserveRatio - MIN_SECONDARY_RESERVE_RATIO) * MIN_CURATOR_FEE) / (primaryReserveRatio - MIN_SECONDARY_RESERVE_RATIO)) + MIN_CURATOR_FEE; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
+        // curatorFee = _secondaryReserveRatio * 10_000 / primaryReserveRatio; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
         minBuyoutTime = _minBuyoutTime;
         _mint(_curator, _initialTokenSupply);
     }
@@ -204,7 +208,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev There are 3 different fees charged - admin, curator and curve
     /// @dev Admin fee percentage is fetched from the factory contract and the fee charged is transferred to factory contract
     /// @dev Curator fee is fetched from curatorFee variable and total fee accrued is stored in feeAccruedCurator variable
-    /// @dev Curve fee is fetched from the CURVE_FEE_AMT variable and is added to the secondaryReserveBalance variable
+    /// @dev Curve fee is fetched from the CURVE_FEE variable and is added to the secondaryReserveBalance variable
     /// @param _amount amount to charge fee on either a buy or sell order, fee is charged in reserve token
     /// @return the amount after fee is deducted
     function _chargeFee(uint256 _amount) private returns(uint256) {
@@ -212,7 +216,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         uint256 _adminFeeAmt = NibblVaultFactory(_factory).feeAdmin();
         uint256 _feeAdmin = (_amount * _adminFeeAmt) / SCALE ;
         uint256 _feeCurator = (_amount * curatorFee) / SCALE ;
-        uint256 _feeCurve = (_amount * CURVE_FEE_AMT) / SCALE ;
+        uint256 _feeCurve = (_amount * CURVE_FEE) / SCALE ;
         feeAccruedCurator += _feeCurator;
         uint256 _maxSecondaryBalanceIncrease = fictitiousPrimaryReserveBalance - secondaryReserveBalance;
         _feeCurve = _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease; // the curve fee is capped so that secondaryReserveBalance <= fictitiousPrimaryReserveBalance

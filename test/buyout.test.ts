@@ -178,8 +178,9 @@ describe("Buyout", function () {
         const _initialPrimaryBalance = await vaultContract.primaryReserveBalance();
         const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(constants.SCALE));
         const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
-        const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
-        const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);
+        let _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
+        _newSecondaryBalance = _newSecondaryBalance >= constants.MAX_SECONDARY_RESERVE_BALANCE ? constants.MAX_SECONDARY_RESERVE_BALANCE : _newSecondaryBalance;
+	  	const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);           
         await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
         blockTime = await latest();
         twav.addObservation(currentValuation, blockTime);

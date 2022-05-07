@@ -18,7 +18,16 @@ export const fictitiousPrimaryReserveBalance = (primaryReserveRatio.mul(initialV
 export const initialPrimaryReserveBalance: BigNumber = fictitiousPrimaryReserveBalance;
 export const UPDATE_TIME_FACTORY = BigNumber.from(2 * 24 * 60 * 60);
 export const TWAV_ARRAY_SIZE: number = 4;
+export const MAX_SECONDARY_RESERVE_BALANCE: BigNumber = ethers.utils.parseEther("20");
+    /// @notice minimum reserve ratio that the secondary curve can have initially 
+export const MIN_SECONDARY_RESERVE_RATIO: BigNumber = BigNumber.from(50_000);
 
-export const FEE_CURATOR: BigNumber = initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
+export const MAX_CURATOR_FEE: BigNumber = BigNumber.from(10_000);
+export const MIN_CURATOR_FEE: BigNumber = BigNumber.from(5_000);
+// curatorFee = (((_secondaryReserveRatio - MIN_SECONDARY_RESERVE_RATIO) * MIN_CURATOR_FEE) / (primaryReserveRatio - MIN_SECONDARY_RESERVE_RATIO)) + MIN_CURATOR_FEE; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
+
+export const FEE_CURATOR: BigNumber = ((initialSecondaryReserveRatio.sub(MIN_SECONDARY_RESERVE_RATIO).mul(MIN_CURATOR_FEE)).div(primaryReserveRatio.sub(MIN_SECONDARY_RESERVE_RATIO))).add(MIN_CURATOR_FEE);
+// initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
 export const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
 export const FEE_CURVE: BigNumber = BigNumber.from(4_000);
+
