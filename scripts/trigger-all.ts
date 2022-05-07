@@ -10,7 +10,8 @@ import { ethers } from "hardhat";
 // NibblVault Implementation deployed to: 0x290336229879BB31F785EAeb4b6c2F64F1d7FEec
 // NibblVaultFactory deployed to: 0xF6AfFF3bE694847329501daA6674728b780b9775
 // Basket Implementation deployed to: 0xAe54EB16C0e9B5c25910F6bfc37E7249b384979B
-// NibblUIHelper deployed to: 0x0EDd566015c715C6A302d94eC9F242Ed7B1178dcasync function main() {
+// NibblUIHelper deployed to: 0x0EDd566015c715C6A302d94eC9F242Ed7B1178dc
+async function main() {
   try {
     const e18 = BigNumber.from((1e18).toString());
     const accounts = await ethers.getSigners();
