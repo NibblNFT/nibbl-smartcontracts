@@ -7,11 +7,10 @@ import { BigNumber, Contract, Wallet } from "ethers";
 import { getContractAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 //Rinkeby
-// NibblVault Implementation deployed to: 0x2B9e3C148855D9bBA9bF7f10452b00f5b6F3bCaF
-// NibblVaultFactory deployed to: 0x6Dd3A7DEf66431f26A62D00a417f25be4c4D5222
-// Basket Implementation deployed to: 0xc7efE4e4A914E47A07Cb6a0224E0A93915937317
-// NibblUIHelper deployed to: 0x4f51B892f7E15cc70Ea9aA4F49dfa8906eD83AAC
-async function main() {
+// NibblVault Implementation deployed to: 0x290336229879BB31F785EAeb4b6c2F64F1d7FEec
+// NibblVaultFactory deployed to: 0xF6AfFF3bE694847329501daA6674728b780b9775
+// Basket Implementation deployed to: 0xAe54EB16C0e9B5c25910F6bfc37E7249b384979B
+// NibblUIHelper deployed to: 0x0EDd566015c715C6A302d94eC9F242Ed7B1178dcasync function main() {
   try {
     const e18 = BigNumber.from((1e18).toString());
     const accounts = await ethers.getSigners();
@@ -23,8 +22,8 @@ async function main() {
     const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(e18); // 1e4
     const MIN_SECONDARY_RESERVE_RATIO = BigNumber.from((50_000).toString());;
     const initialSecondaryReserveBalance: BigNumber = BigNumber.from((1e12).toString());
-    const nibblVaultImplementationAddress = "0x2B9e3C148855D9bBA9bF7f10452b00f5b6F3bCaF";
-    const nibblVaultFactoryAddress = "0x6Dd3A7DEf66431f26A62D00a417f25be4c4D5222";
+    const nibblVaultImplementationAddress = "0x290336229879BB31F785EAeb4b6c2F64F1d7FEec";
+    const nibblVaultFactoryAddress = "0xF6AfFF3bE694847329501daA6674728b780b9775";
 
     const NibblVault = await ethers.getContractFactory("NibblVault");
     const nibblVault = new Contract(nibblVaultImplementationAddress, NibblVault.interface, user);
@@ -96,7 +95,7 @@ async function main() {
     let buyTx1 = await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000" });
     console.log("Bought");
     await new Promise(r => setTimeout(r, 15000));
-    await _vaultContract.updateTWAV();
+    await _vaultContract.updateTWAV({gasLimit: "500000"});
     console.log("Updated TWAV");
     await new Promise(r => setTimeout(r, 15000));
     await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000" });
