@@ -171,8 +171,6 @@ describe("Upgradablity", function () {
         const _initialPrimaryBalance = await vaultContract.primaryReserveBalance();
         const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(constants.SCALE));
         const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
-        const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
-        const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);
         await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
         blockTime = await latest();
         twav.addObservation(currentValuation, blockTime);
@@ -183,6 +181,8 @@ describe("Upgradablity", function () {
         // ----------------------------2nd Buy Operation Initiated-----------------------------------  
 
         await advanceTimeAndBlock(duration.minutes(3));
+        const _newSecondaryBalance = await vaultContract.secondaryReserveBalance();
+        const _newSecondaryResRatio = await vaultContract.secondaryReserveRatio();  
         currentValuation = (_newSecondaryBalance.mul(constants.SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(constants.fictitiousPrimaryReserveBalance)).mul(constants.SCALE).div(constants.primaryReserveRatio));
         await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
         blockTime = await latest();

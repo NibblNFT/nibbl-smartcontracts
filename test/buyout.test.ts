@@ -178,9 +178,6 @@ describe("Buyout", function () {
         const _initialPrimaryBalance = await vaultContract.primaryReserveBalance();
         const _buyAmountWithFee = _buyAmount.sub(_buyAmount.mul(_feeTotal).div(constants.SCALE));
         const _newPrimaryBalance = _initialPrimaryBalance.add(_buyAmountWithFee);
-        let _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
-        _newSecondaryBalance = _newSecondaryBalance >= constants.MAX_SECONDARY_RESERVE_BALANCE ? constants.MAX_SECONDARY_RESERVE_BALANCE : _newSecondaryBalance;
-	  	const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);           
         await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
         blockTime = await latest();
         twav.addObservation(currentValuation, blockTime);
@@ -189,8 +186,12 @@ describe("Buyout", function () {
         expect(twavObs1.cumulativeValuation).to.equal(twav.twavObservations[1].cumulativeValuation);
         // ----------------------------1st Buy Operation-----------------------------------  
         // ----------------------------2nd Buy Operation Initiated-----------------------------------  
-
+		
         await advanceTimeAndBlock(duration.minutes(3));
+	  	const _newSecondaryBalance = await vaultContract.secondaryReserveBalance();
+	  	const _newSecondaryResRatio = await vaultContract.secondaryReserveRatio();           
+	  
+// secondaryReserveRatio
         currentValuation = (_newSecondaryBalance.mul(constants.SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(constants.fictitiousPrimaryReserveBalance)).mul(constants.SCALE).div(constants.primaryReserveRatio));
         await vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount });
         blockTime = await latest();
