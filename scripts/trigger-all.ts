@@ -44,7 +44,7 @@ async function main() {
     console.log("ERC721 at:", erc721Token.address);
 
 
-    let safeMintTx = await erc721Token.safeMint(userAddress, "https://ipfs.io/ipfs/QmPkvqYQBSqSY5J8RwC7dbCr6xgNsVdfpZcHgx71eqZPgJ");
+    let safeMintTx = await erc721Token.safeMint(userAddress, "https://ipfs.io/ipfs/QmPkvqYQBSqSY5J8RwC7dbCr6xgNsVdfpZcHgx71eqZPgJ", { gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     let receipt = await safeMintTx.wait()
     console.log(`safe mint receipt : ${JSON.stringify(receipt.events)}`)
     receipt = receipt.events
@@ -60,7 +60,7 @@ async function main() {
     console.log(`toAddress : ${toAddress}`)
     console.log(`tokenId : ${tokenId}`)
 
-    let approveTx = await erc721Token.approve(nibblVaultFactory.address, `${tokenId}`);
+    let approveTx = await erc721Token.approve(nibblVaultFactory.address, `${tokenId}`, {gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2))});
     await approveTx.wait()
     console.log("Approved token:", `${tokenId}`);
 
@@ -73,7 +73,7 @@ async function main() {
       initialTokenSupply,
       initialTokenPrice,
       0,
-      { value: initialSecondaryReserveBalance });
+      { value: initialSecondaryReserveBalance, gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     await createVaultTx.wait()
     console.log("Created Vault");
     //await new Promise(r => setTimeout(r, 10000));
@@ -91,27 +91,27 @@ async function main() {
     console.log("Get Vault Address");
     const _vaultContract = new Contract(_vaultAddress, NibblVault.interface, user);
 
-    await _vaultContract.initiateBuyout({ value: BigNumber.from((1e14).toString()) });
+    await _vaultContract.initiateBuyout({ value: BigNumber.from((1e14).toString()), gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     console.log("Buyout Initiated");
-    let buyTx1 = await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000" });
+    let buyTx1 = await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000", gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     console.log("Bought");
     await new Promise(r => setTimeout(r, 15000));
-    await _vaultContract.updateTWAV({gasLimit: "500000"});
+    await _vaultContract.updateTWAV({gasLimit: "500000", gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2))});
     console.log("Updated TWAV");
     await new Promise(r => setTimeout(r, 15000));
-    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000" });
+    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000", gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     console.log("Bought");
     await new Promise(r => setTimeout(r, 15000));
-    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000" });
+    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000", gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     console.log("Bought");
     await new Promise(r => setTimeout(r, 15000));
-    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000" });
+    await _vaultContract.buy(0, userAddress, { value: BigNumber.from((1e15).toString()), gasLimit: "500000", gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     console.log("Bought");
     await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.sell(((await _vaultContract.balanceOf(userAddress)).div(BigNumber.from(2))), 0, userAddress, { gasLimit: "500000" });
+    await _vaultContract.sell(((await _vaultContract.balanceOf(userAddress)).div(BigNumber.from(2))), 0, userAddress, { gasLimit: "500000", gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     console.log("Sold");
     await new Promise(r => setTimeout(r, 10000));
-    await _vaultContract.initiateBuyout({ value: BigNumber.from((1e17).toString()) });
+    await _vaultContract.initiateBuyout({ value: BigNumber.from((1e17).toString()), gasPrice: (await user.provider.getGasPrice()).mul(BigNumber.from(2)) });
     console.log("Buyout Initiated");
 
   } catch (error) {
