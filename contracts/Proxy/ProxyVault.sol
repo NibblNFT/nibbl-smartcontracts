@@ -13,7 +13,7 @@ import { NibblVaultFactory } from "../NibblVaultFactory.sol";
  *
  * The success and return data of the delegated call will be returned back to the caller of the proxy.
  */
-contract Proxy {
+contract ProxyVault {
     address payable immutable public factory;
 
     constructor(address _factory) {

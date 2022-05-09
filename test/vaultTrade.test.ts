@@ -50,9 +50,14 @@ describe("NibblTokenVault: Trading ", function () {
         vaultImplementationContract = await NibblVault.deploy();
         await vaultImplementationContract.deployed();
         const NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
+        const Basket = await ethers.getContractFactory("Basket");
+        const basketImplementationContract = await Basket.deploy();
+        await basketImplementationContract.deployed();
+        
         vaultFactoryContract = await NibblVaultFactory.connect(admin).deploy(vaultImplementationContract.address,
-                                                                                    await admin.getAddress(),
-                                                                                    await admin.getAddress()); 
+                                                                                    adminAddress,
+                                                                                    adminAddress,
+                                                                                    basketImplementationContract.address); 
         await vaultFactoryContract.deployed();
         await erc721.approve(vaultFactoryContract.address, 0);
         const TestBancorBondingCurve = await ethers.getContractFactory("TestBancorFormula");

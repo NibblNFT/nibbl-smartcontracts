@@ -28,6 +28,7 @@ describe("Factory", function () {
     let erc721: Contract;
     let vaultContract: Contract;
     let vaultImplementationContract: Contract;
+    let basketImplementationContract: Contract;
     let vaultFactoryContract: Contract;
     let testBancorFormula: Contract;
     
@@ -59,11 +60,16 @@ describe("Factory", function () {
         vaultImplementationContract = await NibblVault.deploy();
         await vaultImplementationContract.deployed();
 
+        const Basket = await ethers.getContractFactory("Basket");
+        basketImplementationContract = await Basket.deploy();
+        await basketImplementationContract.deployed();
+
         const NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
 
         vaultFactoryContract = await NibblVaultFactory.connect(admin).deploy(vaultImplementationContract.address,
                                                                                                     adminAddress,
-                                                                                                    adminAddress); 
+                                                                                                    adminAddress,
+                                                                                                    basketImplementationContract.address); 
         await vaultFactoryContract.deployed();
         await erc721.connect(curator).approve(vaultFactoryContract.address, 0);
 
@@ -173,7 +179,6 @@ describe("Factory", function () {
         vaultContract.buy(0, curatorAddress, {value: getBigNumber(100)});
     });
   
-
     it("should fail to update feeTo address if UPDATE_TIME hasn't passed", async function () {
         const _newFee = 1_000;
         await vaultFactoryContract.connect(feeRole).proposeNewAdminFee(_newFee);
@@ -271,6 +276,48 @@ describe("Factory", function () {
         expect(await vaultFactoryContract.hasRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), user1Address)).to.equal(true);    
         await vaultFactoryContract.connect(admin).revokeRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), user1Address);
         expect(await vaultFactoryContract.hasRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), user1Address)).to.equal(false);
+    });
+
+    it("should deploy basket deterministically and initialise successfully", async function () {
+        const _mix = Math.random().toString();
+        await vaultFactoryContract.createBasket(curatorAddress, _mix);        
+        const _address = await vaultFactoryContract.getBasketAddress(curatorAddress, _mix);
+        const Basket = await ethers.getContractFactory("Basket");
+        const _basket = new ethers.Contract(_address, Basket.interface, curator);
+        const _curator = await _basket.ownerOf(0);
+        const _supportsInterface = await _basket.supportsInterface("0x8d9f86b2")
+        expect(_curator).to.equal(curatorAddress);
+        expect(_supportsInterface).to.equal(true);
+    })
+    it("should propose basketVaultImplementation", async function () {
+        await vaultFactoryContract.connect(implementorRole).proposeNewBasketImplementation(user1Address);
+        const blockTime = await latest();
+        const pendingBasketImplementation = await vaultFactoryContract.pendingBasketImplementation();
+        const basketUpdateTime = await vaultFactoryContract.basketUpdateTime();
+        expect(pendingBasketImplementation).to.be.equal(user1Address);
+        expect(basketUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
+    });
+
+    it("should update nibblBasketImplementation", async function () {
+        await vaultFactoryContract.connect(implementorRole).proposeNewBasketImplementation(user1Address);
+        const blockTime = await latest();
+        const pendingBasketImplementation = await vaultFactoryContract.pendingBasketImplementation();
+        const basketUpdateTime = await vaultFactoryContract.basketUpdateTime();
+        expect(pendingBasketImplementation).to.be.equal(user1Address);
+        expect(basketUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
+        await advanceTimeAndBlock(constants.UPDATE_TIME_FACTORY);
+        await vaultFactoryContract.updateBasketImplementation();
+        expect(await vaultFactoryContract.basketImplementation()).to.equal(user1Address);
+    });
+
+    it("should fail to update nibblBasketImplementation if UPDATE_TIME hasn't passed", async function () {
+        await vaultFactoryContract.connect(implementorRole).proposeNewBasketImplementation(user1Address);
+        const blockTime = await latest();
+        const pendingBasketImplementation = await vaultFactoryContract.pendingBasketImplementation();
+        const basketUpdateTime = await vaultFactoryContract.basketUpdateTime();
+        expect(pendingBasketImplementation).to.be.equal(user1Address);
+        expect(basketUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
+        await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME has not passed");
     });
 
 });

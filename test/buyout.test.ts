@@ -69,9 +69,15 @@ describe("Buyout", function () {
 
         const NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
 
+        const Basket = await ethers.getContractFactory("Basket");
+        const basketImplementationContract = await Basket.deploy();
+        await basketImplementationContract.deployed();
+        
         vaultFactoryContract = await NibblVaultFactory.connect(admin).deploy(vaultImplementationContract.address,
                                                                                     adminAddress,
-                                                                                    adminAddress); 
+                                                                                    adminAddress,
+                                                                                    basketImplementationContract.address); 
+
         await vaultFactoryContract.deployed();
         await erc721.connect(curator).approve(vaultFactoryContract.address, 0);
 

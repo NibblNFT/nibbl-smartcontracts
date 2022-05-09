@@ -40,9 +40,15 @@ describe("NibblTokenVault: Permit ", function () {
 
         const NibblVaultFactory = await ethers.getContractFactory("NibblVaultFactory");
 
+        const Basket = await ethers.getContractFactory("Basket");
+        const basketImplementationContract = await Basket.deploy();
+        await basketImplementationContract.deployed();
+        
         vaultFactoryContract = await NibblVaultFactory.connect(user).deploy(vaultImplementationContract.address,
-                                                                                    userAddress,
-                                                                                    userAddress); 
+                                                                            userAddress,
+                                                                            userAddress,
+                                                                            basketImplementationContract.address); 
+
         await vaultFactoryContract.deployed();
         
         await erc721.approve(vaultFactoryContract.address, 0);
