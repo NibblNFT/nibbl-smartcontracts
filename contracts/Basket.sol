@@ -22,7 +22,6 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
     event WithdrawERC20(address indexed token, address indexed who);
 
     function initialise(address _curator) external override initializer {
-        console.logBytes4(type(IBasket).interfaceId);
         _mint(_curator, 0);
     }
 
