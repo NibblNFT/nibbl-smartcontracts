@@ -31,7 +31,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
     /// @dev REJECTION_PREMIUM has been multiplied with SCALE
     /// @dev REJECTION_PREMIUM lies between 0 and 1_000_000, i.e. 100_000 means 10%
     /// @dev if REJECTION_PREMIUM is 10% and the buyoutBid is 100, then the buyout is rejected when the valuation reaches 110
-    uint256 private constant REJECTION_PREMIUM = 100_000; 
+    uint256 private constant REJECTION_PREMIUM = 150_000; 
 
     /// @notice The days until which a buyout bid is valid, if it isn't rejected in buyout duration time, its automatically considered boughtOut
     uint256 private constant BUYOUT_DURATION = 5 days; 
