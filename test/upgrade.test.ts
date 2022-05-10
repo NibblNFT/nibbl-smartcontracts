@@ -126,7 +126,6 @@ describe("Upgradablity", function () {
         // totalSupply() < constants.initialTokenSupply ? (secondaryReserveBalance * SCALE /secondaryReserveRatio) : ((primaryReserveBalance) * SCALE  / primaryReserveRatio);
         await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
         const blockTime = await latest();
-        console.log(blockTime, blockTime.add(constants.BUYOUT_DURATION));
         twav.addObservation(currentValuation, blockTime);
         expect(await vaultContract.buyoutValuationDeposit()).to.equal(buyoutBidDeposit);
         expect(await vaultContract.bidder()).to.equal(buyer1Address);

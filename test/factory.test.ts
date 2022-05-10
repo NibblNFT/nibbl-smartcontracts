@@ -145,7 +145,7 @@ describe("Factory", function () {
     });
 
     it("should fail to propose new admin fee is fee greater than MAX_ADMIN_FEE", async function () {
-        const _newFee = 10_000;
+        const _newFee = 15_000;
         await expect(vaultFactoryContract.connect(feeRole).proposeNewAdminFee(_newFee)).to.be.revertedWith("NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
     });
 

@@ -94,14 +94,14 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
 
     /// @notice proposes new Basket implementation
     /// @dev new implementation can be updated only after timelock
-    /// @dev can only be called by FEE_ROLE
+    /// @dev can only be called by IMPLEMENTER_ROLE
     /// @param _newBasketImplementation new implementation basket address
     function proposeNewBasketImplementation(address _newBasketImplementation) external override onlyRole(IMPLEMENTER_ROLE) {
         pendingBasketImplementation = _newBasketImplementation;
         basketUpdateTime = block.timestamp + UPDATE_TIME;
     }
 
-    /// @notice updates new vault implementation
+    /// @notice updates new basket implementation
     /// @dev new vault implementation can be updated only after timelock
     function updateBasketImplementation() external override {
         require(basketUpdateTime != 0 && block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
