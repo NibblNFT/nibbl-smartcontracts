@@ -35,7 +35,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     uint256 private constant REJECTION_PREMIUM = 100_000; //10%
 
     /// @notice The days until which a buyout bid is valid, if it isn't rejected in buyout duration time, its automatically considered boughtOut
-    uint256 private constant BUYOUT_DURATION = 36 hours; 
+    uint256 private constant BUYOUT_DURATION = 5 days; 
 
     /// @notice The percentage of fee that goes for liquidity in lower curve until its reserve ratio becomes equal to primaryReserveRatio
     uint256 private constant CURVE_FEE = 4_000;

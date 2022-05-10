@@ -299,7 +299,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    await advanceTimeAndBlock(duration.days(3));
+    await advanceTimeAndBlock(duration.days(5));
     const _buyAmount = ethers.utils.parseEther("2");      
     await expect(vaultContract.connect(buyer1).buy(0, buyer1Address, { value: _buyAmount })).to.be.revertedWith("NibblVault: Bought Out");
   });
@@ -311,7 +311,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    await advanceTimeAndBlock(duration.days(3));
+    await advanceTimeAndBlock(duration.days(5));
 
     const _sellAmount = constants.initialTokenSupply.div(5);
     await expect(vaultContract.connect(curator).sell(_sellAmount, 0, buyer1Address)).to.be.revertedWith("NibblVault: Bought Out");
@@ -436,7 +436,7 @@ describe("Buyout", function () {
     // ---------------------Buyout Initiated--------------------------//
     
     balanceContract = await admin.provider.getBalance(vaultContract.address);
-    await advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5))
     const balanceBuyer = await vaultContract.balanceOf(buyer1Address);
     const totalSupply = await vaultContract.totalSupply();
     const returnAmt: BigNumber = ((balanceContract.sub(curatorFeeAccrued)).mul(balanceBuyer)).div(totalSupply);    
@@ -484,7 +484,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    await advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5))
     // ---------------------Buyout Finished--------------------------//
     //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
 
@@ -497,7 +497,7 @@ describe("Buyout", function () {
     const buyoutBidDeposit = ethers.utils.parseEther("1000");
     await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
     // ---------------------Buyout Initiated--------------------------//
-    await advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5))
     // ---------------------Buyout Finished--------------------------//
     //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
 
@@ -512,7 +512,7 @@ describe("Buyout", function () {
     // ---------------------Buyout Initiated--------------------------//
     await erc721.mint(vaultContract.address, 1);
     await erc721.mint(vaultContract.address, 2);
-    await advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5))
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [], _assetIDs = [];
     for (let i = 0; i < 3; i++) {
@@ -533,7 +533,7 @@ describe("Buyout", function () {
     // ---------------------Buyout Initiated--------------------------//
     await erc721.mint(vaultContract.address, 1);
     await erc721.mint(vaultContract.address, 2);
-    await advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5))
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [], _assetIDs = [];
     for (let i = 0; i < 3; i++) {
@@ -556,7 +556,7 @@ describe("Buyout", function () {
     await erc20.deployed();
     await erc20.mint(vaultContract.address, amount);
 
-    await advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5))
     // ---------------------Buyout Finished--------------------------//
 
     await vaultContract.connect(buyer1).withdrawERC20(erc20.address, buyer1Address);
@@ -576,7 +576,7 @@ describe("Buyout", function () {
     await erc20.deployed();
     await erc20.mint(vaultContract.address, amount);
 
-    await advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5))
     // ---------------------Buyout Finished--------------------------//
 
     await expect(vaultContract.connect(buyer2).withdrawERC20(erc20.address, buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
@@ -599,7 +599,7 @@ describe("Buyout", function () {
     await erc20b.deployed();
     await erc20b.mint(vaultContract.address, amount);
 
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5));
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [];
     _assetAddresses.push(erc20a.address, erc20b.address);
@@ -624,7 +624,7 @@ describe("Buyout", function () {
     await erc20b.deployed();
     await erc20b.mint(vaultContract.address, amount);
 
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5));
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [];
     _assetAddresses.push(erc20a.address, erc20b.address);
@@ -646,7 +646,7 @@ describe("Buyout", function () {
     await erc1155.deployed();
     await erc1155.mint(vaultContract.address, 0, amount);
     
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5));
     await vaultContract.connect(buyer1).withdrawERC1155(erc1155.address, 0, buyer1Address);
     expect(await erc1155.balanceOf(buyer1Address, 0)).to.be.equal(amount);
   });
@@ -664,7 +664,7 @@ describe("Buyout", function () {
     await erc1155.deployed();
     await erc1155.mint(vaultContract.address, 0, amount);
     
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5));
     await expect(vaultContract.connect(buyer2).withdrawERC1155(erc1155.address, 0, buyer1Address)).to.be.revertedWith("NibblVault: Only winner");
   });
 
@@ -683,7 +683,7 @@ describe("Buyout", function () {
     await erc1155.mint(vaultContract.address, 0, amount);
     await erc1155.mint(vaultContract.address, 1, amount);
     
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5));
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [], _assetIDs = [0, 1];
     _assetAddresses.push(erc1155.address, erc1155.address);
@@ -707,7 +707,7 @@ describe("Buyout", function () {
     await erc1155.mint(vaultContract.address, 0, amount);
     await erc1155.mint(vaultContract.address, 1, amount);
     
-    advanceTimeAndBlock(duration.hours(36));
+    await advanceTimeAndBlock(duration.days(5));
     // ---------------------Buyout Finished--------------------------//
     let _assetAddresses = [], _assetIDs = [0, 1];
     _assetAddresses.push(erc1155.address, erc1155.address);
@@ -871,7 +871,7 @@ describe("Buyout", function () {
       const buyoutBidDeposit = ethers.utils.parseEther("1000");
       await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
       // ---------------------Buyout Initiated--------------------------//
-      await advanceTimeAndBlock(duration.hours(36));
+      await advanceTimeAndBlock(duration.days(5))
       // ---------------------Buyout Finished--------------------------//
       //withdrawNFT(address _assetAddress, address _to, uint256 _assetID)
       await expect(vaultContract.connect(buyer2).withdrawERC721(await vaultContract.assetAddress(), await vaultContract.assetID(), buyer1Address)).to.be.revertedWith("NibblVault: Only winner");

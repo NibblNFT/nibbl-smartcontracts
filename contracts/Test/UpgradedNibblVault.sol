@@ -12,8 +12,6 @@ import { Twav } from "../Twav/Twav.sol";
 import { EIP712Base } from "../Utilities/EIP712Base.sol";
 import { INibblVault } from "../Interfaces/INibblVault.sol";
 
-import "hardhat/console.sol";
-
 /// @title Vault to lock NFTs and fractionalise ERC721 to ERC20s.
 /// @dev This contract uses Bancor Formula to create a market for fractionalised ERC20s.
 /// @dev This contract creates 2 bonding curves, referred to as primary curve and secondary curve.
@@ -36,7 +34,7 @@ contract UpgradedNibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twa
     uint256 private constant REJECTION_PREMIUM = 100_000; 
 
     /// @notice The days until which a buyout bid is valid, if it isn't rejected in buyout duration time, its automatically considered boughtOut
-    uint256 private constant BUYOUT_DURATION = 36 hours; 
+    uint256 private constant BUYOUT_DURATION = 5 days; 
 
     /// @notice The percentage of fee that goes for liquidity in lower curve until its reserve ratio becomes equal to primaryReserveRatio
     uint256 private constant CURVE_FEE_AMT = 4_000;
