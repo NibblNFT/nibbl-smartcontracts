@@ -4,7 +4,7 @@ pragma solidity 0.8.10;
 
 contract NibblVaultFactoryData {
     uint256 public UPDATE_TIME = 2 days;
-    uint256 public constant MAX_ADMIN_FEE = 10_000; //.2%
+    uint256 public constant MAX_ADMIN_FEE = 10_000; //1%
 
     address public vaultImplementation;
     address public pendingVaultImplementation;

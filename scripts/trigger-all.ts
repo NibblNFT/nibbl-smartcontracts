@@ -7,10 +7,10 @@ import { BigNumber, Contract, Wallet } from "ethers";
 import { getContractAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 //Rinkeby
-// NibblVault Implementation deployed to: 0x290336229879BB31F785EAeb4b6c2F64F1d7FEec
-// NibblVaultFactory deployed to: 0xF6AfFF3bE694847329501daA6674728b780b9775
-// Basket Implementation deployed to: 0xAe54EB16C0e9B5c25910F6bfc37E7249b384979B
-// NibblUIHelper deployed to: 0x0EDd566015c715C6A302d94eC9F242Ed7B1178dc
+// NibblVault Implementation deployed to: 0xFebc3B90C9FDd74a683c2FE958A2Ad3279C8c699
+// Basket Implementation deployed to: 0x8d0D9466e59ec23626AdFB974A8e1eaa6602A420
+// NibblVaultFactory deployed to: 0x2AE5d7a9E2Bad8723BcE224cDDD9a22952B6F183
+// NibblUIHelper deployed to: 0x78454A79C212956e9d96A7c1606032dc069e4EE4
 async function main() {
   try {
     const e18 = BigNumber.from((1e18).toString());
@@ -23,8 +23,8 @@ async function main() {
     const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(e18); // 1e4
     const MIN_SECONDARY_RESERVE_RATIO = BigNumber.from((50_000).toString());;
     const initialSecondaryReserveBalance: BigNumber = BigNumber.from((1e12).toString());
-    const nibblVaultImplementationAddress = "0x290336229879BB31F785EAeb4b6c2F64F1d7FEec";
-    const nibblVaultFactoryAddress = "0xF6AfFF3bE694847329501daA6674728b780b9775";
+    const nibblVaultImplementationAddress = "0xFebc3B90C9FDd74a683c2FE958A2Ad3279C8c699";
+    const nibblVaultFactoryAddress = "0x2AE5d7a9E2Bad8723BcE224cDDD9a22952B6F183";
 
     const NibblVault = await ethers.getContractFactory("NibblVault");
     const nibblVault = new Contract(nibblVaultImplementationAddress, NibblVault.interface, user);
