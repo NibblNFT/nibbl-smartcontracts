@@ -118,6 +118,14 @@ describe("Access Control", function () {
         expect(await vaultFactoryContract.pendingRoles(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress())).to.be.true;
         await vaultFactoryContract.connect(implementorRole).claimRole(await vaultFactoryContract.IMPLEMENTER_ROLE());
         expect(await vaultFactoryContract.hasRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress())).to.be.true;
-        
+    });
+
+    it("Should revoke role", async function () {
+        await vaultFactoryContract.connect(admin).proposeGrantRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress());
+        expect(await vaultFactoryContract.pendingRoles(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress())).to.be.true;
+        await vaultFactoryContract.connect(implementorRole).claimRole(await vaultFactoryContract.IMPLEMENTER_ROLE());
+        expect(await vaultFactoryContract.hasRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress())).to.be.true;
+        await vaultFactoryContract.connect(admin).revokeRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), implementorRoleAddress);
+        expect(await vaultFactoryContract.hasRole(await vaultFactoryContract.IMPLEMENTER_ROLE(), await implementorRole.getAddress())).to.be.false;
     });
 });
