@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity 0.8.10;
 
@@ -123,11 +123,11 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     Status public status;
 
     ///@notice reenterancy guard
-    uint256 private unlocked;
+    uint256 private unlocked = 2;
 
     modifier lock() {
         require(unlocked == 1, 'NibblVault: LOCKED');
-        unlocked = 0;
+        unlocked = 2;
         _;
         unlocked = 1;
     }
