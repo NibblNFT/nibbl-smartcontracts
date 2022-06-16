@@ -13,8 +13,8 @@ import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault } from "./Interfaces/INibblVault.sol";
 import "hardhat/console.sol";
 
-/// @title Vault to lock NFTs and fractionalise ERC721 to ERC1155s.
-/// @dev This contract uses Bancor Formula to create a automated market for fractionalised ERC20s.
+/// @title Vault to lock NFTs and fractionalise ERC721 to ERC20.
+/// @dev This contract uses Bancor Formula to create an automated market for fractionalised ERC20s.
 /// @dev This contract creates 2 bonding curves, referred to as primary curve and secondary curve.
 /// @dev The primary curve has fixed specifications and reserveRatio.
 /// @dev The secondary curve is dynamic and has a variable reserveRatio, which depends on initial conditions given by the curator and the fee accumulated by the curve.
@@ -32,9 +32,9 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev REJECTION_PREMIUM has been multiplied with SCALE
     /// @dev REJECTION_PREMIUM lies between 0 and 1_000_000, i.e. 100_000 means 10%
     /// @dev if REJECTION_PREMIUM is 10% and the buyoutBid is 100, then the buyout is rejected when the valuation reaches 110
-    uint256 private constant REJECTION_PREMIUM = 150_000; //10%
+    uint256 private constant REJECTION_PREMIUM = 150_000; //15%
 
-    /// @notice The days until which a buyout bid is valid, if it isn't rejected in buyout duration time, its automatically considered boughtOut
+    /// @notice The days until which a buyout bid is valid, if the bid isn't rejected in buyout duration time, its automatically considered boughtOut
     uint256 private constant BUYOUT_DURATION = 5 days; 
 
     /// @notice The percentage of fee that goes for liquidity in lower curve until its reserve ratio becomes equal to primaryReserveRatio
@@ -57,7 +57,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev secondary reserve ratio is dynamic and it can be <= primaryReserveRatio
     uint32 public secondaryReserveRatio;
 
-    /// @notice address of factory contract
+    /// @notice address of the factory contract
     address payable public factory;
 
     /// @notice address of the original NFT owner
