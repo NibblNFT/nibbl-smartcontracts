@@ -7,7 +7,6 @@ import { ERC721, IERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol
 import { IERC165, ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { IBasket } from "./Interfaces/IBasket.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "hardhat/console.sol";
 /**
  * Mint a single ERC721 which can hold NFTs
  */
