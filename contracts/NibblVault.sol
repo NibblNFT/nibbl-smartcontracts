@@ -13,8 +13,8 @@ import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault } from "./Interfaces/INibblVault.sol";
 import "hardhat/console.sol";
 
-/// @title Vault to lock NFTs and fractionalise ERC721 to ERC20.
-/// @dev This contract uses Bancor Formula to create an automated market for fractionalised ERC20s.
+/// @title Vault to lock NFTs and fractionalize ERC721 to ERC20.
+/// @dev This contract uses Bancor Formula to create an automated market for fractionalized ERC20s.
 /// @dev This contract creates 2 bonding curves, referred to as primary curve and secondary curve.
 /// @dev The primary curve has fixed specifications and reserveRatio.
 /// @dev The secondary curve is dynamic and has a variable reserveRatio, which depends on initial conditions given by the curator and the fee accumulated by the curve.
@@ -77,14 +77,14 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
 
     /// @notice fictitious primary reserve balance, this is used for calculation purposes of trading on primary bonding curve.
     /// @dev This variable defines the amount of reserve token that should be in the secondary curve if secondaryReserveRatio == primaryReserveRatio
-    /// @dev This variable defines the amount of reserve token that should be in the primary curve if the primary curve started from 0 and went till initialTokenSupply 
+    /// @dev This variable also defines the amount of reserve token that should be in the primary curve if the primary curve started from 0 and went till initialTokenSupply 
     uint256 public fictitiousPrimaryReserveBalance;
 
     /// @notice the valuation at which the buyout is rejected.
     uint256 public buyoutRejectionValuation; 
     
     /// @notice deposit made by bidder to initiate buyout 
-    /// @dev buyoutValuationDeposit = currentValuation - ((reserveTokens in primary curve) - (reserveTokens in secondary curve))
+    /// @dev buyoutValuationDeposit = currentValuation - ((reserveTokens in primary curve) + (reserveTokens in secondary curve))
     uint256 public buyoutValuationDeposit; 
     
     /// @notice initial token supply minted by curator
@@ -102,7 +102,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice the time at which the current buyout ends
     uint256 public buyoutEndTime; 
     
-    /// @notice valuation at which buyout was triggered
+    /// @notice valuation at which the buyout was triggered
     uint256 public buyoutBid;
 
     /// @notice percentage of trading fee on the bonding curve that goes to the curator
@@ -133,15 +133,15 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
 
-    /// @notice To check if buyout hasn't succeed
-    /// @dev Check for the case when buyoutTime has not ended or buyout has been rejected
+    /// @notice To check if buyout hasn't succeeded
+    /// @dev Check for the case when buyoutTime has not passed or buyout has been rejected
     modifier notBoughtOut() {
         require(buyoutEndTime > block.timestamp || buyoutEndTime == 0,'NibblVault: Bought Out');
         _;
     }
 
-    /// @notice To check if buyout has succeed
-    /// @dev For the case when buyoutTime has succeeded and buyout has not been rejected
+    /// @notice To check if buyout has succeeded
+    /// @dev For the case when buyoutTime has passed and buyout has not been rejected
     modifier boughtOut() {
         require(status == Status.buyout, "NibblVault: status != buyout");
         require(buyoutEndTime <= block.timestamp, "NibblVault: buyoutEndTime <= now");
@@ -156,14 +156,14 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
     /// @notice the function to initialize proxy vault parameters
-    /// @param _tokenName name of the fractionalised ERC20 token to be created
-    /// @param _tokenSymbol symbol of the fractionalised ERC20 token
-    /// @param _assetAddress address of the ERC721 being fractionalised
-    /// @param _assetID tokenId of the ERC721 being fractionalised
-    /// @param _curator owner of the asset being fractionalized
+    /// @param _tokenName name of the fractionalized ERC20 token to be created
+    /// @param _tokenSymbol symbol of the fractionalized ERC20 token
+    /// @param _assetAddress address of the ERC721 being fractionalized
+    /// @param _assetID tokenId of the ERC721 being fractionalized
+    /// @param _curator owner of the asset getting fractionalized
     /// @param _initialTokenSupply desired initial supply to be minted to curator
     /// @param _initialTokenPrice desired initial token price set by curator 
-    /// @param  _minBuyoutTime minimum time after which buyout can happen 
+    /// @param  _minBuyoutTime minimum time after which buyout can be triggered 
     /// @dev valuation = price * supply
     /// @dev reserveBalance = valuation * reserveRatio
     /// @dev Reserve Ratio = Reserve Token Balance / (Continuous Token Supply x Continuous Token Price)
@@ -248,7 +248,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
             return totalSupply() < initialTokenSupply ? (secondaryReserveBalance * SCALE /secondaryReserveRatio) : ((primaryReserveBalance) * SCALE  / primaryReserveRatio);
     }
 
-    /// @notice function to buy tokens on primary curve
+    /// @notice function to buy tokens on the primary curve
     /// @param _amount amount of reserve tokens to buy continous tokens
     /// @dev This is executed when current supply >= initial supply
     /// @dev _amount is charged with fee
@@ -265,7 +265,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         primaryReserveBalance = _primaryReserveBalance + _amountIn;
     }
     /// @notice function to buy tokens on secondary curve
-    /// @param _amount amount of reserve tokens to buy continous  tokens
+    /// @param _amount amount of reserve tokens to buy continous tokens
     /// @dev This is executed when current supply < initial supply
     /// @dev fee isn't levied on secondary curve
     /// @dev _purchaseReturn is minted to _to
@@ -280,7 +280,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev TWAV is updated only if buyout is active and only on first buy or sell txs of block.
     /// @dev It internally calls _buyPrimaryCurve or _buySecondaryCurve or both depending on the buyAmount and current supply
     /// @dev if current totalSupply < initialTokenSupply AND _amount to buy tokens for is greater than (maxSecondaryCurveBalance - currentSecondaryCurveBalance) then buy happens on secondary curve and primary curve both
-    /// @param _minAmtOut Amount of reserveTokens to buy continous tokens for
+    /// @param _minAmtOut Minimum amount of continuous token user receives, else the tx fails.
     /// @param _to Address to mint the purchase return to
     function buy(uint256 _minAmtOut, address _to) external override payable notBoughtOut lock whenNotPaused returns(uint256 _purchaseReturn) {
         //Make update on the first tx of the block
@@ -345,7 +345,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev internally calls _sellPrimaryCurve or _sellSecondaryCurve or both depending on the sellAmount and current supply
     /// @dev if totalSupply > initialTokenSupply AND _amount to sell is greater than (_amtIn > totalSupply - initialTokenSupply) then sell happens on primary curve and secondary curve both
     /// @param _amtIn Continous Tokens to be sold
-    /// @param _minAmtOut Reserve Tokens to be sent after a successful sell
+    /// @param _minAmtOut Minimum amount of reserve token user receives, else the tx fails.
     /// @param _to Address to recieve the reserve token to
     function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external override notBoughtOut whenNotPaused returns(uint256 _saleReturn) {
         //Make update on the first tx of the block
@@ -382,7 +382,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev buyoutBid is set to current valuation
     /// @dev bidder needs to send funds equal to current valuation - ((primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance) to initiate buyout
     /// This ensures that the original bidder doesn't need to support the whole valuation and liquidity in reserve can be used as well.
-    /// Buyout is initiated only when total bid amount >= currentValuation but extra funds over currentValuation are sent back to user
+    /// Buyout is initiated only when total bid amount >= currentValuation but extra funds over currentValuation are sent back to bidder.
     function initiateBuyout() external override payable whenNotPaused returns(uint256 _buyoutBid) {
         require(block.timestamp >= minBuyoutTime, "NibblVault: minBuyoutTime < now");
         require(status == Status.initialized, "NibblVault: Status!=initialized");
@@ -438,7 +438,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
     /// @notice Function to allow withdrawal of unsettledBids after buyout has been rejected
-    /// @param _to Address to recieve the funds
+    /// @param _to Address to receive the funds
     function withdrawUnsettledBids(address payable _to) external override {
         uint _amount = unsettledBids[msg.sender];
         delete unsettledBids[msg.sender];
@@ -497,7 +497,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
     /// @notice Function for allowing bidder to unlock his ERC20s in case of buyout success
-    /// @notice ERC20s can be accumulated as royalty
+    /// @notice ERC20s can be accumulated by the underlying ERC721 in the vault as royalty or airdops 
     /// @param _asset the address of asset to be unlocked
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC20(address _asset, address _to) external override boughtOut {
@@ -516,7 +516,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
     /// @notice Function for allowing bidder to unlock his ERC1155s in case of buyout success
-    /// @notice ERC1155s can be accumulated as royalty
+    /// @notice ERC1155s can be accumulated by the underlying ERC721 in the vault as royalty or airdops 
     /// @param _asset the address of asset to be unlocked
     /// @param _assetID the ID of asset to be unlocked
     /// @param _to the address where unlocked NFT will be sent
