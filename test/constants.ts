@@ -30,4 +30,6 @@ export const FEE_CURATOR: BigNumber = ((initialSecondaryReserveRatio.sub(MIN_SEC
 // initialSecondaryReserveRatio.mul(BigNumber.from("10000")).div(primaryReserveRatio);
 export const FEE_ADMIN: BigNumber = BigNumber.from(2_000);
 export const FEE_CURVE: BigNumber = BigNumber.from(4_000);
+export const FEE_TOTAL = (FEE_ADMIN).add(FEE_CURATOR).add(FEE_CURVE);
+export const FEE_SECONDARY_CURVE = (FEE_ADMIN).add(FEE_CURATOR);
 

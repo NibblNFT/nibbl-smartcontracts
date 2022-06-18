@@ -5,6 +5,8 @@ import "@nomiclabs/hardhat-waffle";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "hardhat-docgen";
+
 dotenv.config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -36,14 +38,14 @@ const config: HardhatUserConfig = {
         accountsBalance: "10000000000000000000000000000"
       },
     },
-    mumbai: {
-      url: `${process.env.MUMBAI_URL}`,
-      accounts: [`${process.env.PRIVATE_KEY}`],
-    },
-    rinkeby: {
-      url: `${process.env.RINKEBY_URL}`,
-      accounts: [`${process.env.PRIVATE_KEY}`],
-    }
+    // mumbai: {
+    //   url: `${process.env.MUMBAI_URL}`,
+    //   accounts: [`${process.env.PRIVATE_KEY}`],
+    // },
+    // rinkeby: {
+    //   url: `${process.env.RINKEBY_URL}`,
+    //   accounts: [`${process.env.PRIVATE_KEY}`],
+    // }
   },
 
   gasReporter: {
