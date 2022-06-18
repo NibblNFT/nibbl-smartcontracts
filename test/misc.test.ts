@@ -95,7 +95,7 @@ describe("NibblTokenVault: Misc ", function () {
         const _sellAmount = (constants.initialTokenSupply).div(5);
         let _balanceAddr1 = await addr1.provider.getBalance(await addr1.getAddress());
         const _expectedSaleReturn = await burnTokens(testBancorFormula, constants.initialTokenSupply, constants.initialSecondaryReserveBalance, constants.initialSecondaryReserveRatio, _sellAmount);        
-        await expect(vaultContract.connect(curator).sell(_sellAmount, _expectedSaleReturn, reenterer.address)).to.be.revertedWith("NibblVault: ETH transfer failed");
+        await expect(vaultContract.connect(curator).sell(_sellAmount, 0, reenterer.address)).to.be.revertedWith("NibblVault: ETH transfer failed");
     })
 
     it("should fail to reenter", async function () {
