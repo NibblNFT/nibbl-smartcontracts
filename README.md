@@ -8,9 +8,7 @@ A fractionalization protocol that creates ERC20 tokens representing ownership of
 
 # Architecture
 
-We use the Bonding Curve for implementing continuous bonding curves. 
-
-To read more about Bonding Curves visit [here](https://yos.io/2018/11/10/bonding-curves/).
+To read about Bonding Curves visit [here](https://yos.io/2018/11/10/bonding-curves/).
 
 ## Double Bonding Curve
 
