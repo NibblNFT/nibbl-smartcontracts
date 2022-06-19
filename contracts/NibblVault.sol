@@ -43,7 +43,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     uint256 private constant MIN_SECONDARY_RESERVE_RATIO = 50_000;
 
     /// @notice minimum curator fee that the curator will get on adding minimal liquidity to the secondary curve
-    uint256 private constant MIN_CURATOR_FEE = 5_000; //5%
+    uint256 private constant MIN_CURATOR_FEE = 5_000; //0.5%
 
     /// @notice minimum reserve balance that the secondary curve can have initially 
     uint256 private constant MIN_SECONDARY_RESERVE_BALANCE = 1e9;
