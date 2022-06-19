@@ -12,7 +12,7 @@ To read about Bonding Curves visit [here](https://yos.io/2018/11/10/bonding-curv
 
 ## Double Bonding Curve
 
-The vault works on 2 different **BondingCurves** a primary curve and a secondary curve. The primary curve has a fixed reserve ratio and the secondary curve has a dynamic reserve ratio. The secondary curve is defined by various parameters like the initial reserve balance deposited by the curator (original NFT curator) and the initial token supply minted to the curator.
+The vault works on 2 **BondingCurves**, a primary curve and a secondary curve. The primary curve has a fixed reserve ratio and the secondary curve has a dynamic reserve ratio. The secondary curve is defined by various parameters like the initial reserve balance deposited by the curator (original NFT curator) and the initial token supply minted to the curator.
 
 It gives flexibility to the curator for the liquidity he wanted to add to kickstart the bonding curve.
 
