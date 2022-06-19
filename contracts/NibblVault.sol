@@ -11,7 +11,6 @@ import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault } from "./Interfaces/INibblVault.sol";
-import "hardhat/console.sol";
 
 /// @title Vault to lock NFTs and fractionalize ERC721 to ERC20.
 /// @dev This contract uses Bancor Formula to create an automated market for fractionalized ERC20s.
@@ -31,7 +30,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice The premium percentage above the buyoutBid at which the buyout is rejected
     /// @dev REJECTION_PREMIUM has been multiplied with SCALE
     /// @dev REJECTION_PREMIUM lies between 0 and 1_000_000, i.e. 100_000 means 10%
-    /// @dev if REJECTION_PREMIUM is 10% and the buyoutBid is 100, then the buyout is rejected when the valuation reaches 110
+    /// @dev if REJECTION_PREMIUM is 15% and the buyoutBid is 100, then the buyout is rejected when the valuation reaches 115
     uint256 private constant REJECTION_PREMIUM = 150_000; //15%
 
     /// @notice The days until which a buyout bid is valid, if the bid isn't rejected in buyout duration time, its automatically considered boughtOut
@@ -111,6 +110,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice total value of unclaimed buyout bids
     uint256 public totalUnsettledBids; 
 
+    /// @notice minimum time after which buyout can be triggered
     uint256 public minBuyoutTime;
 
     /// @notice mapping of buyout bidders and their respective unsettled bids
@@ -167,9 +167,8 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev valuation = price * supply
     /// @dev reserveBalance = valuation * reserveRatio
     /// @dev Reserve Ratio = Reserve Token Balance / (Continuous Token Supply x Continuous Token Price)
-    /// @dev curatorFee = _secondaryReserveRatio * 10_000 / primaryReserveRatio
     /// @dev curatorFee is proportional to initialLiquidity added by user. 
-    /// @dev curatorFee can be maximum of 10_000 i.e. 1%.
+    /// @dev curatorFee can be maximum of 2 * MinimumCuratorFee.
 
     function initialize(
         string memory _tokenName, 
@@ -221,6 +220,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         //_maxSecondaryBalanceIncrease: is the max amount of secondary reserve balance that can be added to the vault
         //_maxSecondaryBalanceIncrease cannot be more than fictitiousPrimaryReserveBalance
         uint256 _maxSecondaryBalanceIncrease = fictitiousPrimaryReserveBalance - secondaryReserveBalance;
+        // _feeCurve can't be higher than _maxSecondaryBalanceIncrease
         _feeCurve = _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease; // the curve fee is capped so that secondaryReserveBalance <= fictitiousPrimaryReserveBalance
         secondaryReserveBalance += _feeCurve;
         secondaryReserveRatio = uint32((secondaryReserveBalance * SCALE * 1e18) / (initialTokenSupply * initialTokenPrice)); //secondaryReserveRatio is updated on every trade 
@@ -230,6 +230,10 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         return _amount - (_feeAdmin + _feeCurator + _feeCurve);
     }
 
+    /// @notice Function to charge fee in secondary curve
+    /// @dev only admin and curator fee is charged in secondary curve
+    /// @param _amount amount to charge fee on trade order, fee is charged in reserve token
+    /// @return amount of tokens after fee is deducted
     function _chargeFeeSecondaryCurve(uint256 _amount) private returns(uint256) {
        address payable _factory = factory;
         uint256 _adminFeeAmt = NibblVaultFactory(_factory).feeAdmin();
@@ -277,7 +281,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice function to buy tokens on secondary curve
     /// @param _amount amount of reserve tokens to buy continous tokens
     /// @dev This is executed when current supply < initial supply
-    /// @dev fee isn't levied on secondary curve
+    /// @dev only admin and curator fee is charged in secondary curve
     /// @dev _purchaseReturn is minted to _to
     /// @return _purchaseReturn Purchase return
     function _buySecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns (uint256 _purchaseReturn) {
@@ -329,10 +333,6 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amount Amount of tokens to be sold on primary curve
     /// @return _saleReturn Sale Return
     function _sellPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn) {
-        // _saleReturn = _calculateSaleReturn(_totalSupply, primaryReserveBalance, primaryReserveRatio, _amount);
-        // primaryReserveBalance -= _saleReturn;
-        // _saleReturn = _chargeFee(_saleReturn);
-        
         uint _primaryReserveBalance = primaryReserveBalance;
         _saleReturn = _calculateSaleReturn(_totalSupply, _primaryReserveBalance, primaryReserveRatio, _amount);
         primaryReserveBalance = _primaryReserveBalance - _saleReturn;
@@ -341,7 +341,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
 
     /// @notice The function to sell fractional tokens on secondary curve
     /// @dev Executed when current supply <= initial supply
-    /// @dev fee ins't levied on secondary curve
+    /// @dev only admin and curator fee is charged in secondary curve
     /// @param _amount Amount of tokens to be sold on SecondaryCurve
     ///  @return _saleReturn Sale Return
     function _sellSecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn){
