@@ -1,7 +1,20 @@
 # Nibbl - C4
 
 # Why Fractionalization
+NFT fractionalization is a fancy way of saying NFT ‘tokenization’, essentially what one means when they say NFT fractionalization is they are going to lock their original NFT in a contract and create fungible tokens (referred as fractional tokens) that represent ownership in the original NFT.
+The benefit of fractionalization for an NFT owner is to make their NFT holding liquid, as well as potentially increasing the valuation of their NFT.
+On the buyer side, it allows people to invest with small amounts by buying the fungible token in a single high value NFT or even an NFT collection. Fractionalization also allows NFTs to bridge over to the world of fungible tokens (via fractional tokens) where they get all the benefits of being composable with DeFi applications.
 
+
+Problems with fractionalization currently:
+i) Fractional Tokens suffer from low liquidity as the traditional xy=k type AMM model isn’t great for low mcap assets due to huge impermanent loss.
+
+ii) Fractional NFTs are meant to transition from being owned by a single person to being owned by the community. Current systems rely on the original NFT fractionalizer, adding token liquidity on a uniswap type AMM and then selling his tokens in low liquidity pools in order to dilute ownership of his tokens to the community over time.
+
+iii) Buyout mechanisms needed to go back from ERC20 to ERC721 don’t actually work, read more about buyout mechanisms here. To give fractional tokens value, fractionalization shouldn’t be only a one way direction where NFTs are locked forever and can’t be used for any application. 
+There needs to be a way to allow for someone to come in and buy out the current fraction token holders and unlock the NFT(s) as a whole and add them to their collection. 
+
+Having an efficient buyout mechanism (where buyouts happen frequently) ensures that fractionalization is more of a bridge between the ERC721 and ERC20 world and it opens the door for many interesting use-cases.
 # Protocol
 
 A fractionalization protocol that creates ERC20 tokens representing ownership of ERC721 or ERC1155. Uses a **Bonding curve** to facilitate buying and selling of tokens. The protocol also implements a valuation-based buyout mechanism so that the asset isn’t locked in a contract/vault forever. A user can initiate a buyout and they need to pay an upfront cost for that. The cost is decided based on the current valuation of tokens. If the valuation goes above a certain level within a predefined duration the buyout is rejected. Therefore, the community can buy more tokens in order to reject a buyout. If the buyout isn’t rejected it is automatically considered successful and the user who initiated the buyout can withdraw the asset.
