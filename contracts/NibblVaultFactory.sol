@@ -15,7 +15,7 @@ import { INibblVaultFactory } from "./Interfaces/INibblVaultFactory.sol";
 import { Basket } from "./Basket.sol";
 
 contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausable, NibblVaultFactoryData {
-    /// @notice Minimum initial reserve balance a user has to deposit to create a new vault/ Defines minimum valuation
+    /// @notice Minimum initial reserve balance a user has to deposit to create a new vault
     uint256 private constant MIN_INITIAL_RESERVE_BALANCE = 1e9;
 
     /// @notice array containing the addresses of all the vaults
@@ -27,11 +27,11 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     }
 
     /// @notice mints a new vault
-    /// @param _assetAddress address of the NFT contract which is being fractionalised
-    /// @param _curator address of curator
+    /// @param _assetAddress address of the NFT contract which is being fractionalized
+    /// @param _curator address of the vault curator
     /// @param _name name of the fractional token to be created
     /// @param _symbol symbol of the fractional token
-    /// @param _assetTokenID tokenId of the NFT being fractionalised
+    /// @param _assetTokenID tokenId of the NFT being fractionalized
     /// @param _initialSupply desired initial token supply
     /// @param _initialTokenPrice desired initial token price
     /// @param _minBuyoutTime minimum time after which buyout can be triggered
@@ -57,8 +57,8 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
 
     /// @notice get address of vault to be deployed
     /// @param _curator address of curator
-    /// @param _assetAddress address of the NFT contract which is being fractionalised
-    /// @param _assetTokenID tokenId of the NFT being fractionalised
+    /// @param _assetAddress address of the NFT contract which is being fractionalized
+    /// @param _assetTokenID tokenId of the NFT being fractionalized
     /// @param _initialSupply desired initial token supply
     /// @param _initialTokenPrice desired initial token price    
     function getVaultAddress(
@@ -119,7 +119,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice proposes new admin fee address
     /// @dev new address can be updated only after timelock
     /// @dev can only be called by FEE_ROLE
-    /// @param _newFeeAddress new address to recieve admin fee on address
+    /// @param _newFeeAddress new address to receive admin fee on address
     function proposeNewAdminFeeAddress(address _newFeeAddress) external override onlyRole(FEE_ROLE) {
         pendingFeeTo = _newFeeAddress;
         feeToUpdateTime = block.timestamp + UPDATE_TIME;
