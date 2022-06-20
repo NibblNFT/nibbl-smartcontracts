@@ -7,6 +7,7 @@ On the buyer side, it allows people to invest with small amounts by buying the f
 
 
 Problems with fractionalization currently:
+
 i) Fractional Tokens suffer from low liquidity as the traditional xy=k type AMM model isn’t great for low mcap assets due to huge impermanent loss.
 
 ii) Fractional NFTs are meant to transition from being owned by a single person to being owned by the community. Current systems rely on the original NFT fractionalizer, adding token liquidity on a uniswap type AMM and then selling his tokens in low liquidity pools in order to dilute ownership of his tokens to the community over time.
@@ -41,7 +42,7 @@ Also, note that the **curator would want the reserve ratio of the primary curve 
 
 Whenever someone mints and burns tokens on the bonding curve, they need to pay some trading fees which is accrued in ETH, there are 3 types of fees in our current system.
 
-1. **Admin Fees** (defined in factory contract) - This fee goes to the Nibbl protocol treasury address and has a maximum cap of 0.2% per transaction.
+1. **Admin Fees** (defined in factory contract) - This fee goes to the Nibbl protocol treasury address.
 2. **Curator Fees** (defined in vault contract) - Curator fees accrue to the original NFT curator and functions like royalties in NFTs. The curator can redeem the fees accrued at any time to an address of his liking. Curator fees are directly proportional to the initial secondary reserve ratio - this was done to incentivize liquidity addition by the original owner.
 3. **Curve Fees** - Since the reserve ratio of the secondary curve is lower than that of the primary curve, some of the trading fees are used to increase the reserve ratio of the secondary curve until it becomes equal to the primary curve. As referred to in the image below, as trading happens, the reserve ratio of the secondary curve increases from 10% to 20% and eventually to 50% via the curve fees (1% in this example).
 
