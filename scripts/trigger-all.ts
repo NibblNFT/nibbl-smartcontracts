@@ -13,20 +13,6 @@ import { ethers } from "hardhat";
 // NibblUIHelper deployed to: 0x78454A79C212956e9d96A7c1606032dc069e4EE4
 async function main() {
   try {
-
-    // const erc721 = "0xE858110d98608Aac7cEa38f3B89256694B587dcE" // with uri storage rinkeby
-    // // const erc721 = "0x0E616834aAc1Ac594D8B921873f351bE23033812" // with uri storage polygon
-    // // const erc721 = "0xCcde5Ff29f3564B95C5De7CF14364a976D1ddfa1" // with uri storage polygon, Latest
-    // const nibblUIHelperAddress = "0x0ff35113d184CE1F261BABc72A6d8bEed15bA4e1" // with uri storage 
-    // const userAddress = await user.getAddress();
-    // const initialTokenPrice: BigNumber = BigNumber.from((1e11).toString()); //10 ^-6 eth
-    // const initialValuation: BigNumber = BigNumber.from((1e13).toString()); //.001 eth
-    // const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(e18); // 1e4
-    // const MIN_SECONDARY_RESERVE_RATIO = BigNumber.from((50_000).toString());;
-    // const initialSecondaryReserveBalance: BigNumber = BigNumber.from((1e12).toString());
-    // const nibblVaultImplementationAddress = "0x2E9a2fbc2FaF3155dc011fF8880F9B8f0975d9EC";
-    // const nibblVaultFactoryAddress = "0x258305e5ba0530f7C54A404F6A34AF706f8AEFDE";
-
     const e18 = BigNumber.from((1e18).toString());
     const accounts = await ethers.getSigners();
     const user = accounts[0];
