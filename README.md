@@ -12,7 +12,7 @@ i) Fractional Tokens suffer from low liquidity as the traditional xy=k type AMM 
 
 ii) Fractional NFTs are meant to transition from being owned by a single person to being owned by the community. Current systems rely on the original NFT fractionalizer, adding token liquidity on a uniswap type AMM and then selling his tokens in low liquidity pools in order to dilute ownership of his tokens to the community over time.
 
-iii) Buyout mechanisms needed to go back from ERC20 to ERC721 don’t actually work, read more about buyout mechanisms here. To give fractional tokens value, fractionalization shouldn’t be only a one way direction where NFTs are locked forever and can’t be used for any application. 
+iii) Buyout mechanisms needed to go back from ERC20 to ERC721 don’t actually work, read more about buyout mechanisms [here](https://medium.com/nibbl/exploring-the-buyout-mechanism-in-nft-fractionalization-ab6722b50d19). To give fractional tokens value, fractionalization shouldn’t be only a one way direction where NFTs are locked forever and can’t be used for any application. 
 There needs to be a way to allow for someone to come in and buy out the current fraction token holders and unlock the NFT(s) as a whole and add them to their collection. 
 
 Having an efficient buyout mechanism (where buyouts happen frequently) ensures that fractionalization is more of a bridge between the ERC721 and ERC20 world and it opens the door for many interesting use-cases.

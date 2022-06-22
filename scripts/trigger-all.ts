@@ -16,15 +16,15 @@ async function main() {
     const e18 = BigNumber.from((1e18).toString());
     const accounts = await ethers.getSigners();
     const user = accounts[0];
-    const erc721 = "0x0bCd3aD3732130747b984d43886B2a543438A96c" // with uri storage
+    const erc721 = "0xE858110d98608Aac7cEa38f3B89256694B587dcE" // with uri storage
     const userAddress = await user.getAddress();
     const initialTokenPrice: BigNumber = BigNumber.from((1e11).toString()); //10 ^-6 eth
     const initialValuation: BigNumber = BigNumber.from((1e13).toString()); //.001 eth
     const initialTokenSupply: BigNumber = initialValuation.div(initialTokenPrice).mul(e18); // 1e4
     const MIN_SECONDARY_RESERVE_RATIO = BigNumber.from((50_000).toString());;
     const initialSecondaryReserveBalance: BigNumber = BigNumber.from((1e12).toString());
-    const nibblVaultImplementationAddress = "0xFebc3B90C9FDd74a683c2FE958A2Ad3279C8c699";
-    const nibblVaultFactoryAddress = "0x2AE5d7a9E2Bad8723BcE224cDDD9a22952B6F183";
+    const nibblVaultImplementationAddress = "0x2E9a2fbc2FaF3155dc011fF8880F9B8f0975d9EC";
+    const nibblVaultFactoryAddress = "0x258305e5ba0530f7C54A404F6A34AF706f8AEFDE";
 
     const NibblVault = await ethers.getContractFactory("NibblVault");
     const nibblVault = new Contract(nibblVaultImplementationAddress, NibblVault.interface, user);

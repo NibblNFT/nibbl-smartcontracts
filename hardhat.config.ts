@@ -42,10 +42,10 @@ const config: HardhatUserConfig = {
     //   url: `${process.env.MUMBAI_URL}`,
     //   accounts: [`${process.env.PRIVATE_KEY}`],
     // },
-    // rinkeby: {
-    //   url: `${process.env.RINKEBY_URL}`,
-    //   accounts: [`${process.env.PRIVATE_KEY}`],
-    // }
+    rinkeby: {
+      url: `${process.env.RINKEBY_URL}`,
+      accounts: [`${process.env.PRIVATE_KEY}`],
+    }
   },
 
   gasReporter: {
