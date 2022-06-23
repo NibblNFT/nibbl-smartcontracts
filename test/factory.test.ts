@@ -131,7 +131,12 @@ describe("Factory", function () {
         expect(pendingFeeTo).to.be.equal(user1Address);
         expect(feeToUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
         // --------------- Proposed FeeTo ----------------- //
-        await expect(vaultFactoryContract.updateNewAdminFeeAddress()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME has not passed");
+        await expect(vaultFactoryContract.updateNewAdminFeeAddress()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+    });
+
+    it("should fail to update feeTo address if not proposed", async function () {
+
+        await expect(vaultFactoryContract.updateNewAdminFeeAddress()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
     });
 
     it("should propose new admin fee", async function () {
@@ -179,7 +184,7 @@ describe("Factory", function () {
         vaultContract.buy(0, curatorAddress, {value: getBigNumber(100)});
     });
   
-    it("should fail to update feeTo address if UPDATE_TIME hasn't passed", async function () {
+    it("should fail to update fee if UPDATE_TIME hasn't passed", async function () {
         const _newFee = 1_000;
         await vaultFactoryContract.connect(feeRole).proposeNewAdminFee(_newFee);
         let blockTime = await latest();
@@ -187,7 +192,11 @@ describe("Factory", function () {
         const feeAdminUpdateTime = await vaultFactoryContract.feeAdminUpdateTime();
         expect(pendingFeeAdmin).to.be.equal(_newFee);
         expect(feeAdminUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
-        await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME has not passed");
+        await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+    });
+
+    it("should fail to update fee if not proposed", async function () {
+       await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
     });
 
     it("should withdraw admin fee", async function () {
@@ -229,7 +238,11 @@ describe("Factory", function () {
         expect(pendingVaultImplementation).to.be.equal(user1Address);
         expect(vaultUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
 
-        await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME has not passed");
+        await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+    });
+
+    it("should fail to update nibblVaultImplementation if not proposed", async function () {
+        await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
     });
 
     it("should fail to create a vault if initial balance is too low", async function () {
@@ -317,7 +330,11 @@ describe("Factory", function () {
         const basketUpdateTime = await vaultFactoryContract.basketUpdateTime();
         expect(pendingBasketImplementation).to.be.equal(user1Address);
         expect(basketUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
-        await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME has not passed");
+        await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+    });
+
+    it("should fail to update nibblBasketImplementation if not proposed", async function () {
+       await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
     });
 
 });
