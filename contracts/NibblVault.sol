@@ -504,7 +504,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     function withdrawMultipleERC721(address[] memory _assetAddresses, uint256[] memory _assetIDs, address _to) external override boughtOut {
         require(msg.sender == bidder,"NibblVault: Only winner");
         uint256 _length = _assetAddresses.length;
-        for (uint256 i = 0; i < _length; ++i) {
+        for (uint256 i; i < _length; ++i) {
             IERC721(_assetAddresses[i]).safeTransferFrom(address(this), _to, _assetIDs[i]);
         }
     }
@@ -524,7 +524,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     function withdrawMultipleERC20(address[] memory _assets, address _to) external override boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         uint256 _length = _assets.length;
-        for (uint256 i = 0; i < _length; ++i) {
+        for (uint256 i; i < _length; ++i) {
             IERC20(_assets[i]).transfer(_to, IERC20(_assets[i]).balanceOf(address(this)));
         }
     }
@@ -547,7 +547,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     function withdrawMultipleERC1155(address[] memory _assets, uint256[] memory _assetIDs, address _to) external override boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         uint256 _length = _assets.length;
-        for (uint256 i = 0; i < _length; ++i) {
+        for (uint256 i; i < _length; ++i) {
             uint256 balance = IERC1155(_assets[i]).balanceOf(address(this),  _assetIDs[i]);
             IERC1155(_assets[i]).safeTransferFrom(address(this), _to, _assetIDs[i], balance, "0");
         }

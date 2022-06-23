@@ -104,7 +104,8 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new basket implementation
     /// @dev new vault implementation can be updated only after timelock
     function updateBasketImplementation() external override {
-        require(basketUpdateTime != 0 && block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(basketUpdateTime != 0, "NibblVaultFactory: Not Proposed");
+        require(block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
         basketImplementation = pendingBasketImplementation;
         delete basketUpdateTime;
     }
@@ -128,7 +129,8 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new admin fee address
     /// @dev can only be updated after timelock
     function updateNewAdminFeeAddress() external override {
-        require(feeToUpdateTime != 0 && block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(feeToUpdateTime != 0, "NibblVaultFactory: Not Proposed");
+        require(block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
         feeTo = pendingFeeTo;
         delete feeToUpdateTime;
     }
@@ -146,7 +148,8 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new admin fee
     /// @dev new fee can be updated only after timelock
     function updateNewAdminFee() external override {
-        require(feeAdminUpdateTime != 0 && block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(feeAdminUpdateTime != 0, "NibblVaultFactory: Not Proposed");
+        require( block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
         feeAdmin = pendingFeeAdmin;
         delete feeAdminUpdateTime;
     }
@@ -163,7 +166,8 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new vault implementation
     /// @dev new vault implementation can be updated only after timelock
     function updateVaultImplementation() external override {
-        require(vaultUpdateTime != 0 && block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME has not passed");
+        require(vaultUpdateTime != 0, "NibblVaultFactory: Not Proposed");
+        require(block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
         vaultImplementation = pendingVaultImplementation;
         delete vaultUpdateTime;
     }
