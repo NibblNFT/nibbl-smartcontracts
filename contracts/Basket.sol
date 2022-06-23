@@ -41,7 +41,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
     function withdrawMultipleERC721(address[] memory _tokens, uint256[] memory _tokenId, address _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
-        for (uint256 i = 0; i < _length; i++) {
+        for (uint256 i = 0; i < _length; ++i) {
             IERC721(_tokens[i]).safeTransferFrom(address(this), _to, _tokenId[i]);
             emit WithdrawERC721(_tokens[i], _tokenId[i], _to);
         }
@@ -69,7 +69,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
     function withdrawMultipleERC1155(address[] memory _tokens, uint256[] memory _tokenIds, address _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
-        for (uint256 i = 0; i < _length; i++) {
+        for (uint256 i = 0; i < _length; ++i) {
             uint256 _balance = IERC1155(_tokens[i]).balanceOf(address(this),  _tokenIds[i]);
             IERC1155(_tokens[i]).safeTransferFrom(address(this), _to, _tokenIds[i], _balance, "0");
             emit WithdrawERC1155(_tokens[i], _tokenIds[i], _balance, _to);
@@ -93,7 +93,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
     function withdrawMultipleERC20(address[] memory _tokens) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
-        for (uint256 i = 0; i < _length; i++) {
+        for (uint256 i = 0; i < _length; ++i) {
             IERC20(_tokens[i]).transfer(msg.sender, IERC20(_tokens[i]).balanceOf(address(this)));
             emit WithdrawERC20(_tokens[i], msg.sender);
         }
