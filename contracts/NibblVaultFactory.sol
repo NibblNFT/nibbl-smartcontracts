@@ -66,18 +66,18 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         address _assetAddress,
         uint256 _assetTokenID,
         uint256 _initialSupply,
-        uint256 _initialTokenPrice) public view returns(address _vault) {
+        uint256 _initialTokenPrice) external view returns(address _vault) {
         bytes32 newsalt = keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID,  _initialSupply, _initialTokenPrice));
         bytes memory code = abi.encodePacked(type(ProxyVault).creationCode, uint256(uint160(address(this))));
         bytes32 _hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _vault = address(uint160(uint256(_hash)));     
     }
 
-    function getVaults() public view returns(ProxyVault[] memory ) {
+    function getVaults() external view returns(ProxyVault[] memory ) {
         return nibbledTokens;
     }
 
-    function createBasket(address _curator, string memory _mix) public override returns(address)  {
+    function createBasket(address _curator, string memory _mix) external override returns(address)  {
         address payable _basketAddress = payable(new ProxyBasket{salt: keccak256(abi.encodePacked(_curator, _mix))}(basketImplementation));
         Basket _basket = Basket(_basketAddress);
         _basket.initialise(_curator);
@@ -85,7 +85,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         return _basketAddress;
     }
 
-    function getBasketAddress(address _curator, string memory _mix) public override view returns(address _basket) {
+    function getBasketAddress(address _curator, string memory _mix) external override view returns(address _basket) {
         bytes32 newsalt = keccak256(abi.encodePacked(_curator, _mix));
         bytes memory code = abi.encodePacked(type(ProxyBasket).creationCode, uint256(uint160(basketImplementation)));
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
