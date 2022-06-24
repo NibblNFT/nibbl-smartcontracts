@@ -306,9 +306,8 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
                 _rejectBuyout();
             }
         }
-        uint256 _initialTokenSupply = initialTokenSupply;
         uint256 _totalSupply = totalSupply();
-        if (_totalSupply >= _initialTokenSupply) {
+        if (_totalSupply >= initialTokenSupply) {
             _purchaseReturn = _buyPrimaryCurve(msg.value, _totalSupply);
         } else {
             uint256 _lowerCurveDiff = getMaxSecondaryCurveBalance() - secondaryReserveBalance;
@@ -316,7 +315,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
                 _purchaseReturn = _buySecondaryCurve(msg.value, _totalSupply);
             } else {
                 //Gas Optimization
-                _purchaseReturn = _initialTokenSupply - _totalSupply;
+                _purchaseReturn = initialTokenSupply - _totalSupply;
                 secondaryReserveBalance += _lowerCurveDiff;
                 // _purchaseReturn = _buySecondaryCurve(_to, _lowerCurveDiff);
                 _purchaseReturn += _buyPrimaryCurve(msg.value - _lowerCurveDiff, _totalSupply + _purchaseReturn);
