@@ -223,7 +223,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         uint256 _maxSecondaryBalanceIncrease = fictitiousPrimaryReserveBalance - secondaryReserveBalance;
         // _feeCurve can't be higher than _maxSecondaryBalanceIncrease
         _feeCurve = _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease; // the curve fee is capped so that secondaryReserveBalance <= fictitiousPrimaryReserveBalance
-        secondaryReserveBalance += _feeCurve;
+        secondaryReserveBalance = secondaryReserveBalance + _feeCurve;
         secondaryReserveRatio = uint32((secondaryReserveBalance * SCALE * 1e18) / (initialTokenSupply * initialTokenPrice)); //secondaryReserveRatio is updated on every trade 
         if(_adminFeeAmt > 0) {
             safeTransferETH(_factory, _feeAdmin); //Transfers admin fee to the factory contract
