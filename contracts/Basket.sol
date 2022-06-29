@@ -38,7 +38,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
         emit WithdrawERC721(_token, _tokenId, _to);
     }
 
-    function withdrawMultipleERC721(address[] memory _tokens, uint256[] memory _tokenId, address _to) external override {
+    function withdrawMultipleERC721(address[] calldata _tokens, uint256[] calldata _tokenId, address _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
         for (uint256 i; i < _length; ++i) {
@@ -66,7 +66,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
         emit WithdrawERC1155(_token, _tokenId, _balance, _to);
     }
 
-    function withdrawMultipleERC1155(address[] memory _tokens, uint256[] memory _tokenIds, address _to) external override {
+    function withdrawMultipleERC1155(address[] calldata _tokens, uint256[] calldata _tokenIds, address _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
         for (uint256 i; i < _length; ++i) {
@@ -90,7 +90,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
         emit WithdrawERC20(_token, msg.sender);
     }
 
-    function withdrawMultipleERC20(address[] memory _tokens) external override {
+    function withdrawMultipleERC20(address[] calldata _tokens) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
         for (uint256 i; i < _length; ++i) {
@@ -109,7 +109,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
         return this.onERC1155Received.selector;
     }
 
-    function onERC1155BatchReceived(address, address from, uint256[] memory ids, uint256[] memory amounts, bytes memory) external virtual override returns (bytes4) {
+    function onERC1155BatchReceived(address, address from, uint256[] calldata ids, uint256[] calldata amounts, bytes memory) external virtual override returns (bytes4) {
         emit DepositERC1155Bulk(msg.sender, ids, amounts, from);
         return this.onERC1155BatchReceived.selector;
     }

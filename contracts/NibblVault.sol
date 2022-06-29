@@ -223,7 +223,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         uint256 _maxSecondaryBalanceIncrease = fictitiousPrimaryReserveBalance - secondaryReserveBalance;
         // _feeCurve can't be higher than _maxSecondaryBalanceIncrease
         _feeCurve = _maxSecondaryBalanceIncrease > _feeCurve ? _feeCurve : _maxSecondaryBalanceIncrease; // the curve fee is capped so that secondaryReserveBalance <= fictitiousPrimaryReserveBalance
-        secondaryReserveBalance += _feeCurve;
+        secondaryReserveBalance = secondaryReserveBalance + _feeCurve;
         secondaryReserveRatio = uint32((secondaryReserveBalance * SCALE * 1e18) / (initialTokenSupply * initialTokenPrice)); //secondaryReserveRatio is updated on every trade 
         if(_adminFeeAmt > 0) {
             safeTransferETH(_factory, _feeAdmin); //Transfers admin fee to the factory contract
@@ -501,7 +501,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _assetAddresses the addresses of assets to be unlocked
     /// @param _assetIDs the IDs of assets to be unlocked
     /// @param _to the address where unlocked NFT will be sent
-    function withdrawMultipleERC721(address[] memory _assetAddresses, uint256[] memory _assetIDs, address _to) external override boughtOut {
+    function withdrawMultipleERC721(address[] calldata _assetAddresses, uint256[] calldata _assetIDs, address _to) external override boughtOut {
         require(msg.sender == bidder,"NibblVault: Only winner");
         uint256 _length = _assetAddresses.length;
         for (uint256 i; i < _length; ++i) {
@@ -521,7 +521,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice withdraw multiple ERC20s
     /// @param _assets the addresses of assets to be unlocked
     /// @param _to the address where unlocked NFTs will be sent
-    function withdrawMultipleERC20(address[] memory _assets, address _to) external override boughtOut {
+    function withdrawMultipleERC20(address[] calldata _assets, address _to) external override boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         uint256 _length = _assets.length;
         for (uint256 i; i < _length; ++i) {
@@ -544,7 +544,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _assets the addresses of assets to be unlocked
     /// @param _assetIDs the IDs of assets to be unlocked
     /// @param _to the address where unlocked NFT will be sent
-    function withdrawMultipleERC1155(address[] memory _assets, uint256[] memory _assetIDs, address _to) external override boughtOut {
+    function withdrawMultipleERC1155(address[] calldata _assets, uint256[] calldata _assetIDs, address _to) external override boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
         uint256 _length = _assets.length;
         for (uint256 i; i < _length; ++i) {
