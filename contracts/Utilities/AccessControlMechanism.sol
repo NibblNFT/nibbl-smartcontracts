@@ -17,12 +17,11 @@ contract AccessControlMechanism is IAccessControlMechanism, AccessControl {
 
 
     constructor (address _admin) {
-        bytes32 _defaultAdminRole = DEFAULT_ADMIN_ROLE;
-        _grantRole(_defaultAdminRole, _admin);
-        _setRoleAdmin(_defaultAdminRole, _defaultAdminRole);
-        _setRoleAdmin(FEE_ROLE, _defaultAdminRole);
-        _setRoleAdmin(PAUSER_ROLE, _defaultAdminRole);
-        _setRoleAdmin(IMPLEMENTER_ROLE, _defaultAdminRole);
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
+        _setRoleAdmin(FEE_ROLE, DEFAULT_ADMIN_ROLE);
+        _setRoleAdmin(PAUSER_ROLE, DEFAULT_ADMIN_ROLE);
+        _setRoleAdmin(IMPLEMENTER_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
     /// @notice sets admin role for a role
