@@ -7,6 +7,7 @@ import { BancorFormula } from "./Bancor/BancorFormula.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
@@ -18,6 +19,8 @@ import { INibblVault } from "./Interfaces/INibblVault.sol";
 /// @dev The primary curve has fixed specifications and reserveRatio.
 /// @dev The secondary curve is dynamic and has a variable reserveRatio, which depends on initial conditions given by the curator and the fee accumulated by the curve.
 contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP712Base {
+
+    using SafeERC20 for IERC20;
 
     /// @notice Scale for calculations to avoid rounding errors
     uint256 private constant SCALE = 1_000_000; 
@@ -515,7 +518,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC20(address _asset, address _to) external override boughtOut {
         require(msg.sender == bidder, "NibblVault: Only winner");
-        IERC20(_asset).transfer(_to, IERC20(_asset).balanceOf(address(this)));
+        IERC20(_asset).safeTransfer(_to, IERC20(_asset).balanceOf(address(this)));
     }
 
     /// @notice withdraw multiple ERC20s
@@ -525,7 +528,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         require(msg.sender == bidder, "NibblVault: Only winner");
         uint256 _length = _assets.length;
         for (uint256 i; i < _length; ++i) {
-            IERC20(_assets[i]).transfer(_to, IERC20(_assets[i]).balanceOf(address(this)));
+            IERC20(_assets[i]).safeTransfer(_to, IERC20(_assets[i]).balanceOf(address(this)));
         }
     }
 

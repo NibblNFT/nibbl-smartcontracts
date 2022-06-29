@@ -2,6 +2,7 @@
 pragma solidity 0.8.10;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { ERC721, IERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { IERC165, ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -11,6 +12,8 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
  * Mint a single ERC721 which can hold NFTs
  */
 contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
+
+    using SafeERC20 for IERC20;
 
     event DepositERC721(address indexed token, uint256 tokenId, address indexed from);
     event WithdrawERC721(address indexed token, uint256 tokenId, address indexed to);
@@ -86,7 +89,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
     /// @notice withdraw ERC20 in the case a held NFT earned ERC20
     function withdrawERC20(address _token) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
-        IERC20(_token).transfer(msg.sender, IERC20(_token).balanceOf(address(this)));
+        IERC20(_token).safeTransfer(msg.sender, IERC20(_token).balanceOf(address(this)));
         emit WithdrawERC20(_token, msg.sender);
     }
 
@@ -94,7 +97,7 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
         for (uint256 i; i < _length; ++i) {
-            IERC20(_tokens[i]).transfer(msg.sender, IERC20(_tokens[i]).balanceOf(address(this)));
+            IERC20(_tokens[i]).safeTransfer(msg.sender, IERC20(_tokens[i]).balanceOf(address(this)));
             emit WithdrawERC20(_tokens[i], msg.sender);
         }
     }
