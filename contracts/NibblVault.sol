@@ -362,7 +362,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amtIn Continous Tokens to be sold
     /// @param _minAmtOut Minimum amount of reserve token user receives, else the tx fails.
     /// @param _to Address to recieve the reserve token to
-    function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external override notBoughtOut whenNotPaused returns(uint256 _saleReturn) {
+    function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external override notBoughtOut whenNotPaused lock returns(uint256 _saleReturn) {
         //Make update on the first tx of the block
         if (status == Status.buyout) {
             uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
