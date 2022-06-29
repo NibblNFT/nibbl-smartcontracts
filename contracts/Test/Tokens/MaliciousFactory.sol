@@ -6,7 +6,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { NibblVault } from "../../NibblVault.sol";
-import { SafeMath } from  "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { ProxyVault } from "../../Proxy/ProxyVault.sol";
 import { ProxyBasket } from "../../Proxy/ProxyBasket.sol";
 import { NibblVaultFactoryData } from "../../Utilities/NibblVaultFactoryData.sol";
