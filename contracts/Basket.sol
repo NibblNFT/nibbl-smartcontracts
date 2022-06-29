@@ -82,7 +82,8 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
     /// @notice withdraw ETH in the case a held NFT earned ETH (ie. euler beats)
     function withdrawETH(address payable _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
-        _to.transfer(address(this).balance);
+        (bool success, ) = _to.call{value: address(this).balance}("");
+        require(success, "ETH transfer failed");
         emit WithdrawETH(_to);
     }
 
