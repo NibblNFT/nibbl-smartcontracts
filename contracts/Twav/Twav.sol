@@ -14,7 +14,7 @@ contract Twav {
 
     /// @notice record of TWAV 
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;
-
+    uint256[50] private _gaps; 
     /// @notice updates twavObservations array
     /// @param _blockTimestamp timestamp of the block
     /// @param _valuation current valuation
