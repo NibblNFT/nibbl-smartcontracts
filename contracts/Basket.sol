@@ -62,7 +62,7 @@ contract Basket is IBasket, ERC721Upgradeable {
     function withdrawERC1155(address _token, uint256 _tokenId, address _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _balance = IERC1155(_token).balanceOf(address(this),  _tokenId);
-        IERC1155(_token).safeTransferFrom(address(this), _to, _tokenId, _balance, "0");
+        IERC1155(_token).safeTransferFrom(address(this), _to, _tokenId, _balance, "");
         emit WithdrawERC1155(_token, _tokenId, _balance, _to);
     }
 
@@ -71,7 +71,7 @@ contract Basket is IBasket, ERC721Upgradeable {
         uint256 _length = _tokens.length;
         for (uint256 i; i < _length; ++i) {
             uint256 _balance = IERC1155(_tokens[i]).balanceOf(address(this),  _tokenIds[i]);
-            IERC1155(_tokens[i]).safeTransferFrom(address(this), _to, _tokenIds[i], _balance, "0");
+            IERC1155(_tokens[i]).safeTransferFrom(address(this), _to, _tokenIds[i], _balance, "");
             emit WithdrawERC1155(_tokens[i], _tokenIds[i], _balance, _to);
         }
     }
