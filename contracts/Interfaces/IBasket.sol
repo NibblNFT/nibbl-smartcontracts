@@ -15,7 +15,7 @@ interface IBasket is IERC721Upgradeable, IERC721ReceiverUpgradeable, IERC1155Rec
     event WithdrawETH(address indexed who);
     event WithdrawERC20(address indexed token, address indexed who);
 
-    function initialise(address _curator) external;
+    function initialize(address _curator) external;
     function withdrawERC721(address _token, uint256 _tokenId, address _to) external;
     function withdrawMultipleERC721(address[] memory _tokens, uint256[] memory _tokenId, address _to) external;
     function withdrawERC721Unsafe(address _token, uint256 _tokenId, address _to) external;

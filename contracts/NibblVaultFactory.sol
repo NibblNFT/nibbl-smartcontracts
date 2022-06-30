@@ -79,7 +79,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     function createBasket(address _curator, string memory _mix) external override returns(address)  {
         address payable _basketAddress = payable(new ProxyBasket{salt: keccak256(abi.encodePacked(_curator, _mix))}(basketImplementation));
         Basket _basket = Basket(_basketAddress);
-        _basket.initialise(_curator);
+        _basket.initialize(_curator);
         emit BasketCreated(_curator, _basketAddress);
         return _basketAddress;
     }
