@@ -44,8 +44,8 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
         uint256 _initialTokenPrice,
         uint256 _minBuyoutTime
         ) external payable override whenNotPaused returns(address payable _proxyVault) {
-        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "NibblVaultFactory: Initial reserve balance too low");
-        require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "NibblVaultFactory: Invalid sender");
+        require(msg.value >= MIN_INITIAL_RESERVE_BALANCE, "Factory: Value low");
+        require(IERC721(_assetAddress).ownerOf(_assetTokenID) == msg.sender, "Factory: Invalid sender");
         _proxyVault = payable(new ProxyVault{salt: keccak256(abi.encodePacked(_curator, _assetAddress, _assetTokenID, _initialSupply, _initialTokenPrice))}(payable(address(this))));
         NibblVault _vault = NibblVault(payable(_proxyVault));
         _vault.initialize{value: msg.value}(_name, _symbol, _assetAddress, _assetTokenID, _curator, _initialSupply,_initialTokenPrice, _minBuyoutTime);
@@ -103,8 +103,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new basket implementation
     /// @dev new vault implementation can be updated only after timelock
     function updateBasketImplementation() external override {
-        require(basketUpdateTime != 0, "NibblVaultFactory: Not Proposed");
-        require(block.timestamp >= basketUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
+        uint256 _basketUpdateTime = basketUpdateTime;
+        require(_basketUpdateTime != 0, "Factory: !Proposed");
+        require(block.timestamp >= _basketUpdateTime, "Factory: UPDATE_TIME");
         basketImplementation = pendingBasketImplementation;
         delete basketUpdateTime;
     }
@@ -128,8 +129,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new admin fee address
     /// @dev can only be updated after timelock
     function updateNewAdminFeeAddress() external override {
-        require(feeToUpdateTime != 0, "NibblVaultFactory: Not Proposed");
-        require(block.timestamp >= feeToUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
+        uint256 _feeToUpdateTime = feeToUpdateTime;
+        require(_feeToUpdateTime != 0, "Factory: !Proposed");
+        require(block.timestamp >= _feeToUpdateTime, "Factory: UPDATE_TIME");
         feeTo = pendingFeeTo;
         delete feeToUpdateTime;
     }
@@ -139,7 +141,7 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @dev can only be called by FEE_ROLE
     /// @param _newFee new admin fee 
     function proposeNewAdminFee(uint256 _newFee) external override onlyRole(FEE_ROLE) {
-        require(_newFee <= MAX_ADMIN_FEE, "NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
+        require(_newFee <= MAX_ADMIN_FEE, "Factory: Fee too high");
         pendingFeeAdmin = _newFee;
         feeAdminUpdateTime = block.timestamp + UPDATE_TIME;
     }
@@ -147,8 +149,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new admin fee
     /// @dev new fee can be updated only after timelock
     function updateNewAdminFee() external override {
-        require(feeAdminUpdateTime != 0, "NibblVaultFactory: Not Proposed");
-        require( block.timestamp >= feeAdminUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
+        uint256 _feeAdminUpdateTime = feeAdminUpdateTime;
+        require(_feeAdminUpdateTime != 0, "Factory: !Proposed");
+        require( block.timestamp >= _feeAdminUpdateTime, "Factory: UPDATE_TIME");
         feeAdmin = pendingFeeAdmin;
         delete feeAdminUpdateTime;
     }
@@ -165,8 +168,9 @@ contract NibblVaultFactory is INibblVaultFactory, AccessControlMechanism, Pausab
     /// @notice updates new vault implementation
     /// @dev new vault implementation can be updated only after timelock
     function updateVaultImplementation() external override {
-        require(vaultUpdateTime != 0, "NibblVaultFactory: Not Proposed");
-        require(block.timestamp >= vaultUpdateTime, "NibblVaultFactory: UPDATE_TIME not passed");
+        uint256 _vaultUpdateTime = vaultUpdateTime;
+        require(_vaultUpdateTime != 0, "Factory: !Proposed");
+        require(block.timestamp >= _vaultUpdateTime, "Factory: UPDATE_TIME");
         vaultImplementation = pendingVaultImplementation;
         delete vaultUpdateTime;
     }

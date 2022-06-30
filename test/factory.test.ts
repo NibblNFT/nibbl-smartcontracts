@@ -131,12 +131,12 @@ describe("Factory", function () {
         expect(pendingFeeTo).to.be.equal(user1Address);
         expect(feeToUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
         // --------------- Proposed FeeTo ----------------- //
-        await expect(vaultFactoryContract.updateNewAdminFeeAddress()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+        await expect(vaultFactoryContract.updateNewAdminFeeAddress()).to.be.revertedWith("Factory: UPDATE_TIME");
     });
 
     it("should fail to update feeTo address if not proposed", async function () {
 
-        await expect(vaultFactoryContract.updateNewAdminFeeAddress()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
+        await expect(vaultFactoryContract.updateNewAdminFeeAddress()).to.be.revertedWith("Factory: !Proposed");
     });
 
     it("should propose new admin fee", async function () {
@@ -151,7 +151,7 @@ describe("Factory", function () {
 
     it("should fail to propose new admin fee is fee greater than MAX_ADMIN_FEE", async function () {
         const _newFee = 15_000;
-        await expect(vaultFactoryContract.connect(feeRole).proposeNewAdminFee(_newFee)).to.be.revertedWith("NibblVaultFactory: Fee value greater than MAX_ADMIN_FEE");
+        await expect(vaultFactoryContract.connect(feeRole).proposeNewAdminFee(_newFee)).to.be.revertedWith("Factory: Fee too high");
     });
 
     it("should update new admin fee", async function () {
@@ -192,11 +192,11 @@ describe("Factory", function () {
         const feeAdminUpdateTime = await vaultFactoryContract.feeAdminUpdateTime();
         expect(pendingFeeAdmin).to.be.equal(_newFee);
         expect(feeAdminUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
-        await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+        await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("Factory: UPDATE_TIME");
     });
 
     it("should fail to update fee if not proposed", async function () {
-       await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
+       await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("Factory: !Proposed");
     });
 
     it("should withdraw admin fee", async function () {
@@ -238,11 +238,11 @@ describe("Factory", function () {
         expect(pendingVaultImplementation).to.be.equal(user1Address);
         expect(vaultUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
 
-        await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+        await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("Factory: UPDATE_TIME");
     });
 
     it("should fail to update nibblVaultImplementation if not proposed", async function () {
-        await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
+        await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("Factory: !Proposed");
     });
 
     it("should fail to create a vault if initial balance is too low", async function () {
@@ -258,7 +258,7 @@ describe("Factory", function () {
             10 ** 14,
             await latest(), {
                 value: 0
-            })).to.be.revertedWith("NibblVaultFactory: Initial reserve balance too low");
+            })).to.be.revertedWith("Factory: Value low");
     });
 
     it("should fail if curator isn't sender", async function () {
@@ -271,7 +271,7 @@ describe("Factory", function () {
             constants.initialTokenSupply,
             10 ** 14,
             await latest(),
-            { value: constants.initialSecondaryReserveBalance })).to.be.revertedWith("NibblVaultFactory: Invalid sender");
+            { value: constants.initialSecondaryReserveBalance })).to.be.revertedWith("Factory: Invalid sender");
     });
 
     it("should allow default admin to be able to change RoleAdmin", async function () {
@@ -330,11 +330,11 @@ describe("Factory", function () {
         const basketUpdateTime = await vaultFactoryContract.basketUpdateTime();
         expect(pendingBasketImplementation).to.be.equal(user1Address);
         expect(basketUpdateTime).to.be.equal(blockTime.add(constants.UPDATE_TIME_FACTORY));
-        await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("NibblVaultFactory: UPDATE_TIME not passed");
+        await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("Factory: UPDATE_TIME");
     });
 
     it("should fail to update nibblBasketImplementation if not proposed", async function () {
-       await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("NibblVaultFactory: Not Proposed");
+       await expect(vaultFactoryContract.updateBasketImplementation()).to.be.revertedWith("Factory: !Proposed");
     });
 
 });
