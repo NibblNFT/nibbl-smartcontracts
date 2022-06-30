@@ -564,6 +564,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         bytes32 r,
         bytes32 s
     ) external override {
+        require(owner != address(0));
         require(block.timestamp <= deadline, "NibblVault: expired deadline");
         bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline));
         address signer = ecrecover(toTypedMessageHash(structHash), v, r, s);

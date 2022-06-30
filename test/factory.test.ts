@@ -298,7 +298,7 @@ describe("Factory", function () {
         const Basket = await ethers.getContractFactory("Basket");
         const _basket = new ethers.Contract(_address, Basket.interface, curator);
         const _curator = await _basket.ownerOf(0);
-        const _supportsInterface = await _basket.supportsInterface("0x8d9f86b2")
+        const _supportsInterface = await _basket.supportsInterface("0x204c9518")
         expect(_curator).to.equal(curatorAddress);
         expect(_supportsInterface).to.equal(true);
     })
