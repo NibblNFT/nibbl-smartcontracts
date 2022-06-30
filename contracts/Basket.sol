@@ -17,6 +17,10 @@ contract Basket is IBasket, ERC721Upgradeable {
 
     using SafeERC20 for IERC20;
 
+    constructor () {
+        _disableInitializers();
+    }
+
     function initialize(address _curator) external override initializer {
         __ERC721_init("NibblBasket", "NB");
         _mint(_curator, 0);

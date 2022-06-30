@@ -159,6 +159,10 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         _;
     }
 
+    constructor () {
+        _disableInitializers();
+    }
+
     /// @notice the function to initialize proxy vault parameters
     /// @param _tokenName name of the fractionalized ERC20 token to be created
     /// @param _tokenSymbol symbol of the fractionalized ERC20 token
