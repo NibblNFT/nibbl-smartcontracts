@@ -10,7 +10,6 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 import { IERC721ReceiverUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 import { ERC721Upgradeable, IERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { IERC1155ReceiverUpgradeable, IERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
-import "hardhat/console.sol";
 /**
  * Mint a single ERC721 which can hold NFTs
  */
@@ -18,8 +17,7 @@ contract Basket is IBasket, ERC721Upgradeable {
 
     using SafeERC20 for IERC20;
 
-    function initialise(address _curator) external override initializer {
-        console.logBytes4(type(IBasket).interfaceId);
+    function initialize(address _curator) external override initializer {
         __ERC721_init("NibblBasket", "NB");
         _mint(_curator, 0);
     }
