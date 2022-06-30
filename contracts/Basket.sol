@@ -2,32 +2,28 @@
 pragma solidity 0.8.10;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import { ERC721, IERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import { IERC165, ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IBasket } from "./Interfaces/IBasket.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { IERC721ReceiverUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
+import { ERC721Upgradeable, IERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import { IERC1155ReceiverUpgradeable, IERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
+
 /**
  * Mint a single ERC721 which can hold NFTs
  */
-contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
+contract Basket is IBasket, ERC721Upgradeable {
 
     using SafeERC20 for IERC20;
 
-    event DepositERC721(address indexed token, uint256 tokenId, address indexed from);
-    event WithdrawERC721(address indexed token, uint256 tokenId, address indexed to);
-    event DepositERC1155(address indexed token, uint256 tokenId, uint256 amount, address indexed from);
-    event DepositERC1155Bulk(address indexed token, uint256[] tokenId, uint256[] amount, address indexed from);
-    event WithdrawERC1155(address indexed token, uint256 tokenId, uint256 amount, address indexed from);
-    event WithdrawETH(address indexed who);
-    event WithdrawERC20(address indexed token, address indexed who);
-
     function initialise(address _curator) external override initializer {
+        __ERC721_init("NibblBasket", "NB");
         _mint(_curator, 0);
     }
 
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, IERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(IERC165Upgradeable, ERC721Upgradeable) returns (bool) {
         return
             super.supportsInterface(interfaceId) || interfaceId == type(IBasket).interfaceId;
     }
@@ -88,22 +84,22 @@ contract Basket is IBasket, ERC721("NFT Basket", "NFTB"), Initializable {
     }
 
     /// @notice withdraw ERC20 in the case a held NFT earned ERC20
-    function withdrawERC20(address _token) external override {
+    function withdrawERC20(address _token, address _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
-        IERC20(_token).safeTransfer(msg.sender, IERC20(_token).balanceOf(address(this)));
+        IERC20(_token).safeTransfer(_to, IERC20(_token).balanceOf(address(this)));
         emit WithdrawERC20(_token, msg.sender);
     }
 
-    function withdrawMultipleERC20(address[] calldata _tokens) external override {
+    function withdrawMultipleERC20(address[] calldata _tokens, address _to) external override {
         require(_isApprovedOrOwner(msg.sender, 0), "withdraw:not allowed");
         uint256 _length = _tokens.length;
         for (uint256 i; i < _length; ++i) {
-            IERC20(_tokens[i]).safeTransfer(msg.sender, IERC20(_tokens[i]).balanceOf(address(this)));
+            IERC20(_tokens[i]).safeTransfer(_to, IERC20(_tokens[i]).balanceOf(address(this)));
             emit WithdrawERC20(_tokens[i], msg.sender);
         }
     }
 
-    function onERC721Received(address, address from, uint256 id, bytes memory) external override returns(bytes4) {
+    function onERC721Received(address, address from, uint256 id, bytes memory) public override returns(bytes4) {
         emit DepositERC721(msg.sender, id, from);
         return this.onERC721Received.selector;
     }
