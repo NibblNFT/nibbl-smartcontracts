@@ -443,7 +443,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
 
     /// @notice Updates the TWAV when in buyout
     /// @dev TWAV can be updated only in buyout state
-    function updateTWAV() external override {
+    function updateTWAV() external override notBoughtOut {
         require(status == Status.buyout, "NibblVault: Status!=Buyout");
         uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
         if (_blockTimestamp != lastBlockTimeStamp) {
