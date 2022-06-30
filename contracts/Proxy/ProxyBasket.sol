@@ -23,7 +23,7 @@ contract ProxyBasket {
     /**
      * @dev Delegates the current call to `implementation`.
      *
-     * This function does not return to its internall call site, it will return directly to the external caller.
+     * This function does not return to its internal call site, it will return directly to the external caller.
      */
     //solhint-disable-next-line no-complex-fallback
     fallback() external payable virtual {

@@ -126,7 +126,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     ///@notice current status of vault
     Status public status;
 
-    ///@notice reenterancy guard
+    ///@notice reentrancy guard
     uint256 private unlocked = 2;
 
     modifier lock() {
@@ -201,7 +201,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         fictitiousPrimaryReserveBalance = _primaryReserveBalance;
         secondaryReserveBalance = msg.value;
         secondaryReserveRatio = _secondaryReserveRatio;
-        //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
+        //curator fee is proportional to the secondary reserve ratio/primaryReserveRatio i.e. initial liquidity added by curator
         curatorFee = (((_secondaryReserveRatio - MIN_SECONDARY_RESERVE_RATIO) * MIN_CURATOR_FEE) / (primaryReserveRatio - MIN_SECONDARY_RESERVE_RATIO)) + MIN_CURATOR_FEE; //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator
         minBuyoutTime = _minBuyoutTime;
         _mint(_curator, _initialTokenSupply);
@@ -251,7 +251,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
     /// @notice Maximum number of reserve tokens that can be held on SecondaryCurve at current secondary reserve ratio
-    /// @dev The max continous tokens on SecondaryCurve is equal to initialTokenSupply
+    /// @dev The max continuous tokens on SecondaryCurve is equal to initialTokenSupply
     /// @dev Reserve Token Balance = Reserve Ratio * (Continuous Token Supply x Continuous Token Price)
     function getMaxSecondaryCurveBalance() private view returns(uint256){
             return ((secondaryReserveRatio * initialTokenSupply * initialTokenPrice) / (1e18 * SCALE));
@@ -264,14 +264,14 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev Total reserve balance = Actual reserve balance in primary curve + secondaryReserveBalance
     /// @dev Total reserve balance = (primaryReserveBalance - fictitiousPrimaryReserveBalance) + secondaryReserveBalance
     /// @dev Valuation = (Continuous Token Supply x Continuous Token Price) = Reserve Token Balance / Reserve Ratio
-    /// @dev Valuation = If current supply is on seconday curve we use secondaryReserveBalance and secondaryReserveRatio to calculate valuation else we use primary reserve ratio and balance
+    /// @dev Valuation = If current supply is on secondary curve we use secondaryReserveBalance and secondaryReserveRatio to calculate valuation else we use primary reserve ratio and balance
     /// @return Current valuation of the system
     function getCurrentValuation() private view returns(uint256) {
             return totalSupply() < initialTokenSupply ? (secondaryReserveBalance * SCALE /secondaryReserveRatio) : ((primaryReserveBalance) * SCALE  / primaryReserveRatio);
     }
 
     /// @notice function to buy tokens on the primary curve
-    /// @param _amount amount of reserve tokens to buy continous tokens
+    /// @param _amount amount of reserve tokens to buy continuous tokens
     /// @dev This is executed when current supply >= initial supply
     /// @dev _amount is charged with fee
     /// @dev _purchaseReturn is minted to _to
@@ -283,7 +283,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         primaryReserveBalance = _primaryReserveBalance + _amountIn;
     }
     /// @notice function to buy tokens on secondary curve
-    /// @param _amount amount of reserve tokens to buy continous tokens
+    /// @param _amount amount of reserve tokens to buy continuous tokens
     /// @dev This is executed when current supply < initial supply
     /// @dev only admin and curator fee is charged in secondary curve
     /// @dev _purchaseReturn is minted to _to
@@ -359,9 +359,9 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @dev TWAV is updated only if buyout is active and only on first buy or sell txs of block.
     /// @dev internally calls _sellPrimaryCurve or _sellSecondaryCurve or both depending on the sellAmount and current supply
     /// @dev if totalSupply > initialTokenSupply AND _amount to sell is greater than (_amtIn > totalSupply - initialTokenSupply) then sell happens on primary curve and secondary curve both
-    /// @param _amtIn Continous Tokens to be sold
+    /// @param _amtIn continuous Tokens to be sold
     /// @param _minAmtOut Minimum amount of reserve token user receives, else the tx fails.
-    /// @param _to Address to recieve the reserve token to
+    /// @param _to Address to receive the reserve token to
     function sell(uint256 _amtIn, uint256 _minAmtOut, address payable _to) external override notBoughtOut whenNotPaused lock returns(uint256 _saleReturn) {
         //Make update on the first tx of the block
         if (status == Status.buyout) {
@@ -513,7 +513,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
     /// @notice Function for allowing bidder to unlock his ERC20s in case of buyout success
-    /// @notice ERC20s can be accumulated by the underlying ERC721 in the vault as royalty or airdops 
+    /// @notice ERC20s can be accumulated by the underlying ERC721 in the vault as royalty or airdrops 
     /// @param _asset the address of asset to be unlocked
     /// @param _to the address where unlocked NFT will be sent
     function withdrawERC20(address _asset, address _to) external override boughtOut {
@@ -533,7 +533,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     }
 
     /// @notice Function for allowing bidder to unlock his ERC1155s in case of buyout success
-    /// @notice ERC1155s can be accumulated by the underlying ERC721 in the vault as royalty or airdops 
+    /// @notice ERC1155s can be accumulated by the underlying ERC721 in the vault as royalty or airdrops 
     /// @param _asset the address of asset to be unlocked
     /// @param _assetID the ID of asset to be unlocked
     /// @param _to the address where unlocked NFT will be sent
