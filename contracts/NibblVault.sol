@@ -200,7 +200,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         assetID = _assetID;
         curator = _curator;
         initialTokenSupply = _initialTokenSupply;
-        uint _primaryReserveBalance = (primaryReserveRatio * _initialTokenSupply * _initialTokenPrice) / (SCALE * 1e18);
+        uint256 _primaryReserveBalance = (primaryReserveRatio * _initialTokenSupply * _initialTokenPrice) / (SCALE * 1e18);
         primaryReserveBalance = _primaryReserveBalance;
         fictitiousPrimaryReserveBalance = _primaryReserveBalance;
         secondaryReserveBalance = msg.value;
@@ -294,7 +294,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @return _purchaseReturn Purchase return
     function _buySecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns (uint256 _purchaseReturn) {
         uint256 _amountIn = _chargeFeeSecondaryCurve(_amount);
-        uint _secondaryReserveBalance = secondaryReserveBalance;
+        uint256 _secondaryReserveBalance = secondaryReserveBalance;
         _purchaseReturn = _calculatePurchaseReturn(_totalSupply, _secondaryReserveBalance, secondaryReserveRatio, _amountIn);
         secondaryReserveBalance = _secondaryReserveBalance + _amountIn;
     }
@@ -340,7 +340,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amount Amount of tokens to be sold on primary curve
     /// @return _saleReturn Sale Return
     function _sellPrimaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn) {
-        uint _primaryReserveBalance = primaryReserveBalance;
+        uint256 _primaryReserveBalance = primaryReserveBalance;
         _saleReturn = _calculateSaleReturn(_totalSupply, _primaryReserveBalance, primaryReserveRatio, _amount);
         primaryReserveBalance = _primaryReserveBalance - _saleReturn;
         _saleReturn = _chargeFee(_saleReturn);
@@ -352,7 +352,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @param _amount Amount of tokens to be sold on SecondaryCurve
     ///  @return _saleReturn Sale Return
     function _sellSecondaryCurve(uint256 _amount, uint256 _totalSupply) private returns(uint256 _saleReturn){
-        uint _secondaryReserveBalance = secondaryReserveBalance;
+        uint256 _secondaryReserveBalance = secondaryReserveBalance;
         _saleReturn = _calculateSaleReturn(_totalSupply, _secondaryReserveBalance, secondaryReserveRatio, _amount);
         secondaryReserveBalance = _secondaryReserveBalance - _saleReturn;
         require(_secondaryReserveBalance - _saleReturn >= MIN_SECONDARY_RESERVE_BALANCE, "NibblVault: Excess sell");
@@ -447,7 +447,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
 
     /// @notice Updates the TWAV when in buyout
     /// @dev TWAV can be updated only in buyout state
-    function updateTWAV() external override notBoughtOut {
+    function updateTWAV() external override whenNotPaused notBoughtOut {
         require(status == Status.buyout, "NibblVault: Status!=Buyout");
         uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
         if (_blockTimestamp != lastBlockTimeStamp) {
@@ -459,7 +459,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
     /// @notice Function to allow withdrawal of unsettledBids after buyout has been rejected
     /// @param _to Address to receive the funds
     function withdrawUnsettledBids(address payable _to) external override {
-        uint _amount = unsettledBids[msg.sender];
+        uint256 _amount = unsettledBids[msg.sender];
         delete unsettledBids[msg.sender];
         totalUnsettledBids -= _amount;
         safeTransferETH(_to, _amount);
