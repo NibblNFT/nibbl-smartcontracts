@@ -6,7 +6,7 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 
 interface INibblVault is IERC20Upgradeable {
 
-    event BuyoutInitiated(address indexed bidder, uint256 indexed bid);
+    event BuyoutInitiated(address indexed bidder, uint256 indexed valuation);
     event BuyoutRejected(uint256 indexed rejectionValuation);
     event CuratorFeeUpdated(uint256 indexed fee);
     event Buy(address indexed buyer, uint256 indexed continousTokenAmount, uint256 indexed reserveTokenAmt);
