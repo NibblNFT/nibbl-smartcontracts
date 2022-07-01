@@ -421,7 +421,7 @@ contract NibblVault is INibblVault, BancorFormula, ERC20Upgradeable, Twav, EIP71
         if (_buyoutBid > _currentValuation) {
             safeTransferETH(payable(msg.sender), (_buyoutBid - _currentValuation));
         }
-        emit BuyoutInitiated(msg.sender, _buyoutBid);
+        emit BuyoutInitiated(msg.sender, _currentValuation);
     }
 
     /// @notice Function to reject buyout
