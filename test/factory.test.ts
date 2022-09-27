@@ -1,5 +1,4 @@
-import helpers, { time, loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Basket, Basket__factory, ERC721TestToken, ERC721TestToken__factory, NibblVault, NibblVaultFactory, NibblVaultFactory__factory, NibblVault__factory } from "../typechain-types";
@@ -39,10 +38,11 @@ describe("NibblVaultFactory", function () {
     const proxyAddress = await vaultFactoryContract.getVaultAddress(curator.address, erc721Token.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
     const vaultContract: NibblVault = NibblVault_Factory.attach(proxyAddress)
 
-    return { admin, implementationRole, feeRole, pausingRole, feeTo, user1, user2, erc721Token, vaultFactoryContract, vaultContract };
+    return { admin, implementationRole, feeRole, pausingRole, feeTo, user1, user2, erc721Token, vaultFactoryContract, vaultContract, curator };
   }
 
   describe("Propose and Update params", function () {
+    
     it("Should propose feeTo address", async function () {
       const { feeRole, user1, vaultFactoryContract } = await loadFixture(deployNibblVaultFactoryFixture);
       await vaultFactoryContract.connect(feeRole).proposeNewAdminFeeAddress(user1.address);
@@ -50,6 +50,11 @@ describe("NibblVaultFactory", function () {
       const expectedFeeToUpdateTime = blockTime + constants.UPDATE_TIME_FACTORY; // expectedFeeToUpdateTime is latest + UPDATE_TIME_FACTORY
       expect(await vaultFactoryContract.pendingFeeTo()).to.be.equal(user1.address);
       expect((await vaultFactoryContract.feeToUpdateTime()).toString()).to.be.equal(expectedFeeToUpdateTime.toString());
+    });
+
+    it("Should only allow FEE_ROLE to propose feeTo address", async function () {
+      const { user1, vaultFactoryContract } = await loadFixture(deployNibblVaultFactoryFixture);
+      expect(vaultFactoryContract.connect(user1).proposeNewAdminFeeAddress(user1.address)).to.be.reverted;
     });
     
     it("should update proposed feeTo address", async function () {
@@ -84,7 +89,12 @@ describe("NibblVaultFactory", function () {
       expect(await vaultFactoryContract.pendingFeeAdmin()).to.be.equal(_newFee);
       expect((await vaultFactoryContract.feeAdminUpdateTime()).toString()).to.be.equal(expectedFeeToUpdateTime.toString());
     });
-    
+
+    it("should only allow FEE_ROLE to propose admin fee", async function () {
+      const { vaultFactoryContract, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
+      const _newFee = 1_000;
+      await expect(vaultFactoryContract.connect(user1).proposeNewAdminFee(_newFee)).to.be.reverted;
+    });
     
     it("should update admin fee", async function () {
       const { vaultFactoryContract, feeRole } = await loadFixture(deployNibblVaultFactoryFixture);
@@ -110,7 +120,7 @@ describe("NibblVaultFactory", function () {
     });
 
     it("should fail to update fee if not proposed", async function () {
-      const { vaultFactoryContract, feeRole } = await loadFixture(deployNibblVaultFactoryFixture);
+      const { vaultFactoryContract } = await loadFixture(deployNibblVaultFactoryFixture);
       await expect(vaultFactoryContract.updateNewAdminFee()).to.be.revertedWith("Factory: !Proposed");
     });
     
@@ -120,6 +130,11 @@ describe("NibblVaultFactory", function () {
       const expectedVaultUpdateTime = (await time.latest()) + constants.UPDATE_TIME_FACTORY;
       expect(await vaultFactoryContract.pendingVaultImplementation()).to.be.equal(user1.address);
       expect((await vaultFactoryContract.vaultUpdateTime()).toString()).to.be.equal(expectedVaultUpdateTime.toString());
+    });
+
+    it("should only allow IMPLEMENTER_ROLE to propose nibblVaultImplementation", async function () {
+      const { vaultFactoryContract, user1, implementationRole } = await loadFixture(deployNibblVaultFactoryFixture);
+      await expect(vaultFactoryContract.connect(user1).proposeNewVaultImplementation(user1.address)).to.be.reverted;
     });
     
     it("should update nibblVaultImplementation", async function () {
@@ -143,12 +158,18 @@ describe("NibblVaultFactory", function () {
       await expect(vaultFactoryContract.updateVaultImplementation()).to.be.revertedWith("Factory: !Proposed");
     });
     
-    it("should propose basketVaultImplementation", async function () {
+    it("should propose nibblBasketImplementation", async function () {
       const { vaultFactoryContract, implementationRole, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
       await vaultFactoryContract.connect(implementationRole).proposeNewBasketImplementation(user1.address);
       const expectedBasketUpdateTime = (await time.latest()) + constants.UPDATE_TIME_FACTORY;
       expect(await vaultFactoryContract.pendingBasketImplementation()).to.be.equal(user1.address);
       expect(await vaultFactoryContract.basketUpdateTime()).to.be.equal(expectedBasketUpdateTime.toString());
+    });
+    
+
+    it("should only allow IMPLEMENTER_ROLE to propose nibblBasketImplementation", async function () {
+      const { vaultFactoryContract,  user1 } = await loadFixture(deployNibblVaultFactoryFixture);
+      await expect(vaultFactoryContract.connect(user1).proposeNewBasketImplementation(user1.address)).to.be.reverted;
     });
     
     it("should update nibblBasketImplementation", async function () {
@@ -224,6 +245,11 @@ describe("NibblVaultFactory", function () {
       expect(await vaultFactoryContract.paused()).to.be.equal(true);
     });
 
+    it("should allow only PAUSER_ROLE to pause", async function () {
+      const { vaultFactoryContract, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
+      await expect(vaultFactoryContract.connect(user1).pause()).to.be.reverted;
+    });
+
     it("should allow PAUSER_ROLE to unpause", async function () {
       const { vaultFactoryContract, pausingRole } = await loadFixture(deployNibblVaultFactoryFixture);
       await vaultFactoryContract.connect(pausingRole).pause();
@@ -231,6 +257,71 @@ describe("NibblVaultFactory", function () {
       expect(await vaultFactoryContract.paused()).to.be.equal(false);
     });
     
+    it("should only allow PAUSER_ROLE to unpause", async function () {
+      const { vaultFactoryContract, pausingRole, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
+      await vaultFactoryContract.connect(pausingRole).pause();
+      await expect(vaultFactoryContract.connect(user1).unPause()).to.be.reverted;
+    });    
+  });
+  
+  describe("Vault Creation", function () {
+    
+    it("should create a new vault", async function () {
+      const { vaultFactoryContract, pausingRole, user1, vaultContract } = await loadFixture(deployNibblVaultFactoryFixture);
+      const vaults = await vaultFactoryContract.getVaults();
+      expect(vaults.length).to.be.equal(ethers.constants.One)
+      expect(vaults[0]).to.be.equal(vaultContract.address)
+    });
+    
+    
+    it("should not create a new vault when paused", async function () {
+      const { vaultFactoryContract, pausingRole, erc721Token, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+      await vaultFactoryContract.connect(pausingRole).pause();
+      //Paused
+
+      await erc721Token.mint(curator.address, 1);
+      await erc721Token.connect(curator).approve(vaultFactoryContract.address, 1);
+
+      //create a vault
+      await expect(vaultFactoryContract.connect(curator).createVault(erc721Token.address, curator.address, constants.tokenName, constants.tokenSymbol, 0, constants.initialTokenSupply, constants.initialTokenPrice, await time.latest(), { value: constants.initialSecondaryReserveBalance })).to.be.reverted
+    });
+
+    it("should not create a new vault when (msg.value < MIN_INITIAL_RESERVE_BALANCE)", async function () {
+      const { vaultFactoryContract, erc721Token, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+
+      await erc721Token.mint(curator.address, 1);
+      await erc721Token.connect(curator).approve(vaultFactoryContract.address, 1);
+
+      //create a vault
+      const INITIAL_RESERVE_BALANCE = 1e8;
+      await expect(vaultFactoryContract.connect(curator).createVault(erc721Token.address, curator.address, constants.tokenName, constants.tokenSymbol, 0, constants.initialTokenSupply, constants.initialTokenPrice, await time.latest(), { value: INITIAL_RESERVE_BALANCE })).to.be.revertedWith("Factory: Value low")
+    });
+
+    it("should not create a new vault when Owner of ERC721 isnt msg.sender", async function () {
+      const { vaultFactoryContract, erc721Token, curator, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
+
+      await erc721Token.mint(curator.address, 1);
+      await erc721Token.connect(curator).approve(vaultFactoryContract.address, 1);
+
+      //create a vault
+      const INITIAL_RESERVE_BALANCE = 1e10;
+      await expect(vaultFactoryContract.connect(user1).createVault(erc721Token.address, curator.address, constants.tokenName, constants.tokenSymbol, 0, constants.initialTokenSupply, constants.initialTokenPrice, await time.latest(), { value: INITIAL_RESERVE_BALANCE })).to.be.revertedWith("Factory: Invalid sender")
+    });
+    
   });
 
+  describe("Fee", function () {
+    it("should allow PAUSER_ROLE to pause", async function () {
+      const { vaultFactoryContract, feeTo, curator, vaultContract, user1, user2 } = await loadFixture(deployNibblVaultFactoryFixture);
+      await vaultContract.connect(curator).buy(0, curator.address, {value: ethers.utils.parseEther("500")})
+      await vaultContract.connect(user1).buy(0, curator.address, {value: ethers.utils.parseEther("500")})
+      await vaultContract.connect(user2).buy(0, curator.address, { value: ethers.utils.parseEther("500") })
+      const _initialBalanceFactory = await curator.provider.getBalance(vaultFactoryContract.address);
+      const _initialBalanceFeeTo = await curator.provider.getBalance(feeTo.address);
+      await vaultFactoryContract.withdrawAdminFee();
+      expect(await user1.provider.getBalance(feeTo.address)).to.be.equal(_initialBalanceFactory?.add(_initialBalanceFeeTo))
+    });
+  
+  });
+  
 });

@@ -10,7 +10,7 @@ import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
-import { Twav } from "./Twav/Twav.sol";
+import { Twav2 } from "./Twav/Twav2.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault2 } from "./Interfaces/INibblVault2.sol";
 import { ERC1155Link } from "./ERC1155Link.sol";
@@ -22,7 +22,7 @@ import "hardhat/console.sol";
 /// @dev This contract creates 2 bonding curves, referred to as primary curve and secondary curve.
 /// @dev The primary curve has fixed specifications and reserveRatio.
 /// @dev The secondary curve is dynamic and has a variable reserveRatio, which depends on initial conditions given by the curator and the fee accumulated by the curve.
-contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav {
+contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
 
     using SafeERC20 for IERC20;
 
@@ -537,8 +537,8 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav {
     }
     
     function createERC1155Link(uint256 _mintRatio) external {
-        require(bytes(imageUrl).length > 0, "NibblVault: !URL");
         require(msg.sender == curator, "NibblVault: !Curator");
+        require(bytes(imageUrl).length > 0, "NibblVault: !URL");
         require(_mintRatio != 0, "NibblVault: Invalid Ratio");
         ERC1155Link _link = ERC1155Link(address(new Proxy(nibblERC1155LinkImplementation)));
         _link.initialize(imageUrl, _mintRatio);
