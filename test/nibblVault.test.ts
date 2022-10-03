@@ -479,7 +479,7 @@ describe("NibblVault", function () {
       for (let index = 0; true; index++) {
           const _buyAmount = ethers.utils.parseEther("10");      
           await vaultContract.connect(buyer1).buy(0, buyer1.address, { value: _buyAmount });
-          await time.increase(time.duration.minutes(2));
+          await time.increase(time.duration.minutes(1));
           blockTime = getBigNumber(await time.latest(), 0);
           twav.addObservation(currentValuation, blockTime);
           currentValuation = await getCurrentValuation(vaultContract);
@@ -501,7 +501,7 @@ describe("NibblVault", function () {
   it("Shouldn't be able to buy after buyout has been completed.", async function () {
       const { vaultContract, buyer1, curator } = await loadFixture(deployNibblVaultFactoryFixture);
       await time.increase(time.duration.days(2));
-      await time.increase(time.duration.minutes(2));
+      await time.increase(time.duration.minutes(1));
       let currentValuation: BigNumber = constants.initialValuation;
       const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
       await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit });
@@ -551,7 +551,7 @@ describe("NibblVault", function () {
       const _buyAmount = ethers.utils.parseEther("10");
       const buyoutRejectionValuation: BigNumber = currentValuation.mul(constants.SCALE.add(constants.rejectionPremium)).div(constants.SCALE);
       let blockTime = getBigNumber(await time.latest(), 0);
-      await time.increase(time.duration.minutes(2));
+      await time.increase(time.duration.minutes(1));
       twav.addObservation(currentValuation, blockTime);
       await vaultContract.connect(buyer1).buy(0, buyer1.address, { value: _buyAmount });
       currentValuation = await getCurrentValuation(vaultContract);
@@ -592,7 +592,7 @@ describe("NibblVault", function () {
       const _newSecondaryBalance = _initialSecondaryBalance.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
       const _newSecondaryResRatio = _newSecondaryBalance.mul(constants.SCALE).div(constants.initialValuation);
       await vaultContract.connect(buyer1).buy(0, buyer1.address, { value: _buyAmount });
-      await time.increase(time.duration.minutes(2));
+      await time.increase(time.duration.minutes(1));
       blockTime = getBigNumber(await time.latest(), 0);
       twav.addObservation(currentValuation, blockTime);
       currentValuation = (_newSecondaryBalance.mul(constants.SCALE).div(_newSecondaryResRatio)).add((_newPrimaryBalance.sub(constants.fictitiousPrimaryReserveBalance)).mul(constants.SCALE).div(constants.primaryReserveRatio));

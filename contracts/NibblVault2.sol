@@ -326,7 +326,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
         //Make update on the first tx of the block
         if (status == Status.buyout) {
             uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
-            if (_blockTimestamp != lastBlockTimeStamp) {
+            if (_blockTimestamp >= lastBlockTimeStamp + period) {
                 _updateTWAV(getCurrentValuation(), _blockTimestamp);   
                 _rejectBuyout();
             }
@@ -387,7 +387,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
         //Make update on the first tx of the block
         if (status == Status.buyout) {
             uint32 _blockTimestamp = uint32(block.timestamp % 2**32);
-            if (_blockTimestamp != lastBlockTimeStamp) {
+            if (_blockTimestamp >= lastBlockTimeStamp + period) {
                 _updateTWAV(getCurrentValuation(), _blockTimestamp);   
                 _rejectBuyout(); //For the case when TWAV goes up when updated on sell
             }

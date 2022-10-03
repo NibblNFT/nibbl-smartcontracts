@@ -444,6 +444,29 @@ describe("Upgrade: NibblVault", function () {
       expect(twavObs2.cumulativeValuation).to.equal(twav.twavObservations[2].cumulativeValuation);
       // ----------------------------2nd Buy Operation-----------------------------------  
     });
+
+      it("Should not update twav on buy when in buyout if period hasnt passed", async function () {
+      const { vaultContract, buyer1 } = await loadFixture(deployNibblVaultFactoryFixture);
+      await time.increase(time.duration.days(2));
+      let currentValuation: BigNumber = constants.initialValuation;
+      const buyoutBidDeposit: BigNumber = currentValuation.sub((constants.initialPrimaryReserveBalance).sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+      await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+      let blockTime = getBigNumber(await time.latest(), 0);
+      twav.addObservation(currentValuation, blockTime);
+      const twavObs = await vaultContract.twavObservations(0);
+      expect(twavObs.timestamp).to.equal(twav.twavObservations[0].timestamp);
+      expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
+      // -------------------------Buyout Initiated--------------------------
+      // ----------------------------1st Buy Operation Initiated-----------------------------------  
+      const _buyAmount = ethers.utils.parseEther("1");
+      // currentValuation = await getCurrentValuation(vaultContract); //TWAV is written before buy
+      await vaultContract.connect(buyer1).buy(0, buyer1.address, { value: _buyAmount });
+      blockTime = getBigNumber(await time.latest(), 0);
+      twav.addObservation(currentValuation, blockTime);
+      const twavObs1 = await vaultContract.twavObservations(1)
+      expect(twavObs1.timestamp).to.equal(0);
+      expect(twavObs1.cumulativeValuation).to.equal(0);
+    });
     
     it("Should update twav on sell when in buyout", async function () {
       const { vaultContract, buyer1, curator } = await loadFixture(deployNibblVaultFactoryFixture);
@@ -458,25 +481,58 @@ describe("Upgrade: NibblVault", function () {
       expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
       // -------------------------Buyout Initiated--------------------------
       
-      const _sellAmount = (constants.initialTokenSupply).div(5);
-      await vaultContract.connect(curator).sell(_sellAmount, 0, buyer1.address);
-      expect(await vaultContract.balanceOf(curator.address)).to.equal(constants.initialTokenSupply.sub(_sellAmount));
-      
-      expect(await vaultContract.totalSupply()).to.equal(constants.initialTokenSupply.sub(_sellAmount));
-      blockTime = getBigNumber(await time.latest(), 0);
-      twav.addObservation(currentValuation, blockTime); // No change is valuation happens before twav is recorded 
-      const twavObs1 = await vaultContract.twavObservations(1)
-      expect(twavObs1.timestamp).to.equal(twav.twavObservations[1].timestamp);
-      expect(twavObs1.cumulativeValuation).to.equal(twav.twavObservations[1].cumulativeValuation);
+    const _sellAmount = (constants.initialTokenSupply).div(5);
+    await time.increase(time.duration.minutes(2));
+    await vaultContract.connect(curator).sell(_sellAmount, 0, buyer1.address);
+    blockTime = getBigNumber(await time.latest(), 0);
+    twav.addObservation(currentValuation, blockTime); // No change is valuation happens before twav is recorded 
+    const twavObs1 = await vaultContract.twavObservations(1)
+    expect(twavObs1.timestamp).to.equal(twav.twavObservations[1].timestamp);
+    expect(twavObs1.cumulativeValuation).to.equal(twav.twavObservations[1].cumulativeValuation);
       // ----------------------------1st Sell Operation-----------------------------------  
       // ----------------------------2nd Sell Operation Initiated-----------------------------------  
-      currentValuation = await getCurrentValuation(vaultContract);
-      await vaultContract.connect(curator).sell(_sellAmount, 0, buyer1.address);
-      blockTime = getBigNumber(await time.latest(), 0);
+    currentValuation = await getCurrentValuation(vaultContract);
+    await time.increase(time.duration.minutes(2));
+    await vaultContract.connect(curator).sell(_sellAmount, 0, buyer1.address);
+    blockTime = getBigNumber(await time.latest(), 0);
+    twav.addObservation(currentValuation, blockTime);
+    const twavObs2 = await vaultContract.twavObservations(2)
+    expect(twavObs2.timestamp).to.equal(twav.twavObservations[2].timestamp);
+    expect(twavObs2.cumulativeValuation).to.equal(twav.twavObservations[2].cumulativeValuation);
+      // ----------------------------2nd Buy Operation-----------------------------------  
+    });
+   
+    it("Should not update twav on sell when in buyout if period hasn't passed", async function () {
+      const { vaultContract, buyer1, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+      await time.increase(time.duration.days(2));
+      let currentValuation: BigNumber = constants.initialValuation;
+      const buyoutBidDeposit: BigNumber = currentValuation.sub(constants.initialPrimaryReserveBalance.sub(constants.fictitiousPrimaryReserveBalance)).sub(constants.initialSecondaryReserveBalance);
+      await vaultContract.connect(buyer1).initiateBuyout({ value: buyoutBidDeposit.mul(BigNumber.from(2)) });
+      let blockTime = getBigNumber(await time.latest(), 0);
       twav.addObservation(currentValuation, blockTime);
-      const twavObs2 = await vaultContract.twavObservations(2)
-      expect(twavObs2.timestamp).to.equal(twav.twavObservations[2].timestamp);
-      expect(twavObs2.cumulativeValuation).to.equal(twav.twavObservations[2].cumulativeValuation);
+      const twavObs = await vaultContract.twavObservations(0);
+      expect(twavObs.timestamp).to.equal(twav.twavObservations[0].timestamp);
+      expect(twavObs.cumulativeValuation).to.equal(twav.twavObservations[0].cumulativeValuation);
+      // -------------------------Buyout Initiated--------------------------
+      
+    const _sellAmount = (constants.initialTokenSupply).div(5);
+    await time.increase(time.duration.minutes(2));
+    await vaultContract.connect(curator).sell(_sellAmount, 0, buyer1.address);
+    blockTime = getBigNumber(await time.latest(), 0);
+    twav.addObservation(currentValuation, blockTime); // No change is valuation happens before twav is recorded 
+    const twavObs1 = await vaultContract.twavObservations(1)
+    expect(twavObs1.timestamp).to.equal(twav.twavObservations[1].timestamp);
+    expect(twavObs1.cumulativeValuation).to.equal(twav.twavObservations[1].cumulativeValuation);
+      // ----------------------------1st Sell Operation-----------------------------------  
+      // ----------------------------2nd Sell Operation Initiated-----------------------------------  
+    currentValuation = await getCurrentValuation(vaultContract);
+    await time.increase(time.duration.minutes(2));
+    await vaultContract.connect(curator).sell(_sellAmount, 0, buyer1.address);
+    blockTime = getBigNumber(await time.latest(), 0);
+    twav.addObservation(currentValuation, blockTime);
+    const twavObs2 = await vaultContract.twavObservations(2)
+    expect(twavObs2.timestamp).to.equal(twav.twavObservations[2].timestamp);
+    expect(twavObs2.cumulativeValuation).to.equal(twav.twavObservations[2].cumulativeValuation);
       // ----------------------------2nd Buy Operation-----------------------------------  
     });
     

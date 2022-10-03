@@ -7,6 +7,8 @@ contract Twav2 {
         uint256 cumulativeValuation;
     }
 
+    uint256 constant period = 2 minutes;
+    
     /// @notice current index of twavObservations index
     uint8 public twavObservationsIndex;
     uint8 private constant TWAV_BLOCK_NUMBERS = 6;
@@ -15,8 +17,7 @@ contract Twav2 {
 
     /// @notice record of TWAV 
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;
-    uint256 period;
-    uint256[49] private _gaps; 
+    uint256[50] private _gaps; 
     // uint256[50] private _gaps; 
     /// @notice updates twavObservations array
     /// @param _blockTimestamp timestamp of the block
