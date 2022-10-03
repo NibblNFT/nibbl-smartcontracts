@@ -267,7 +267,7 @@ describe("NibblVaultFactory", function () {
   describe("Vault Creation", function () {
     
     it("should create a new vault", async function () {
-      const { vaultFactoryContract, pausingRole, user1, vaultContract } = await loadFixture(deployNibblVaultFactoryFixture);
+      const { vaultFactoryContract, vaultContract } = await loadFixture(deployNibblVaultFactoryFixture);
       const vaults = await vaultFactoryContract.getVaults();
       expect(vaults.length).to.be.equal(ethers.constants.One)
       expect(vaults[0]).to.be.equal(vaultContract.address)

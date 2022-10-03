@@ -1,6 +1,7 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
+import { getBigNumber } from "./helper";
 
 export const tokenName = "NibblToken";
 export const tokenSymbol = "NIBBL";
@@ -36,3 +37,5 @@ export const FEE_CURVE: BigNumber = MAX_CURATOR_FEE.sub(FEE_CURATOR);
 export const FEE_TOTAL = (FEE_ADMIN).add(FEE_CURATOR).add(FEE_CURVE);
 export const FEE_SECONDARY_CURVE = (FEE_ADMIN).add(FEE_CURATOR); // Fee charged in Secondary Curve, It is not charged on multicurve buy
 
+export const ONE = getBigNumber(1)
+export const TWO = getBigNumber(2)

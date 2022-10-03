@@ -5,7 +5,7 @@ import { Basket, Basket__factory, ERC1155TestToken, ERC1155TestToken__factory, E
 
 describe("Basket", function () {
 
-  async function deployNibblVaultFactoryFixture() {
+  async function deployBasketFixture() {
     const [admin, curator, feeTo, user1, user2] = await ethers.getSigners();
     // Deploy ERC721Token
     const ERC721Token_Factory: ERC721TestToken__factory = await ethers.getContractFactory("ERC721TestToken");
@@ -40,14 +40,7 @@ describe("Basket", function () {
     await erc1155Token.mint(basket.address, 1, 500)
       
     await erc20Token.mint(basket.address, 1000);
-    // await erc721Token.connect(curator).approve(vaultFactoryContract.address, 0);
-
-    // //create a vault
-    // await vaultFactoryContract.connect(curator).createVault( erc721Token.address, curator.address, constants.tokenName, constants.tokenSymbol, 0, constants.initialTokenSupply, constants.initialTokenPrice, await time.latest(), { value: constants.initialSecondaryReserveBalance });
-
-    // const proxyAddress = await vaultFactoryContract.getVaultAddress(curator.address, erc721Token.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
-    // const vaultContract: NibblVault = NibblVault_Factory.attach(proxyAddress)
-
+    
     return { admin, feeTo, user1, user2, erc721Token, erc20Token, erc1155Token, vaultFactoryContract, curator, basket };
   }
 
@@ -55,7 +48,7 @@ describe("Basket", function () {
   describe("Basket Creation and Initialization", function () {
 
     it("should setup", async function () {
-        const { curator, erc721Token, erc20Token, erc1155Token, basket } = await loadFixture(deployNibblVaultFactoryFixture);
+        const { curator, erc721Token, erc20Token, erc1155Token, basket } = await loadFixture(deployBasketFixture);
         expect(await basket.name()).to.equal("NibblBasket")
         expect(await basket.symbol()).to.equal("NB")
         expect(await basket.ownerOf(0)).to.equal(curator.address)
@@ -71,35 +64,35 @@ describe("Basket", function () {
   describe("Withdrawls from basket", function () {
 
     it("should allow withdraw erc20", async function () {
-        const { user1, erc20Token, basket, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+        const { user1, erc20Token, basket, curator } = await loadFixture(deployBasketFixture);
         await basket.connect(curator).withdrawERC20(erc20Token.address, user1.address)
         expect(await erc20Token.balanceOf(user1.address)).to.equal("1000")
     });
 
     it("should allow withdraw erc721", async function () {
-        const { user1, erc721Token, basket, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+        const { user1, erc721Token, basket, curator } = await loadFixture(deployBasketFixture);
         await basket.connect(curator).withdrawERC721(erc721Token.address, 0, user1.address)
         expect(await erc721Token.ownerOf(0)).to.equal(user1.address)
     });
 
     it("should allow withdraw erc1155", async function () {
-        const { user1, erc1155Token, basket, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+        const { user1, erc1155Token, basket, curator } = await loadFixture(deployBasketFixture);
         await basket.connect(curator).withdrawERC1155(erc1155Token.address, 0, user1.address)
         expect(await erc1155Token.balanceOf(user1.address, 0)).to.equal(500)
     });
 
     it("should only allow owner of tokenID 0 to withdraw erc20", async function () {
-        const { user1, erc20Token, basket } = await loadFixture(deployNibblVaultFactoryFixture);
+        const { user1, erc20Token, basket } = await loadFixture(deployBasketFixture);
         await expect(basket.connect(user1).withdrawERC20(erc20Token.address, user1.address)).to.be.revertedWith("withdraw:not allowed")
     });
 
     it("should only allow owner of tokenID 0 to withdraw erc721", async function () {
-        const { user1, erc721Token, basket } = await loadFixture(deployNibblVaultFactoryFixture);
+        const { user1, erc721Token, basket } = await loadFixture(deployBasketFixture);
         await expect(basket.connect(user1).withdrawERC721(erc721Token.address, 0, user1.address)).to.be.revertedWith("withdraw:not allowed")
     });
     
     it("should only allow owner of tokenID 0 to withdraw erc1155", async function () {
-        const { user1, erc1155Token, basket } = await loadFixture(deployNibblVaultFactoryFixture);
+        const { user1, erc1155Token, basket } = await loadFixture(deployBasketFixture);
         await expect(basket.connect(user1).withdrawERC1155(erc1155Token.address, 0, user1.address)).to.be.revertedWith("withdraw:not allowed")
     });
     

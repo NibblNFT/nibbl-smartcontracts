@@ -13,7 +13,7 @@ import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { Twav } from "./Twav/Twav.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault } from "./Interfaces/INibblVault.sol";
-
+import "hardhat/console.sol";
 /// @title Vault to lock NFTs and fractionalize ERC721 to ERC20.
 /// @dev This contract uses Bancor Formula to create an automated market for fractionalized ERC20s.
 /// @dev This contract creates 2 bonding curves, referred to as primary curve and secondary curve.

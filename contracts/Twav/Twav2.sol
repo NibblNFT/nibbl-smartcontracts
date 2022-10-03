@@ -26,7 +26,6 @@ contract Twav2 {
         unchecked {
             _timeElapsed = _blockTimestamp - lastBlockTimeStamp;
         }
-
         uint256 _prevCumulativeValuation = twavObservations[((twavObservationsIndex + TWAV_BLOCK_NUMBERS) - 1) % TWAV_BLOCK_NUMBERS].cumulativeValuation;
         twavObservations[twavObservationsIndex] = TwavObservation(_blockTimestamp, _prevCumulativeValuation + (_valuation * _timeElapsed)); //add the previous observation to make it cumulative
         twavObservationsIndex = (twavObservationsIndex + 1) % TWAV_BLOCK_NUMBERS;

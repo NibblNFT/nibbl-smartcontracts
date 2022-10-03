@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
-
 pragma solidity 0.8.10;
+
 contract Twav {
     struct TwavObservation {
         uint32 timestamp;
@@ -23,7 +23,6 @@ contract Twav {
         unchecked {
             _timeElapsed = _blockTimestamp - lastBlockTimeStamp;
         }
-
         uint256 _prevCumulativeValuation = twavObservations[((twavObservationsIndex + TWAV_BLOCK_NUMBERS) - 1) % TWAV_BLOCK_NUMBERS].cumulativeValuation;
         twavObservations[twavObservationsIndex] = TwavObservation(_blockTimestamp, _prevCumulativeValuation + (_valuation * _timeElapsed)); //add the previous observation to make it cumulative
         twavObservationsIndex = (twavObservationsIndex + 1) % TWAV_BLOCK_NUMBERS;
