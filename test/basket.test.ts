@@ -61,7 +61,7 @@ describe("Basket", function () {
     
   });
 
-  describe("Withdrawls from basket", function () {
+  describe("Withdrawals from basket", function () {
 
     it("should allow withdraw erc20", async function () {
         const { user1, erc20Token, basket, curator } = await loadFixture(deployBasketFixture);
