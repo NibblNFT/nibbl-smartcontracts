@@ -11,10 +11,13 @@
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
-    "hardhat": "^2.11.2"
+    "hardhat": "^2.11.2",
+    "hardhat-gas-reporter": "^1.0.9"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.3",
-    "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1"
+    "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1",
+    "hardhat-contract-sizer": "^2.6.1",
+    "solmate": "^6.6.1"
   }
 }

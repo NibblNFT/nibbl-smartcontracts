@@ -14,7 +14,7 @@ import { Twav2 } from "./Twav/Twav2.sol";
 import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault2 } from "./Interfaces/INibblVault2.sol";
 import { ERC1155Link } from "./ERC1155Link.sol";
-import { Proxy } from "./Proxy/Proxy.sol";
+import { ProxyERC1155Link } from "./Proxy/ProxyERC1155Link.sol";
 import "hardhat/console.sol";
 
 /// @title Vault to lock NFTs and fractionalize ERC721 to ERC20.
@@ -142,8 +142,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
 
     string public imageUrl;
 
-    
-    ERC1155Link public nibblERC1155Link;
+    address public nibblERC1155Link;
 
     modifier lock() {
         require(unlocked == 1, 'NibblVault: LOCKED');
@@ -172,6 +171,16 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     /// @dev pausablity implemented in factory
     modifier whenNotPaused() {
         require(!NibblVaultFactory(factory).paused(), 'NibblVault: Paused');
+        _;
+    }
+
+    modifier onlyCurator() {
+        require(msg.sender == curator,"NibblVault: Only Curator");
+        _;
+    }
+
+    modifier onlyBidder() {
+        require(msg.sender == bidder,"NibblVault: Only winner");
         _;
     }
 
@@ -462,8 +471,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
         }
     }
 
-    function setURL(string memory _url) public {
-        require(msg.sender == curator, "NibblVault: Only Curator");
+    function setURL(string memory _url) public onlyCurator {
         require(bytes(imageUrl).length == 0, "NibblVault: Already set");
         imageUrl = _url;
     }
@@ -490,8 +498,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     /// @notice Function to allow curator to redeem accumulated curator fee.
     /// @param _to the address where curator fee will be sent
     /// @dev can only be called by curator
-    function redeemCuratorFee(address payable _to) external override returns(uint256 _feeAccruedCurator) {
-        require(msg.sender == curator,"NibblVault: Only Curator");
+    function redeemCuratorFee(address payable _to) external override onlyCurator returns(uint256 _feeAccruedCurator) {
         _feeAccruedCurator = feeAccruedCurator;
         feeAccruedCurator = 0;
         safeTransferETH(_to, _feeAccruedCurator);
@@ -501,8 +508,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     /// @notice to update the curator address
     /// @param _newCurator new curator address 
     /// @dev can only be called by curator
-    function updateCurator(address _newCurator) external override {
-        require(msg.sender == curator,"NibblVault: Only Curator");
+    function updateCurator(address _newCurator) external override onlyCurator {
         curator = _newCurator;
     }
 
@@ -511,8 +517,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     /// @param _assetAddress the address of asset to be unlocked
     /// @param _assetID the ID of asset to be unlocked
     /// @param _to the address where unlocked NFT will be sent
-    function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external override boughtOut {
-        require(msg.sender == bidder,"NibblVault: Only winner");
+    function withdrawERC721(address _assetAddress, uint256 _assetID, address _to) external override boughtOut onlyBidder {
         IERC721(_assetAddress).safeTransferFrom(address(this), _to, _assetID);
     }
 
@@ -520,8 +525,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     /// @notice ERC20s can be accumulated by the underlying ERC721 in the vault as royalty or airdrops 
     /// @param _asset the address of asset to be unlocked
     /// @param _to the address where unlocked NFT will be sent
-    function withdrawERC20(address _asset, address _to) external override boughtOut {
-        require(msg.sender == bidder, "NibblVault: Only winner");
+    function withdrawERC20(address _asset, address _to) external override boughtOut onlyBidder {
         IERC20(_asset).safeTransfer(_to, IERC20(_asset).balanceOf(address(this)));
     }
 
@@ -530,20 +534,17 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     /// @param _asset the address of asset to be unlocked
     /// @param _assetID the ID of asset to be unlocked
     /// @param _to the address where unlocked NFT will be sent
-    function withdrawERC1155(address _asset, uint256 _assetID, address _to) external override boughtOut {
-        require(msg.sender == bidder, "NibblVault: Only winner");
+    function withdrawERC1155(address _asset, uint256 _assetID, address _to) external override boughtOut onlyBidder {
         uint256 balance = IERC1155(_asset).balanceOf(address(this),  _assetID);
         IERC1155(_asset).safeTransferFrom(address(this), _to, _assetID, balance, "0");
     }
     
-    function createERC1155Link(uint256 _mintRatio) external {
-        require(msg.sender == curator, "NibblVault: !Curator");
-        require(bytes(imageUrl).length > 0, "NibblVault: !URL");
-        require(_mintRatio != 0, "NibblVault: Invalid Ratio");
-        ERC1155Link _link = ERC1155Link(address(new Proxy(nibblERC1155LinkImplementation)));
-        _link.initialize(imageUrl, _mintRatio);
+    function createERC1155Link() external onlyCurator {
+        // require(bytes(imageUrl).length > 0, "NibblVault: !URL");
+        address _link = address(new ProxyERC1155Link(address(this)));
+        ERC1155Link(_link).initialize(payable(factory), curator);
         nibblERC1155Link = _link;
-        emit ERC1155LinkCreated(address(_link), address(this), _mintRatio);
+        emit ERC1155LinkCreated(_link, address(this));
     }
 
     function safeTransferETH(address payable _to, uint256 _amount) private {

@@ -2,7 +2,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers, network } from "hardhat";
-import { Basket, Basket__factory, ERC1155Link, ERC1155Link__factory, ERC721TestToken, ERC721TestToken__factory, NibblVault, NibblVault2, NibblVault2__factory, NibblVaultFactory, NibblVaultFactory__factory, NibblVault__factory, TestBancorFormula, TestBancorFormula__factory } from "../typechain-types";
+import { Basket, Basket__factory, ERC1155Link, ERC1155Link__factory, ERC721TestToken, ERC721TestToken__factory, NibblVault2, NibblVault2__factory, NibblVaultFactory, NibblVaultFactory__factory, NibblVault__factory, TestBancorFormula, TestBancorFormula__factory } from "../typechain-types";
 import * as constants from "./constants";
 import { getBigNumber, getCurrentValuation } from "./helper";
 import { TWAV } from "./twav";
@@ -49,7 +49,7 @@ describe("NibblVault2", function () {
     const proxyAddress = await vaultFactoryContract.getVaultAddress(curator.address, erc721Token.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
     const vaultContract: NibblVault2 = NibblVault2_Factory.attach(proxyAddress)
 
-    return { admin, implementationRole, feeRole, pausingRole, feeTo, user1, user2, erc721Token, vaultFactoryContract, vaultContract, curator, testBancorFormulaContract, buyer1};
+    return { admin, implementationRole, feeRole, pausingRole, feeTo, user1, user2, erc721Token, vaultFactoryContract, vaultContract, curator, testBancorFormulaContract, buyer1, ERC1155Link_Factory};
   }
 
   describe("Initialization", function () {
@@ -1015,6 +1015,30 @@ describe("NibblVault2", function () {
       expect(accruedFeeAfterRedeem).to.be.equal(0);
     });
 
+  })
+
+  describe("ERC1155 Link", () => {
+    it("should create a ERC1155Link", async function () {
+      const { vaultContract, ERC1155Link_Factory, user1, curator, vaultFactoryContract } = await loadFixture(deployNibblVaultFactoryFixture);
+      const nonce = await user1.provider.getTransactionCount(vaultContract.address);
+      const addrExpected = ethers.utils.getContractAddress({
+        from: vaultContract.address,
+        nonce: nonce
+      })
+      const tx = await vaultContract.connect(curator).createERC1155Link()
+      expect(tx).to.emit(vaultContract, "ERC1155LinkCreated")
+      await tx.wait()
+      const erc1155Link = ERC1155Link_Factory.attach(addrExpected);
+      expect(await vaultContract.nibblERC1155Link()).to.be.equal(addrExpected);
+      expect(await erc1155Link.linkErc20()).to.be.equal(vaultContract.address);
+      expect(await erc1155Link.factory()).to.be.equal(vaultFactoryContract.address);
+      expect(await erc1155Link.curator()).to.be.equal(curator.address);
+    });
+
+    it("should only allow curator to create a ERC1155Link", async function () {
+      const { vaultContract, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
+      await expect(vaultContract.connect(user1).createERC1155Link()).to.be.revertedWith("NibblVault: Only Curator")
+    });
   })
 
   

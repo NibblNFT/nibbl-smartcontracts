@@ -11,7 +11,7 @@ interface INibblVault2 is IERC20Upgradeable {
     event CuratorFeeUpdated(uint256 indexed fee);
     event Buy(address indexed buyer, uint256 indexed continousTokenAmount, uint256 indexed reserveTokenAmt);
     event Sell(address indexed seller, uint256 indexed continousTokenAmount, uint256 indexed reserveTokenAmt);
-    event ERC1155LinkCreated(address indexed link, address indexed vault, uint256 indexed mintRatio);
+    event ERC1155LinkCreated(address indexed link, address indexed vault);
 
     function initialize(string memory _tokenName, string memory _tokenSymbol, address _assetAddress, uint256 _assetID, address _curator, uint256 _initialTokenSupply, uint256 _initialTokenPrice, uint256 _minBuyoutTime) external payable;
     function buy(uint256 _minAmtOut, address _to) external payable returns(uint256 _purchaseReturn);
