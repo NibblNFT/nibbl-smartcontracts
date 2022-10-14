@@ -39,3 +39,10 @@ export const FEE_SECONDARY_CURVE = (FEE_ADMIN).add(FEE_CURATOR); // Fee charged 
 
 export const ONE = getBigNumber(1)
 export const TWO = getBigNumber(2)
+
+
+/// ERC1155Link
+export const URI = "TOKEN_URI";
+export const MINT_RATIO = getBigNumber(10); // 10 * 1e18
+export const USER_CAP = 100; // 100 
+export const MAX_CAP = 200; // 200 

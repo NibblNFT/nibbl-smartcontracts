@@ -15,7 +15,6 @@ import { EIP712Base } from "./Utilities/EIP712Base.sol";
 import { INibblVault2 } from "./Interfaces/INibblVault2.sol";
 import { ERC1155Link } from "./ERC1155Link.sol";
 import { ProxyERC1155Link } from "./Proxy/ProxyERC1155Link.sol";
-import "hardhat/console.sol";
 
 /// @title Vault to lock NFTs and fractionalize ERC721 to ERC20.
 /// @dev This contract uses Bancor Formula to create an automated market for fractionalized ERC20s.
@@ -542,7 +541,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     function createERC1155Link() external onlyCurator {
         // require(bytes(imageUrl).length > 0, "NibblVault: !URL");
         address _link = address(new ProxyERC1155Link(address(this)));
-        ERC1155Link(_link).initialize(payable(factory), curator);
+        ERC1155Link(_link).initialize(curator);
         nibblERC1155Link = _link;
         emit ERC1155LinkCreated(_link, address(this));
     }

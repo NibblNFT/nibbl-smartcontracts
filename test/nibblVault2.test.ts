@@ -2,12 +2,12 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers, network } from "hardhat";
-import { Basket, Basket__factory, ERC1155Link, ERC1155Link__factory, ERC721TestToken, ERC721TestToken__factory, NibblVault2, NibblVault2__factory, NibblVaultFactory, NibblVaultFactory__factory, NibblVault__factory, TestBancorFormula, TestBancorFormula__factory } from "../typechain-types";
+import { Basket, Basket__factory, ERC1155Link, ERC1155Link__factory, ERC721TestToken, ERC721TestToken__factory, NibblVault, NibblVault2, NibblVault2__factory, NibblVaultFactory, NibblVaultFactory__factory, NibblVault__factory, TestBancorFormula, TestBancorFormula__factory } from "../typechain-types";
 import * as constants from "./constants";
 import { getBigNumber, getCurrentValuation } from "./helper";
 import { TWAV } from "./twav";
 
-describe("NibblVault2", function () {
+describe("NibblVault2: Vault creation before upgrade", function () {
 
   async function deployNibblVaultFactoryFixture() {
     const [admin, implementationRole, feeRole, pausingRole, curator, feeTo, user1, user2, buyer1] = await ethers.getSigners();
@@ -16,14 +16,13 @@ describe("NibblVault2", function () {
     const erc721Token: ERC721TestToken = await (await ERC721Token_Factory.deploy()).deployed();
     
     // Deploy BasketImplementation
-    const ERC1155Link_Factory: ERC1155Link__factory = await ethers.getContractFactory("ERC1155Link");
-    const erc1155LinkImplementation: ERC1155Link = await (await ERC1155Link_Factory.deploy()).deployed();
-        
-    //Deploy NibblVaultImplementation
-    const NibblVault2_Factory: NibblVault2__factory = await ethers.getContractFactory("NibblVault2");
-    const vaultImplementation: NibblVault2 = await (await NibblVault2_Factory.deploy(erc1155LinkImplementation.address)).deployed();
     
-
+    //Deploy NibblVaultImplementation
+    const NibblVault_Factory: NibblVault__factory = await ethers.getContractFactory("NibblVault");
+    const vaultImplementation: NibblVault = await (await NibblVault_Factory.deploy()).deployed();
+    
+    
+    
     // Deploy BasketImplementation
     const Basket_Factory: Basket__factory = await ethers.getContractFactory("Basket");
     const basketImplementation: Basket = await (await Basket_Factory.deploy()).deployed();
@@ -31,6 +30,13 @@ describe("NibblVault2", function () {
     // Deploy NibblVaultFactory
     const NibblVaultFactory: NibblVaultFactory__factory = await ethers.getContractFactory("NibblVaultFactory");
     const vaultFactoryContract: NibblVaultFactory = await (await NibblVaultFactory.connect(admin).deploy(vaultImplementation.address, feeTo.address, admin.address, basketImplementation.address)).deployed();
+    
+    const ERC1155Link_Factory: ERC1155Link__factory = await ethers.getContractFactory("ERC1155Link");
+    const erc1155LinkImplementation: ERC1155Link = await (await ERC1155Link_Factory.deploy(vaultFactoryContract.address)).deployed();
+    
+    //Deploy NibblVaultImplementation
+    const NibblVault2_Factory: NibblVault2__factory = await ethers.getContractFactory("NibblVault2");
+    const vaultImplementation2: NibblVault2 = await (await NibblVault2_Factory.deploy(erc1155LinkImplementation.address)).deployed();
     
     const TestBancorFormula: TestBancorFormula__factory = await ethers.getContractFactory("TestBancorFormula");
     const testBancorFormulaContract: TestBancorFormula = await (await TestBancorFormula.connect(admin).deploy()).deployed();
@@ -44,10 +50,15 @@ describe("NibblVault2", function () {
     await erc721Token.connect(curator).approve(vaultFactoryContract.address, 0);
 
     //create a vault
-    await vaultFactoryContract.connect(curator).createVault( erc721Token.address, curator.address, constants.tokenName, constants.tokenSymbol, 0, constants.initialTokenSupply, constants.initialTokenPrice, (await time.latest()) + time.duration.days(2), { value: constants.initialSecondaryReserveBalance });
+    await vaultFactoryContract.connect(curator).createVault( erc721Token.address, curator.address, constants.tokenName, constants.tokenSymbol, 0, constants.initialTokenSupply, constants.initialTokenPrice, (await time.latest()) + time.duration.days(4), { value: constants.initialSecondaryReserveBalance });
 
+    await vaultFactoryContract.connect(implementationRole).proposeNewVaultImplementation(vaultImplementation2.address);
+    await time.increase(constants.UPDATE_TIME_FACTORY);
+    
+    await vaultFactoryContract.updateVaultImplementation();
+      
     const proxyAddress = await vaultFactoryContract.getVaultAddress(curator.address, erc721Token.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
-    const vaultContract: NibblVault2 = NibblVault2_Factory.attach(proxyAddress)
+    const vaultContract: NibblVault2 = NibblVault2_Factory.attach(proxyAddress).connect(curator)
 
     return { admin, implementationRole, feeRole, pausingRole, feeTo, user1, user2, erc721Token, vaultFactoryContract, vaultContract, curator, testBancorFormulaContract, buyer1, ERC1155Link_Factory};
   }
@@ -1013,6 +1024,23 @@ describe("NibblVault2", function () {
       await vaultContract.connect(user1).redeemCuratorFee(await curator.getAddress());
       const accruedFeeAfterRedeem = await vaultContract.feeAccruedCurator();
       expect(accruedFeeAfterRedeem).to.be.equal(0);
+    });
+
+    it("should set imageURL", async function () {
+      const { vaultContract, buyer1, user1, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+      await vaultContract.connect(curator).setURL("URL");
+      expect(await vaultContract.imageUrl()).to.be.equal("URL");
+    });
+
+    it("should not set imageURL once set", async function () {
+      const { vaultContract, buyer1, user1, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+      await vaultContract.connect(curator).setURL("URL");
+      await expect(vaultContract.connect(curator).setURL("URL")).to.be.revertedWith("NibblVault: Already set");
+    });
+
+    it("should not set URL if sender isn;t curator", async function () {
+      const { vaultContract, buyer1, user1, curator } = await loadFixture(deployNibblVaultFactoryFixture);
+      await expect(vaultContract.connect(user1).setURL("URL")).to.be.revertedWith("NibblVault: Only Curator");
     });
 
   })

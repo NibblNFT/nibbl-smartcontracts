@@ -2,32 +2,83 @@
 pragma solidity 0.8.10;
 
 import { ERC1155SupplyUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
-contract ERC1155Link is ERC1155SupplyUpgradeable {
+import { NibblVaultFactory } from "./NibblVaultFactory.sol";
+import { ERC1155 } from "solmate/src/tokens/ERC1155.sol";
 
-    uint256 public mintRatio; // Number of ERC20s required for each ERC1155 token[0]
+contract ERC1155Link is ERC1155, Initializable {
 
-    IERC20 public linkErc20;
-    constructor () {
+    event TierAdded(uint256 indexed tier, uint256 indexed mintRatio, uint256 indexed maxCap, uint256 userCap );
+
+    NibblVaultFactory public immutable factory; // Factory
+    
+    IERC20 public linkErc20; // Fractionalised Token
+    address public curator;
+
+    mapping ( uint256 => string ) private _uri; // Metadata TokenURI  
+    mapping ( uint256 => uint256 ) public mintRatio; // Number of ERC20s required for each ERC1155 tokenID
+    mapping ( uint256 => uint256 ) public userCap; // max erc1155 for a tokenID a user can mint
+    mapping ( uint256 => mapping(address => uint256) ) public userMint; // amt of ERC1155 tokens for a tokenID minted by users (tokenID => (Address => amt))
+    mapping ( uint256 => uint256 ) public maxCap; // max erc1155s for a tokenID that can be minted
+    mapping ( uint256 => uint256 ) public totalSupply; // totalSupply minted or burned for each tokenID
+
+
+    /// @notice To check if system isn't paused
+    /// @dev pausablity implemented in factory
+    modifier whenNotPaused() {
+        require(!factory.paused(), 'ERC1155Link: Paused');
+        _;
+    }
+
+    /// @notice Checks if tier corresponding to _id has been added by curator
+    /// @dev as mintRatio of a initialized tier can't be 0, the condition should hold true
+    /// @param _id tokenID of tier
+    modifier isValidTokenID(uint256 _id) {
+        require(mintRatio[_id] > 0, "ERC1155Link: !TokenID");
+        _;
+    }
+
+    constructor (address payable _factory) {
+        factory = NibblVaultFactory(_factory);
         _disableInitializers();
     }
 
-    function initialize(string memory _uri, uint256 _mintRatio) external initializer {
-        mintRatio = _mintRatio;
+    /// @notice Initializer function for proxy
+    /// @param _curator address of corrsponding vaults curator 
+    function initialize(address _curator) external initializer {
         linkErc20 = IERC20(msg.sender);
-        __ERC1155_init(_uri);
+        curator = _curator;
     }
 
-    function wrap(address _to, uint256 _amount) external {
-        linkErc20.transferFrom(msg.sender, address(this), _amount * mintRatio);
+    function addTier(uint256 _maxCap, uint256 _userCap, uint256 _mintRatio, uint256 _tokenID, string calldata _tokenURI) external {
+        require(msg.sender == curator,  "ERC1155Link: Only Curator");
+        require(mintRatio[_tokenID] == 0,   "ERC1155Link: Tier Exists");
+        require(_mintRatio != 0,    "ERC1155Link: !Ratio");
+        _uri[_tokenID] = _tokenURI;
+        mintRatio[_tokenID] = _mintRatio;
+        maxCap[_tokenID] = _maxCap;
+        userCap[_tokenID] = _userCap;
+        emit TierAdded(_tokenID, _mintRatio, _maxCap, _userCap);
+    }
+
+    function wrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused isValidTokenID(_tokenID) {
+        totalSupply[_tokenID] += _amount;
+        userMint[_tokenID][msg.sender] += _amount;
+        require(totalSupply[_tokenID] <= maxCap[_tokenID], "ERC1155Link: !MaxCap");
+        require(userMint[_tokenID][msg.sender] <= userCap[_tokenID], "ERC1155Link: !UserCap");
+        linkErc20.transferFrom(msg.sender, address(this), _amount * mintRatio[_tokenID]);
         _mint(_to, 0, _amount, "0");
     }
 
-    function unwrap(address _to, uint256 _amount) external {
+    function unwrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused {
+        totalSupply[_tokenID] -= _amount;
         _burn(msg.sender, 0, _amount);
-        linkErc20.transfer(_to, _amount * mintRatio);
-        
+        linkErc20.transfer(_to, _amount * mintRatio[_tokenID]);
+    }
+    
+    function uri(uint256 _tokenID) public view override returns(string memory) {
+        return _uri[_tokenID];
     }
 
 }
