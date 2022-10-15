@@ -20,7 +20,7 @@ Status: In progress
 3. Accounting for ERC1155 Wraps
 4. Reentrancy in ERC1155Link
 5. Can Vault contract be exploited somehow by ERC1155 Link?
-6. We have added 2 new modifiers in NibblVault2 [OnlyCurator](https://www.notion.so/ERC1155-Link-audit-216b906702ec43c39af991ec60feeefd) and [OnlyBidder](https://github.com/NibblNFT/erc1155Link-audit/blob/cccc326031068fde6578b7c0232d0ecf5bb87143/contracts/NibblVault2.sol#L181)
+6. We have added 2 new modifiers in NibblVault2 [OnlyCurator](https://github.com/NibblNFT/erc1155Link-audit/blob/86a60087fd4214733af363abb0508cf785cd03e1/contracts/NibblVault2.sol#L176) and [OnlyBidder](https://github.com/NibblNFT/erc1155Link-audit/blob/cccc326031068fde6578b7c0232d0ecf5bb87143/contracts/NibblVault2.sol#L181)
     
     → Can this cause any issue as we were using require statements in earlier NibblVault.sol
 
