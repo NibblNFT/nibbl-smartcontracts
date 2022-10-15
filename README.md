@@ -13,7 +13,7 @@ Status: In progress
 ## Areas of concern
 
 1. Upgradeability
-    1. Can the contract can break somehow due to upgrading from NibblVault1 to NibblVault2
+    1. Can the contract break somehow due to upgrading from NibblVault1 to NibblVault2
     2. Storage Collisions
 2. New Twav System
     1. Things we should keep in mind while upgrading the TWAV system
