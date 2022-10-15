@@ -51,6 +51,13 @@ contract ERC1155Link is ERC1155, Initializable {
         curator = _curator;
     }
 
+    /// @notice Adds a tier for the token
+    /// @param _maxCap Max Supply of tokens that can be minted for the tokenID
+    /// @param _userCap Max Supply of tokens a user cna mint
+    /// @param _mintRatio Number of ERC20s required for a tokenID
+    /// @param _tokenID tokenID to start tier on
+    /// @param _tokenURI MetaData URI for a new tier
+
     function addTier(uint256 _maxCap, uint256 _userCap, uint256 _mintRatio, uint256 _tokenID, string calldata _tokenURI) external {
         require(msg.sender == curator,  "ERC1155Link: Only Curator");
         require(mintRatio[_tokenID] == 0,   "ERC1155Link: Tier Exists");
@@ -62,6 +69,11 @@ contract ERC1155Link is ERC1155, Initializable {
         emit TierAdded(_tokenID, _mintRatio, _maxCap, _userCap);
     }
 
+
+    /// @notice Wraps ERC20 to ERC1155
+    /// @param _amount _number of ERC1155 to mint
+    /// @param _tokenID tier to wrap on
+    /// @param _to address to recieve ERC1155
     function wrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused isValidTokenID(_tokenID) {
         totalSupply[_tokenID] += _amount;
         userMint[_tokenID][msg.sender] += _amount;
@@ -70,6 +82,11 @@ contract ERC1155Link is ERC1155, Initializable {
         linkErc20.transferFrom(msg.sender, address(this), _amount * mintRatio[_tokenID]);
         _mint(_to, 0, _amount, "0");
     }
+
+    /// @notice Unwraps ERC1155 to ERC20
+    /// @param _amount _amount of erc1155s to unwrap
+    /// @param _tokenID tier of token to unwrap
+    /// @param _to address to recieve unwrapped tokens
 
     function unwrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused {
         totalSupply[_tokenID] -= _amount;
@@ -82,4 +99,3 @@ contract ERC1155Link is ERC1155, Initializable {
     }
 
 }
-
