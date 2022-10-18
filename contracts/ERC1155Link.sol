@@ -3,7 +3,7 @@ pragma solidity 0.8.10;
 
 import { ERC1155SupplyUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { NibblVault } from "./NibblVault.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { ERC1155 } from "solmate/src/tokens/ERC1155.sol";
 
@@ -13,8 +13,7 @@ contract ERC1155Link is ERC1155, Initializable {
 
     NibblVaultFactory public immutable factory; // Factory
     
-    IERC20 public linkErc20; // Fractionalised Token
-    address public curator;
+    NibblVault public linkErc20; // Fractionalised Token
 
     mapping ( uint256 => string ) private _uri; // Metadata TokenURI  
     mapping ( uint256 => uint256 ) public mintRatio; // Number of ERC20s required for each ERC1155 tokenID
@@ -45,10 +44,8 @@ contract ERC1155Link is ERC1155, Initializable {
     }
 
     /// @notice Initializer function for proxy
-    /// @param _curator address of corrsponding vaults curator 
-    function initialize(address _curator) external initializer {
-        linkErc20 = IERC20(msg.sender);
-        curator = _curator;
+    function initialize() external initializer {
+        linkErc20 = NibblVault(payable(msg.sender));
     }
 
     /// @notice Adds a tier for the token
@@ -59,7 +56,7 @@ contract ERC1155Link is ERC1155, Initializable {
     /// @param _tokenURI MetaData URI for a new tier
 
     function addTier(uint256 _maxCap, uint256 _userCap, uint256 _mintRatio, uint256 _tokenID, string calldata _tokenURI) external {
-        require(msg.sender == curator,  "ERC1155Link: Only Curator");
+        require(msg.sender == NibblVault(linkErc20).curator(),  "ERC1155Link: Only Curator");
         require(mintRatio[_tokenID] == 0,   "ERC1155Link: Tier Exists");
         require(_mintRatio != 0,    "ERC1155Link: !Ratio");
         _uri[_tokenID] = _tokenURI;
@@ -93,7 +90,7 @@ contract ERC1155Link is ERC1155, Initializable {
         _burn(msg.sender, _tokenID, _amount);
         linkErc20.transfer(_to, _amount * mintRatio[_tokenID]);
     }
-    
+
     function uri(uint256 _tokenID) public view override returns(string memory) {
         return _uri[_tokenID];
     }

@@ -1060,7 +1060,6 @@ describe("NibblVault2: Vault creation before upgrade", function () {
       expect(await vaultContract.nibblERC1155Link()).to.be.equal(addrExpected);
       expect(await erc1155Link.linkErc20()).to.be.equal(vaultContract.address);
       expect(await erc1155Link.factory()).to.be.equal(vaultFactoryContract.address);
-      expect(await erc1155Link.curator()).to.be.equal(curator.address);
     });
 
     it("should not create a ERC1155Link if already exists", async function () {
@@ -1070,7 +1069,6 @@ describe("NibblVault2: Vault creation before upgrade", function () {
         from: vaultContract.address,
         nonce: nonce
       })
-      const tx = await vaultContract.connect(curator).createERC1155Link()
       await expect(vaultContract.connect(curator).createERC1155Link()).to.be.revertedWith("NibblVault: Link Exists")
     });
 

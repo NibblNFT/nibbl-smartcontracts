@@ -542,7 +542,7 @@ contract NibblVault2 is INibblVault2, BancorFormula, ERC20Upgradeable, Twav2 {
     function createERC1155Link() external onlyCurator {
         require(nibblERC1155Link == address(0), "NibblVault: Link Exists");
         address _link = address(new ProxyERC1155Link(address(this)));
-        ERC1155Link(_link).initialize(curator);
+        ERC1155Link(_link).initialize();
         nibblERC1155Link = _link;
         emit ERC1155LinkCreated(_link, address(this));
     }
