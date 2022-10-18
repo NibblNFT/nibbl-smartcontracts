@@ -89,6 +89,7 @@ contract ERC1155Link is ERC1155, Initializable {
     /// @param _to address to recieve unwrapped tokens
     function unwrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused {
         totalSupply[_tokenID] -= _amount;
+        userMint[_tokenID][msg.sender] -= _amount;
         _burn(msg.sender, 0, _amount);
         linkErc20.transfer(_to, _amount * mintRatio[_tokenID]);
     }
