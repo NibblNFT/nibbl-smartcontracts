@@ -80,7 +80,7 @@ contract ERC1155Link is ERC1155, Initializable {
         require(totalSupply[_tokenID] <= maxCap[_tokenID], "ERC1155Link: !MaxCap");
         require(userMint[_tokenID][msg.sender] <= userCap[_tokenID], "ERC1155Link: !UserCap");
         linkErc20.transferFrom(msg.sender, address(this), _amount * mintRatio[_tokenID]);
-        _mint(_to, 0, _amount, "0");
+        _mint(_to, _tokenID, _amount, "0");
     }
 
     /// @notice Unwraps ERC1155 to ERC20
@@ -90,7 +90,7 @@ contract ERC1155Link is ERC1155, Initializable {
     function unwrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused {
         totalSupply[_tokenID] -= _amount;
         userMint[_tokenID][msg.sender] -= _amount;
-        _burn(msg.sender, 0, _amount);
+        _burn(msg.sender, _tokenID, _amount);
         linkErc20.transfer(_to, _amount * mintRatio[_tokenID]);
     }
     
