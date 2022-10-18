@@ -1045,6 +1045,17 @@ describe("Upgrade: NibblVault", function () {
       expect(await vaultContract.nibblERC1155Link()).to.be.equal(addrExpected);
     });
 
+    it("should not create a ERC1155Link if already exists", async function () {
+      const { vaultContract, user1, curator, vaultFactoryContract } = await loadFixture(deployNibblVaultFactoryFixture);
+      const nonce = await user1.provider.getTransactionCount(vaultContract.address);
+      const addrExpected = ethers.utils.getContractAddress({
+        from: vaultContract.address,
+        nonce: nonce
+      })
+      const tx = await vaultContract.connect(curator).createERC1155Link()
+      await expect(vaultContract.connect(curator).createERC1155Link()).to.be.revertedWith("NibblVault: Link Exists")
+    });
+
     it("should only allow curator to create a ERC1155Link", async function () {
       const { vaultContract, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
       await expect(vaultContract.connect(user1).createERC1155Link()).to.be.revertedWith("NibblVault: Only Curator")

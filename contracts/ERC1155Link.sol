@@ -87,7 +87,6 @@ contract ERC1155Link is ERC1155, Initializable {
     /// @param _amount _amount of erc1155s to unwrap
     /// @param _tokenID tier of token to unwrap
     /// @param _to address to recieve unwrapped tokens
-
     function unwrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused {
         totalSupply[_tokenID] -= _amount;
         _burn(msg.sender, 0, _amount);
