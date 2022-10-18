@@ -1063,12 +1063,13 @@ describe("NibblVault2: Vault creation before upgrade", function () {
     });
 
     it("should not create a ERC1155Link if already exists", async function () {
-      const { vaultContract, ERC1155Link_Factory, user1, curator, vaultFactoryContract } = await loadFixture(deployNibblVaultFactoryFixture);
+      const { vaultContract, user1, curator, vaultFactoryContract } = await loadFixture(deployNibblVaultFactoryFixture);
       const nonce = await user1.provider.getTransactionCount(vaultContract.address);
       const addrExpected = ethers.utils.getContractAddress({
         from: vaultContract.address,
         nonce: nonce
       })
+      await vaultContract.connect(curator).createERC1155Link();
       await expect(vaultContract.connect(curator).createERC1155Link()).to.be.revertedWith("NibblVault: Link Exists")
     });
 

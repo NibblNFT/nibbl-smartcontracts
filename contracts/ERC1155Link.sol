@@ -10,6 +10,8 @@ import { ERC1155 } from "solmate/src/tokens/ERC1155.sol";
 contract ERC1155Link is ERC1155, Initializable {
 
     event TierAdded(uint256 indexed tier, uint256 indexed mintRatio, uint256 indexed maxCap, uint256 userCap );
+    event Wrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to );
+    event UnWrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to );
 
     NibblVaultFactory public immutable factory; // Factory
     
@@ -78,6 +80,7 @@ contract ERC1155Link is ERC1155, Initializable {
         require(userMint[_tokenID][msg.sender] <= userCap[_tokenID], "ERC1155Link: !UserCap");
         linkErc20.transferFrom(msg.sender, address(this), _amount * mintRatio[_tokenID]);
         _mint(_to, _tokenID, _amount, "0");
+        emit Wrapped(_amount, _tokenID, _to);
     }
 
     /// @notice Unwraps ERC1155 to ERC20
@@ -89,6 +92,7 @@ contract ERC1155Link is ERC1155, Initializable {
         userMint[_tokenID][msg.sender] -= _amount;
         _burn(msg.sender, _tokenID, _amount);
         linkErc20.transfer(_to, _amount * mintRatio[_tokenID]);
+        emit UnWrapped(_amount, _tokenID, _to);
     }
 
     function uri(uint256 _tokenID) public view override returns(string memory) {
