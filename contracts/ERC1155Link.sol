@@ -13,7 +13,7 @@ contract ERC1155Link is ERC1155, Initializable {
     event Wrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to );
     event UnWrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to );
 
-    NibblVaultFactory public immutable factory; // Factory
+    NibblVaultFactory private immutable factory; // Factory
     
     NibblVault public linkErc20; // Fractionalised Token
 
