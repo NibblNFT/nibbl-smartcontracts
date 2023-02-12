@@ -251,7 +251,7 @@ describe("NibblVault2: Vault creation before upgrade", function () {
     it("should sell tokens successfully on secondary curve", async function () {
       const { vaultContract, testBancorFormulaContract, buyer1, curator, vaultFactoryContract, admin } = await loadFixture(deployNibblVaultFactoryFixture);
       const _sellAmount = (constants.initialTokenSupply).div(5);
-      let _balanceBuyer1 = buyer1.provider ? await buyer1.provider.getBalance(await buyer1.getAddress()) : buyer1.provider;
+      let _balanceBuyer1 = await buyer1.provider.getBalance(await buyer1.getAddress());
       const _expectedSaleReturn = await testBancorFormulaContract.calculateSaleReturn(constants.initialTokenSupply, constants.initialSecondaryReserveBalance, constants.initialSecondaryReserveRatio, _sellAmount);        
       const _expectedSaleReturnWithFee = _expectedSaleReturn.sub(_expectedSaleReturn.mul(constants.FEE_SECONDARY_CURVE).div(constants.SCALE));
       await vaultContract.connect(curator).sell(_sellAmount, _expectedSaleReturnWithFee, buyer1.address);
