@@ -3,6 +3,8 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Basket, Basket__factory, ERC1155Link, ERC1155Link__factory, ERC721TestToken, ERC721TestToken__factory, NibblVault, NibblVault2, NibblVault2__factory, NibblVaultFactory, NibblVaultFactory__factory, NibblVaultHelper, NibblVaultHelper__factory, NibblVault__factory, TestBancorFormula, TestBancorFormula__factory } from "../typechain-types";
 import * as constants from "./constants";
+import { getBigNumber } from "./helper";
+import { BigNumber } from "ethers";
 
 
 describe("ERC1155 Wrap", function () {
@@ -76,6 +78,9 @@ describe("ERC1155 Wrap", function () {
             await vaultHelper.connect(user1).wrapNativeToERC1155(vaultContract.address, erc1155Link.address, user1.address, _purchaseReturn, 10, 0, { value: ethers.utils.parseEther("100") })
             expect(await vaultContract.balanceOf(user1.address)).to.be.equal(_purchaseReturn.sub(constants.MINT_RATIO.mul(wrapAmt)));
             expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(wrapAmt)
+            await vaultHelper.connect(user1).wrapNativeToERC1155(vaultContract.address, erc1155Link.address, user1.address, 0, 10, 0, { value: ethers.utils.parseEther("150") })
+            // expect(await vaultContract.balanceOf(user1.address)).to.be.equal(_purchaseReturn.sub(constants.MINT_RATIO.mul(wrapAmt)));
+            // expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(wrapAmt)
         });
         
         it("Should unwrap tokens via vaultHelper", async function () {
@@ -86,7 +91,6 @@ describe("ERC1155 Wrap", function () {
             const wrapAmt = 10;
             await vaultHelper.connect(user1).wrapNativeToERC1155(vaultContract.address, erc1155Link.address, user1.address, 0, wrapAmt, 0, { value: ethers.utils.parseEther("100") })
             expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(wrapAmt)
-            //
             // Wrapped
             const _sellAmount = constants.MINT_RATIO.mul(wrapAmt);
             const _expectedSaleReturn = await testBancorFormulaContract.calculateSaleReturn(
@@ -106,9 +110,45 @@ describe("ERC1155 Wrap", function () {
             expect(await user1.provider.getBalance(await user1.getAddress())).to.be.lt(_balanceBuyer1.add(_expectedSaleReturnWithFee))
             expect(await user1.provider.getBalance(await user1.getAddress())).to.be.gt(_balanceBuyer1)
         });
+
+
+        it("Users should be able redeem funds after buyout", async function () {
+            const { curator, erc1155Link, vaultContract, user1, vaultHelper, testBancorFormulaContract, user2, buyer1 } = await loadFixture(deployNibblVaultFixture);
+
+            // const { vaultContract, buyer1, curator, admin, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
+            await time.increase(time.duration.days(2));
+            
+            let balanceContract = constants.initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
+            
+            let _buyAmount = ethers.utils.parseEther("20");      
+            curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
+            await vaultContract.connect(user2).buy(0, user2.address, { value: _buyAmount }); 
+            await vaultContract.connect(user1).buy(0, user1.address, { value: _buyAmount }); 
+            
+            const _buyoutDeposit = getBigNumber("200");                                           
+            await vaultContract.connect(user2).initiateBuyout({ value: _buyoutDeposit });
+            // --------------------- Wrap --------------------------//
+            await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, 0, constants.URI)).wait();
+            await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
+            await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
+            const wrapAmt = 10;
+            await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()           
+            // ---------------------Buyout Initiated--------------------------//
+            balanceContract = await user1.provider.getBalance(vaultContract.address);
+            await time.increase(time.duration.days(5));
+            const balanceBuyer = await vaultContract.balanceOf(user1.address);
+            const totalSupply = await vaultContract.totalSupply();
+            const returnAmt: BigNumber = ((balanceContract.sub(curatorFeeAccrued)).mul(balanceBuyer)).div(totalSupply);    
+            const initialBalBuyer: BigNumber = await user1.provider.getBalance(buyer1.address);
+            await erc1155Link.connect(user1).setApprovalForAll(vaultHelper.address, true);
+            await vaultHelper.connect(user1).redeemEditionsForNative(erc1155Link.address, vaultContract.address, 0, buyer1.address);
+            (await erc1155Link.balanceOf(user1.address, 0)).isZero;
+            (await erc1155Link.balanceOf(vaultHelper.address, 0)).isZero;
+            (await user1.provider.getBalance(buyer1.address)).gt(initialBalBuyer);
+            
+        });
+          
+
     })
 
 })
-
-// 9900026529478789709072
-// 9900026709910337123174

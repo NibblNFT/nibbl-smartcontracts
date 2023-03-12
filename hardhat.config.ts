@@ -14,7 +14,8 @@ const config: HardhatUserConfig = {
     }
   },
   gasReporter: {
-    enabled: false,
+    enabled: true,
+    gasPrice: 50
   }
 };
 

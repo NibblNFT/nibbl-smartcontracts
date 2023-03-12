@@ -56,7 +56,6 @@ contract ERC1155Link is ERC1155, Initializable {
     /// @param _mintRatio Number of ERC20s required for a tokenID
     /// @param _tokenID tokenID to start tier on
     /// @param _tokenURI MetaData URI for a new tier
-
     function addTier(uint256 _maxCap, uint256 _userCap, uint256 _mintRatio, uint256 _tokenID, string calldata _tokenURI) external {
         require(msg.sender == NibblVault(linkErc20).curator(),  "ERC1155Link: Only Curator");
         require(mintRatio[_tokenID] == 0,   "ERC1155Link: Tier Exists");

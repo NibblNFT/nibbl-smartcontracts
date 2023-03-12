@@ -3,7 +3,6 @@
 pragma solidity 0.8.10;
 import {NibblVault2} from "./NibblVault2.sol";
 import {ERC1155Link} from "./ERC1155Link.sol";
-import "hardhat/console.sol";
 
 contract NibblVaultHelper {
     function wrapNativeToERC1155(
@@ -36,7 +35,7 @@ contract NibblVaultHelper {
         uint256 _minNativeOut,
         uint256 _tokenID,
         uint256 _amt
-    ) external payable {
+    ) external {
         ERC1155Link(_link).safeTransferFrom(
             msg.sender,
             address(this),
@@ -50,7 +49,26 @@ contract NibblVaultHelper {
             _minNativeOut,
             _to
         );
+    }
 
+    function redeemEditionsForNative(
+        ERC1155Link _link,
+        NibblVault2 _vault,
+        uint256 _tokenID,
+        address payable _to
+    ) external {
+        _link.safeTransferFrom(
+            msg.sender,
+            address(this),
+            _tokenID,
+            _link.balanceOf(msg.sender, _tokenID),
+            "0x"
+        );
+        _vault.redeem(_to);
+    }
+
+    function setMaxApproval(address payable _vault, address _link) external {
+        NibblVault2(_vault).approve(_link, type(uint256).max);
     }
 
     function onERC1155Received(
