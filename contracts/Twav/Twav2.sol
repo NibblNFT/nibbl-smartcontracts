@@ -7,11 +7,11 @@ contract Twav2 {
         uint256 cumulativeValuation;
     }
 
-    uint256 constant period = 2 minutes; // Interval in which Observation should updated into twavObservations
+    uint256 constant period = 1 minutes; // Interval in which Observation should updated into twavObservations
     
     /// @notice current index of twavObservations index
     uint8 public twavObservationsIndex;
-    uint8 private constant TWAV_BLOCK_NUMBERS = 6;
+    uint8 private constant TWAV_BLOCK_NUMBERS = 10;
     uint32 public lastBlockTimeStamp;
 
 
