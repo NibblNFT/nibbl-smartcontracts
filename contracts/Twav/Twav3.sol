@@ -1,20 +1,24 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.10;
 
-contract Twav {
+pragma solidity 0.8.10;
+contract Twav3 {
     struct TwavObservation {
         uint32 timestamp;
         uint256 cumulativeValuation;
     }
 
+    uint256 constant period = 2 minutes; // Interval in which Observation should updated into twavObservations
+    
     /// @notice current index of twavObservations index
     uint8 public twavObservationsIndex;
-    uint8 private constant TWAV_BLOCK_NUMBERS = 10;
+    uint8 private constant TWAV_BLOCK_NUMBERS = 4;
     uint32 public lastBlockTimeStamp;
+
 
     /// @notice record of TWAV 
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;
-    uint256[50] private _gaps; 
+    uint256[62] private _gaps; 
+
     /// @notice updates twavObservations array
     /// @param _blockTimestamp timestamp of the block
     /// @param _valuation current valuation

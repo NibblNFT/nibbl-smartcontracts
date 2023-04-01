@@ -20,7 +20,7 @@ export const initialSecondaryReserveBalance: BigNumber = ethers.utils.parseEther
 export const initialSecondaryReserveRatio: BigNumber = initialSecondaryReserveBalance.mul(SCALE).div(initialValuation); // 10% / 100000 / 1e6 = 0.1
 export const fictitiousPrimaryReserveBalance = (primaryReserveRatio.mul(initialValuation)).div(SCALE); // 30 eth, ReserveBalance if the secondaryReserveRatio = primaryReserveRatio 
 export const initialPrimaryReserveBalance: BigNumber = fictitiousPrimaryReserveBalance; // For calculation purposes
-export const TWAV_ARRAY_SIZE: number = 6;
+export const TWAV_ARRAY_SIZE: number = 10;
 
 // Curator fee is between .75% to 1.5%
 //curator fee is proportional to the secondary reserve ratio/primaryReseveRatio i.e. initial liquidity added by curator

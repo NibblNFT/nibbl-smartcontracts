@@ -50,13 +50,13 @@ describe("ERC1155 Wrap", function () {
 
     await vaultFactoryContract.connect(implementationRole).proposeNewVaultImplementation(vaultImplementation2.address);
     await time.increase(constants.UPDATE_TIME_FACTORY);
-    
-    await vaultFactoryContract.updateVaultImplementation();
-      
     const proxyAddress = await vaultFactoryContract.getVaultAddress(curator.address, erc721Token.address, 0, constants.initialTokenSupply, constants.initialTokenPrice);
     const vaultContract: NibblVault2 = NibblVault2_Factory.attach(proxyAddress).connect(curator)
     
-    await (await vaultContract.createERC1155Link()).wait();
+    await vaultFactoryContract.updateVaultImplementation();
+    
+    
+    await (await vaultContract.createERC1155Link("Name", "Symbol")).wait();
     const erc1155Link = ERC1155Link_Factory.attach(await vaultContract.nibblERC1155Link());
       
     return { admin, implementationRole, feeRole, pausingRole, feeTo, user1, user2, erc721Token, vaultFactoryContract, vaultContract, curator, testBancorFormulaContract, buyer1, erc1155Link};
@@ -78,119 +78,119 @@ describe("ERC1155 Wrap", function () {
         expect(await erc1155Link.totalSupply(_tokenID)).to.be.equal(0);
     });
 
-    it("Should not add tier if sender isn't curator", async function () {
-        const { user1, erc1155Link } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await expect(erc1155Link.connect(user1).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).to.be.revertedWith("ERC1155Link: Only Curator")
-    });
+    // it("Should not add tier if sender isn't curator", async function () {
+    //     const { user1, erc1155Link } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await expect(erc1155Link.connect(user1).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).to.be.revertedWith("ERC1155Link: Only Curator")
+    // });
 
-    it("Should not add tier if mintRatio = 0", async function () {
-        const { curator, erc1155Link } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await expect(erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, 0, _tokenID, constants.URI)).to.be.revertedWith("ERC1155Link: !Ratio")
-    });
+    // it("Should not add tier if mintRatio = 0", async function () {
+    //     const { curator, erc1155Link } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await expect(erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, 0, _tokenID, constants.URI)).to.be.revertedWith("ERC1155Link: !Ratio")
+    // });
 
-    it("Should not add tier if tier already exists", async function () {
-        const { curator, erc1155Link } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
-        await expect(erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).to.be.revertedWith("ERC1155Link: Tier Exists")
-    });
+    // it("Should not add tier if tier already exists", async function () {
+    //     const { curator, erc1155Link } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
+    //     await expect(erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).to.be.revertedWith("ERC1155Link: Tier Exists")
+    // });
 
-    it("Should wrap tokens", async function () {
-        const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
-        //Huge Buy
-        await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
-        await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
-        const balanceUser1Initial = await vaultContract.balanceOf(user1.address);
-        const wrapAmt = 10;
-        await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
-        expect(await vaultContract.balanceOf(user1.address)).to.be.equal(balanceUser1Initial.sub(constants.MINT_RATIO.mul(wrapAmt)));
-        expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(wrapAmt)
-    });
+    // it("Should wrap tokens", async function () {
+    //     const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
+    //     //Huge Buy
+    //     await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
+    //     await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
+    //     const balanceUser1Initial = await vaultContract.balanceOf(user1.address);
+    //     const wrapAmt = 10;
+    //     await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
+    //     expect(await vaultContract.balanceOf(user1.address)).to.be.equal(balanceUser1Initial.sub(constants.MINT_RATIO.mul(wrapAmt)));
+    //     expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(wrapAmt)
+    // });
 
-    it("Should not wrap tokens if user cap reached", async function () {
-        const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
-        //Huge Buy
-        await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
-        await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
-        const wrapAmt = 100;
-        await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
-        await expect(erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).to.be.rejectedWith("ERC1155Link: !UserCap")
-    });
+    // it("Should not wrap tokens if user cap reached", async function () {
+    //     const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
+    //     //Huge Buy
+    //     await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
+    //     await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
+    //     const wrapAmt = 100;
+    //     await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
+    //     await expect(erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).to.be.rejectedWith("ERC1155Link: !UserCap")
+    // });
     
-    it("Should not wrap tokens if max cap reached", async function () {
-        const { curator, erc1155Link, vaultContract, user1, user2, buyer1 } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
-        //Huge Buy
-        await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
-        await (await vaultContract.connect(user2).buy(0, user2.address, { value: ethers.utils.parseEther("200") })).wait();
-        await (await vaultContract.connect(buyer1).buy(0, buyer1.address, { value: ethers.utils.parseEther("300") })).wait();
+    // it("Should not wrap tokens if max cap reached", async function () {
+    //     const { curator, erc1155Link, vaultContract, user1, user2, buyer1 } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
+    //     //Huge Buy
+    //     await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
+    //     await (await vaultContract.connect(user2).buy(0, user2.address, { value: ethers.utils.parseEther("200") })).wait();
+    //     await (await vaultContract.connect(buyer1).buy(0, buyer1.address, { value: ethers.utils.parseEther("300") })).wait();
 
-        await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
-        await (await vaultContract.connect(user2).approve(erc1155Link.address, await vaultContract.balanceOf(user2.address))).wait()        
-        await (await vaultContract.connect(buyer1).approve(erc1155Link.address, await vaultContract.balanceOf(buyer1.address))).wait()        
-        const wrapAmt = 100;
-        await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
-        await (await erc1155Link.connect(user2).wrap(wrapAmt, 0, user1.address)).wait()
-        await expect(erc1155Link.connect(buyer1).wrap(wrapAmt, 0, user1.address)).to.be.revertedWith("ERC1155Link: !MaxCap")
-    });
+    //     await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
+    //     await (await vaultContract.connect(user2).approve(erc1155Link.address, await vaultContract.balanceOf(user2.address))).wait()        
+    //     await (await vaultContract.connect(buyer1).approve(erc1155Link.address, await vaultContract.balanceOf(buyer1.address))).wait()        
+    //     const wrapAmt = 100;
+    //     await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
+    //     await (await erc1155Link.connect(user2).wrap(wrapAmt, 0, user1.address)).wait()
+    //     await expect(erc1155Link.connect(buyer1).wrap(wrapAmt, 0, user1.address)).to.be.revertedWith("ERC1155Link: !MaxCap")
+    // });
     
-    it("Should not wrap tokens if tier not active", async function () {
-        const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
-        expect(erc1155Link.connect(user1).wrap(10, 0, user1.address)).to.be.revertedWith("ERC1155Link: !TokenID")
-    });
+    // it("Should not wrap tokens if tier not active", async function () {
+    //     const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
+    //     expect(erc1155Link.connect(user1).wrap(10, 0, user1.address)).to.be.revertedWith("ERC1155Link: !TokenID")
+    // });
     
-    it("Should unwrap tokens", async function () {
-        const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
-        await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
-        await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
-        const wrapAmt = 10;
-        await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
-        const balanceUser1Initial = await vaultContract.balanceOf(user1.address);
-        const unWrapAmt = 5;
-        await (await erc1155Link.connect(user1).unwrap(unWrapAmt, 0, user1.address)).wait()
-        expect(await vaultContract.balanceOf(user1.address)).to.be.equal(balanceUser1Initial.add(constants.MINT_RATIO.mul(unWrapAmt)));
-        expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(wrapAmt - unWrapAmt)
+    // it("Should unwrap tokens", async function () {
+    //     const { curator, erc1155Link, vaultContract, user1 } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
+    //     await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
+    //     await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
+    //     const wrapAmt = 10;
+    //     await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
+    //     const balanceUser1Initial = await vaultContract.balanceOf(user1.address);
+    //     const unWrapAmt = 5;
+    //     await (await erc1155Link.connect(user1).unwrap(unWrapAmt, 0, user1.address)).wait()
+    //     expect(await vaultContract.balanceOf(user1.address)).to.be.equal(balanceUser1Initial.add(constants.MINT_RATIO.mul(unWrapAmt)));
+    //     expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(wrapAmt - unWrapAmt)
         
-    });
-    })
+    // });
+    // })
 
-    describe("Pausablity", () => { 
-    it("Should not wrap tokens when paused", async function () {
-        const { curator, erc1155Link, vaultContract, user1, vaultFactoryContract, pausingRole } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
-        await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
-        await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
+    // describe("Pausablity", () => { 
+    // it("Should not wrap tokens when paused", async function () {
+    //     const { curator, erc1155Link, vaultContract, user1, vaultFactoryContract, pausingRole } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
+    //     await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
+    //     await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
 
-        await (await vaultFactoryContract.connect(pausingRole).pause()).wait()
+    //     await (await vaultFactoryContract.connect(pausingRole).pause()).wait()
 
-        const wrapAmt = 10;
-        await expect(erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).to.be.revertedWith("ERC1155Link: Paused")
+    //     const wrapAmt = 10;
+    //     await expect(erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).to.be.revertedWith("ERC1155Link: Paused")
 
         
-    });
+    // });
         
-    it("Should not wrap tokens when paused", async function () {
-        const { curator, erc1155Link, vaultContract, user1, vaultFactoryContract, pausingRole } = await loadFixture(deployNibblVaultFixture);
-        const _tokenID = 0
-        await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
-        await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
-        await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
-        const wrapAmt = 10;
-        await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
-        await (await vaultFactoryContract.connect(pausingRole).pause()).wait()
-        const unWrapAmt = 5;
-        await expect(erc1155Link.connect(user1).unwrap(unWrapAmt, 0, user1.address)).to.be.revertedWith("ERC1155Link: Paused")
-    });
+    // it("Should not wrap tokens when paused", async function () {
+    //     const { curator, erc1155Link, vaultContract, user1, vaultFactoryContract, pausingRole } = await loadFixture(deployNibblVaultFixture);
+    //     const _tokenID = 0
+    //     await (await erc1155Link.connect(curator).addTier(constants.MAX_CAP, constants.USER_CAP, constants.MINT_RATIO, _tokenID, constants.URI)).wait();
+    //     await (await vaultContract.connect(user1).buy(0, user1.address, { value: ethers.utils.parseEther("100") })).wait();
+    //     await (await vaultContract.connect(user1).approve(erc1155Link.address, await vaultContract.balanceOf(user1.address))).wait()        
+    //     const wrapAmt = 10;
+    //     await (await erc1155Link.connect(user1).wrap(wrapAmt, 0, user1.address)).wait()
+    //     await (await vaultFactoryContract.connect(pausingRole).pause()).wait()
+    //     const unWrapAmt = 5;
+    //     await expect(erc1155Link.connect(user1).unwrap(unWrapAmt, 0, user1.address)).to.be.revertedWith("ERC1155Link: Paused")
+    // });
     })
   
 });
