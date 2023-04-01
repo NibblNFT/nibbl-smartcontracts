@@ -17,6 +17,8 @@ contract Twav3 {
 
     /// @notice record of TWAV 
     TwavObservation[TWAV_BLOCK_NUMBERS] public twavObservations;
+    // 62 for polygon, arbitrum
+    // 54 for mainnet
     uint256[62] private _gaps; 
 
     /// @notice updates twavObservations array
