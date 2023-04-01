@@ -1054,7 +1054,7 @@ describe("NibblVault2: Vault creation after upgrade", function () {
         from: vaultContract.address,
         nonce: nonce
       })
-      const tx = await vaultContract.connect(curator).createERC1155Link()
+      const tx = await vaultContract.connect(curator).createERC1155Link("Name", "Symbol")
       expect(tx).to.emit(vaultContract, "ERC1155LinkCreated")
       await tx.wait()
       const erc1155Link = ERC1155Link_Factory.attach(addrExpected);
@@ -1069,12 +1069,12 @@ describe("NibblVault2: Vault creation after upgrade", function () {
         from: vaultContract.address,
         nonce: nonce
       })
-      const tx = await vaultContract.connect(curator).createERC1155Link()
-      await expect(vaultContract.connect(curator).createERC1155Link()).to.be.revertedWith("NibblVault: Link Exists")
+      const tx = await vaultContract.connect(curator).createERC1155Link("Name", "Symbol")
+      await expect(vaultContract.connect(curator).createERC1155Link("Name", "Symbol")).to.be.revertedWith("NibblVault: Link Exists")
     });
     it("should only allow curator to create a ERC1155Link", async function () {
       const { vaultContract, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
-      await expect(vaultContract.connect(user1).createERC1155Link()).to.be.revertedWith("NibblVault: Only Curator")
+      await expect(vaultContract.connect(user1).createERC1155Link("Name", "Symbol")).to.be.revertedWith("NibblVault: Only Curator")
     });
   })
 

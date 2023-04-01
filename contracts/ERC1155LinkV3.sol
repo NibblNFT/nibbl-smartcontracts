@@ -3,11 +3,11 @@ pragma solidity 0.8.10;
 
 import { ERC1155SupplyUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { NibblVault } from "./NibblVault.sol";
+import { NibblVault3 } from "./NibblVault3.sol";
 import { NibblVaultFactory } from "./NibblVaultFactory.sol";
 import { ERC1155 } from "solmate/src/tokens/ERC1155.sol";
 
-contract ERC1155Link is ERC1155, Initializable {
+contract ERC1155LinkV3 is ERC1155, Initializable {
 
     event TierAdded(uint256 indexed tier, uint256 indexed mintRatio, uint256 indexed maxCap, uint256 userCap );
     event Wrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to );
@@ -15,7 +15,7 @@ contract ERC1155Link is ERC1155, Initializable {
 
     NibblVaultFactory private immutable factory; // Factory
     
-    NibblVault public linkErc20; // Fractionalised Token
+    NibblVault3 public linkErc20; // Fractionalised Token
 
     mapping ( uint256 => string ) private _uri; // Metadata TokenURI  
     mapping ( uint256 => uint256 ) public mintRatio; // Number of ERC20s required for each ERC1155 tokenID
@@ -24,9 +24,6 @@ contract ERC1155Link is ERC1155, Initializable {
     mapping ( uint256 => uint256 ) public maxCap; // max erc1155s for a tokenID that can be minted
     mapping ( uint256 => uint256 ) public totalSupply; // totalSupply minted or burned for each tokenID
 
-    bool private isCuratorWrapValid;
-    string public name;
-    string public symbol;
 
     /// @notice To check if system isn't paused
     /// @dev pausablity implemented in factory
@@ -49,10 +46,8 @@ contract ERC1155Link is ERC1155, Initializable {
     }
 
     /// @notice Initializer function for proxy
-    function initialize(string memory _name, string memory _symbol) external initializer {
-        linkErc20 = NibblVault(payable(msg.sender));
-        name = _name;
-        symbol = _symbol;
+    function initialize() external initializer {
+        linkErc20 = NibblVault3(payable(msg.sender));
     }
 
     /// @notice Adds a tier for the token
@@ -61,9 +56,8 @@ contract ERC1155Link is ERC1155, Initializable {
     /// @param _mintRatio Number of ERC20s required for a tokenID
     /// @param _tokenID tokenID to start tier on
     /// @param _tokenURI MetaData URI for a new tier
-
     function addTier(uint256 _maxCap, uint256 _userCap, uint256 _mintRatio, uint256 _tokenID, string calldata _tokenURI) external {
-        require(msg.sender == NibblVault(linkErc20).curator(),  "ERC1155Link: Only Curator");
+        require(msg.sender == NibblVault3(linkErc20).curator(),  "ERC1155Link: Only Curator");
         require(mintRatio[_tokenID] == 0,   "ERC1155Link: Tier Exists");
         require(_mintRatio != 0,    "ERC1155Link: !Ratio");
         _uri[_tokenID] = _tokenURI;
@@ -97,27 +91,6 @@ contract ERC1155Link is ERC1155, Initializable {
         _burn(msg.sender, _tokenID, _amount);
         linkErc20.transfer(_to, _amount * mintRatio[_tokenID]);
         emit UnWrapped(_amount, _tokenID, _to);
-    }
-
-    /// @notice Wrap function only for curator to bypass userCap
-    /// @dev curator can give away relinquish this power by setting _isCuratorWrapValid
-    /// @param _amount _number of ERC1155 to mint
-    /// @param _tokenID tier to wrap on
-    /// @param _to address to recieve ERC1155
-    function curatorWrap(uint256 _amount, uint256 _tokenID, address _to) external whenNotPaused isValidTokenID(_tokenID) {
-        require(msg.sender == NibblVault(linkErc20).curator(),  "ERC1155Link: Only Curator");
-        require(!isCuratorWrapValid, "ERC1155Link: isCuratorWrapValid");
-        totalSupply[_tokenID] += _amount;
-        userMint[_tokenID][msg.sender] += _amount;
-        require(totalSupply[_tokenID] <= maxCap[_tokenID], "ERC1155Link: !MaxCap");
-        linkErc20.transferFrom(msg.sender, address(this), _amount * mintRatio[_tokenID]);
-        _mint(_to, _tokenID, _amount, "0");
-        emit Wrapped(_amount, _tokenID, _to);
-    }
-
-    function setCuratorWrapValid() external {
-        require(msg.sender == NibblVault(linkErc20).curator(),  "ERC1155Link: Only Curator");
-        isCuratorWrapValid = true;
     }
 
     function uri(uint256 _tokenID) public view override returns(string memory) {

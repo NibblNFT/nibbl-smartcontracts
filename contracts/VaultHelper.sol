@@ -51,7 +51,7 @@ contract NibblVaultHelper {
         );
     }
 
-    function redeemEditionsForNative(
+    function redeemEditionForNative(
         ERC1155Link _link,
         NibblVault2 _vault,
         uint256 _tokenID,
@@ -65,6 +65,25 @@ contract NibblVaultHelper {
             "0x"
         );
         _vault.redeem(_to);
+    }
+
+    function redeemMultipleEditionsForNative(
+        ERC1155Link _link,
+        NibblVault2 _vault,
+        uint256[] calldata _tokenIDs,
+        address payable _to
+    ) external {
+        uint256 _len = _tokenIDs.length;
+        for (uint256 index = 0; index < _len; index++) {
+            _link.safeTransferFrom(
+                msg.sender,
+                address(this),
+                _tokenIDs[index],
+                _link.balanceOf(msg.sender, _tokenIDs[index]),
+                "0x"
+            );
+            _vault.redeem(_to);
+        }
     }
 
     function setMaxApproval(address payable _vault, address _link) external {
