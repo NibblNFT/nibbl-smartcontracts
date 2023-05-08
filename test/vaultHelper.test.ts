@@ -107,8 +107,8 @@ describe("ERC1155 Wrap", function () {
             await vaultHelper.connect(user1).unwrapERC1155ToNative(vaultContract.address, erc1155Link.address, user1.address, _expectedSaleReturnWithFee, 0, 10)
             expect(await erc1155Link.balanceOf(user1.address, _tokenID)).to.be.equal(0)
             // Some amt go for gas
-            expect(await user1.provider.getBalance(await user1.getAddress())).to.be.lt(_balanceBuyer1.add(_expectedSaleReturnWithFee))
-            expect(await user1.provider.getBalance(await user1.getAddress())).to.be.gt(_balanceBuyer1)
+            expect(await user1.provider.getBalance(await user1.getAddress())).to.be.lt(_balanceBuyer1.add(_expectedSaleReturnWithFee));
+            expect(await user1.provider.getBalance(await user1.getAddress())).to.be.gt(_balanceBuyer1);
         });
 
 
@@ -117,9 +117,7 @@ describe("ERC1155 Wrap", function () {
 
             // const { vaultContract, buyer1, curator, admin, user1 } = await loadFixture(deployNibblVaultFactoryFixture);
             await time.increase(time.duration.days(2));
-            
             let balanceContract = constants.initialSecondaryReserveBalance, curatorFeeAccrued = ethers.constants.Zero;
-            
             let _buyAmount = ethers.utils.parseEther("20");      
             curatorFeeAccrued = curatorFeeAccrued.add((_buyAmount.mul(constants.FEE_CURATOR)).div(constants.SCALE));
             await vaultContract.connect(user2).buy(0, user2.address, { value: _buyAmount }); 
@@ -149,6 +147,7 @@ describe("ERC1155 Wrap", function () {
             await erc1155Link.connect(user1).setApprovalForAll(vaultHelper.address, true);
             await vaultHelper.connect(user1).redeemMultipleEditionsForNative(erc1155Link.address, vaultContract.address, [0, 1, 2, 3], buyer1.address);
             (await erc1155Link.balanceOf(user1.address, 0)).isZero;
+            (await vaultContract.balanceOf(buyer1.address)).isZero;
             (await erc1155Link.balanceOf(vaultHelper.address, 0)).isZero;
             (await erc1155Link.balanceOf(user1.address, 1)).isZero;
             (await erc1155Link.balanceOf(vaultHelper.address, 1)).isZero;
@@ -157,7 +156,6 @@ describe("ERC1155 Wrap", function () {
             (await erc1155Link.balanceOf(user1.address, 3)).isZero;
             (await erc1155Link.balanceOf(vaultHelper.address, 3)).isZero;
             (await user1.provider.getBalance(buyer1.address)).gt(initialBalBuyer);
-            
         });
         it("Users should be able redeem funds from multiple tokenIDs after buyout", async function () {
             const { curator, erc1155Link, vaultContract, user1, vaultHelper, testBancorFormulaContract, user2, buyer1 } = await loadFixture(deployNibblVaultFixture);
@@ -192,7 +190,6 @@ describe("ERC1155 Wrap", function () {
             (await erc1155Link.balanceOf(user1.address, 0)).isZero;
             (await erc1155Link.balanceOf(vaultHelper.address, 0)).isZero;
             (await user1.provider.getBalance(buyer1.address)).gt(initialBalBuyer);
-            
         });
           
 
