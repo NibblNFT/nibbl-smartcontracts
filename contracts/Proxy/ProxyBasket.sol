@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity 0.8.10;
-import { NibblVaultFactory } from "../NibblVaultFactory.sol";
+
+import {NibblVaultFactory} from "../NibblVaultFactory.sol";
 
 /**
  * @dev This abstract contract provides a fallback function that delegates all calls to another contract using the EVM
@@ -14,7 +15,7 @@ import { NibblVaultFactory } from "../NibblVaultFactory.sol";
  * The success and return data of the delegated call will be returned back to the caller of the proxy.
  */
 contract ProxyBasket {
-    address immutable public implementation;
+    address public immutable implementation;
 
     constructor(address _implementation) {
         implementation = payable(_implementation);
@@ -44,17 +45,10 @@ contract ProxyBasket {
 
             switch result
             // delegatecall returns 0 on error.
-            case 0 {
-                revert(0, returndatasize())
-            }
-            default {
-                return(0, returndatasize())
-            }
-        }    
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
     }
 
-    receive() external payable {    }
-
-    }
-
-
+    receive() external payable {}
+}

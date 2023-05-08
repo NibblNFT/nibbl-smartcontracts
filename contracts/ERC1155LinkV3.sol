@@ -1,34 +1,33 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.10;
 
-import { ERC1155SupplyUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { NibblVault3 } from "./NibblVault3.sol";
-import { NibblVaultFactory } from "./NibblVaultFactory.sol";
-import { ERC1155 } from "solmate/src/tokens/ERC1155.sol";
+import {ERC1155SupplyUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {NibblVault3} from "./NibblVault3.sol";
+import {NibblVaultFactory} from "./NibblVaultFactory.sol";
+import {ERC1155} from "solmate/src/tokens/ERC1155.sol";
 
 contract ERC1155LinkV3 is ERC1155, Initializable {
-
-    event TierAdded(uint256 indexed tier, uint256 indexed mintRatio, uint256 indexed maxCap, uint256 userCap );
-    event Wrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to );
-    event UnWrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to );
+    event TierAdded(uint256 indexed tier, uint256 indexed mintRatio, uint256 indexed maxCap, uint256 userCap);
+    event Wrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to);
+    event UnWrapped(uint256 indexed amount, uint256 indexed tokenID, address indexed to);
 
     NibblVaultFactory private immutable factory; // Factory
-    
+
     NibblVault3 public linkErc20; // Fractionalised Token
 
-    mapping ( uint256 => string ) private _uri; // Metadata TokenURI  
-    mapping ( uint256 => uint256 ) public mintRatio; // Number of ERC20s required for each ERC1155 tokenID
-    mapping ( uint256 => uint256 ) public userCap; // max erc1155 for a tokenID a user can mint
-    mapping ( uint256 => mapping(address => uint256) ) public userMint; // amt of ERC1155 tokens for a tokenID minted by users (tokenID => (Address => amt))
-    mapping ( uint256 => uint256 ) public maxCap; // max erc1155s for a tokenID that can be minted
-    mapping ( uint256 => uint256 ) public totalSupply; // totalSupply minted or burned for each tokenID
-
+    mapping(uint256 => string) private _uri; // Metadata TokenURI
+    mapping(uint256 => uint256) public mintRatio; // Number of ERC20s required for each ERC1155 tokenID
+    mapping(uint256 => uint256) public userCap; // max erc1155 for a tokenID a user can mint
+    mapping(uint256 => mapping(address => uint256)) public userMint; // amt of ERC1155 tokens for a tokenID minted by users (tokenID => (Address => amt))
+    mapping(uint256 => uint256) public maxCap; // max erc1155s for a tokenID that can be minted
+    mapping(uint256 => uint256) public totalSupply; // totalSupply minted or burned for each tokenID
 
     /// @notice To check if system isn't paused
     /// @dev pausablity implemented in factory
     modifier whenNotPaused() {
-        require(!factory.paused(), 'ERC1155Link: Paused');
+        require(!factory.paused(), "ERC1155Link: Paused");
         _;
     }
 
@@ -40,7 +39,7 @@ contract ERC1155LinkV3 is ERC1155, Initializable {
         _;
     }
 
-    constructor (address payable _factory) {
+    constructor(address payable _factory) {
         factory = NibblVaultFactory(_factory);
         _disableInitializers();
     }
@@ -56,17 +55,18 @@ contract ERC1155LinkV3 is ERC1155, Initializable {
     /// @param _mintRatio Number of ERC20s required for a tokenID
     /// @param _tokenID tokenID to start tier on
     /// @param _tokenURI MetaData URI for a new tier
-    function addTier(uint256 _maxCap, uint256 _userCap, uint256 _mintRatio, uint256 _tokenID, string calldata _tokenURI) external {
-        require(msg.sender == NibblVault3(linkErc20).curator(),  "ERC1155Link: Only Curator");
-        require(mintRatio[_tokenID] == 0,   "ERC1155Link: Tier Exists");
-        require(_mintRatio != 0,    "ERC1155Link: !Ratio");
+    function addTier(uint256 _maxCap, uint256 _userCap, uint256 _mintRatio, uint256 _tokenID, string calldata _tokenURI)
+        external
+    {
+        require(msg.sender == NibblVault3(linkErc20).curator(), "ERC1155Link: Only Curator");
+        require(mintRatio[_tokenID] == 0, "ERC1155Link: Tier Exists");
+        require(_mintRatio != 0, "ERC1155Link: !Ratio");
         _uri[_tokenID] = _tokenURI;
         mintRatio[_tokenID] = _mintRatio;
         maxCap[_tokenID] = _maxCap;
         userCap[_tokenID] = _userCap;
         emit TierAdded(_tokenID, _mintRatio, _maxCap, _userCap);
     }
-
 
     /// @notice Wraps ERC20 to ERC1155
     /// @param _amount _number of ERC1155 to mint
@@ -93,8 +93,7 @@ contract ERC1155LinkV3 is ERC1155, Initializable {
         emit UnWrapped(_amount, _tokenID, _to);
     }
 
-    function uri(uint256 _tokenID) public view override returns(string memory) {
+    function uri(uint256 _tokenID) public view override returns (string memory) {
         return _uri[_tokenID];
     }
-
 }

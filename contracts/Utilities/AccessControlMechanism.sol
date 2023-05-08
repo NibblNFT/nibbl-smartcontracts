@@ -2,21 +2,21 @@
 // OpenZeppelin Contracts v4.4.1 (access/AccessControl.sol)
 
 pragma solidity 0.8.10;
-import { IAccessControlMechanism } from "../Interfaces/IAccessControlMechanism.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+
+import {IAccessControlMechanism} from "../Interfaces/IAccessControlMechanism.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract AccessControlMechanism is IAccessControlMechanism, AccessControl {
-    // Mechanism to implement propose and claim Access control Roles 
+    // Mechanism to implement propose and claim Access control Roles
     // grantRole, revokeRole can be used to grant and revoke roles directly
-    
+
     bytes32 public constant FEE_ROLE = keccak256("FEE_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant IMPLEMENTER_ROLE = keccak256("IMPLEMENTER_ROLE");
 
     mapping(bytes32 => mapping(address => bool)) public pendingRoles;
 
-
-    constructor (address _admin) {
+    constructor(address _admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
         _setRoleAdmin(FEE_ROLE, DEFAULT_ADMIN_ROLE);
@@ -48,6 +48,4 @@ contract AccessControlMechanism is IAccessControlMechanism, AccessControl {
         _grantRole(_role, msg.sender);
         delete pendingRoles[_role][msg.sender];
     }
-
-
 }

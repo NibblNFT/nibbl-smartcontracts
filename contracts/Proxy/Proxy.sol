@@ -3,7 +3,7 @@
 pragma solidity 0.8.10;
 
 contract Proxy {
-    address immutable public implementation;
+    address public immutable implementation;
 
     constructor(address _implementation) {
         implementation = payable(_implementation);
@@ -33,17 +33,10 @@ contract Proxy {
 
             switch result
             // delegatecall returns 0 on error.
-            case 0 {
-                revert(0, returndatasize())
-            }
-            default {
-                return(0, returndatasize())
-            }
-        }    
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
     }
 
-    receive() external payable {    }
-
-    }
-
-
+    receive() external payable {}
+}

@@ -12,7 +12,7 @@ contract NibblVaultFactoryData {
 
     address public feeTo;
     address public pendingFeeTo;
-    uint256 public feeToUpdateTime; //Cooldown period  
+    uint256 public feeToUpdateTime; //Cooldown period
 
     uint256 public feeAdmin = 2500;
     uint256 public pendingFeeAdmin;
@@ -20,6 +20,5 @@ contract NibblVaultFactoryData {
 
     address public basketImplementation;
     address public pendingBasketImplementation;
-    uint256 public basketUpdateTime; //Cooldown period    
-
+    uint256 public basketUpdateTime; //Cooldown period
 }
